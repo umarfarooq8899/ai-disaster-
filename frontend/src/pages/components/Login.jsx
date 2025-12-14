@@ -51,6 +51,16 @@ export default function Login() {
             <input className="input" type="password" name="password" required onChange={handleChange} />
           </div>
 
+          <div className="text-right">
+  <Link
+    to="/forgot-password"
+    className="text-sm font-medium text-blue-600 hover:underline"
+  >
+    Forgot password?
+  </Link>
+</div>
+
+
           <button className="btn-primary w-full" type="submit">Login</button>
         </form>
 

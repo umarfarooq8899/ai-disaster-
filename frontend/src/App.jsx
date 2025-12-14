@@ -1,6 +1,6 @@
 import { Routes, Route } from "react-router-dom";
 import PublicLayout from "./layouts/PublicLayout";
-import PublicStatistics from "./pages/public/Statistics";
+import PublicStatistics from "./pages/components/Statistics";
 
 function App() {
   return (

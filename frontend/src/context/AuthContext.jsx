@@ -30,10 +30,10 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
+  // ✅ Signup should NOT auto-login (so user goes to login screen after signup)
   const signupUser = async (form) => {
     try {
       const data = await AuthAPI.signup(form);
-      if (data?.token && data?.user) setSession(data);
       return { success: true, data };
     } catch (err) {
       const message = err?.response?.data?.message || "Signup failed";

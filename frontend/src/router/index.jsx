@@ -10,6 +10,12 @@ import Login from "../pages/public/Login";
 import Signup from "../pages/public/Signup";
 import ReportDisaster from "../pages/public/ReportDisaster";
 import Alerts from "../pages/public/Alerts";
+import Statistics from "../pages/public/Statistics";
+import AIPredictions from "../pages/public/AIPredictions";
+import Coordination from "../pages/public/Coordination";
+
+
+
 
 // User pages
 import UserHome from "../pages/user/UserHome";
@@ -38,7 +44,6 @@ export default function Router() {
   const PrivateRoute = ({ children, roles }) => {
     if (!user) return <Navigate to="/login" />;
     if (roles && !roles.includes(user.role)) return <Navigate to="/" />;
-
     return children;
   };
 
@@ -51,6 +56,13 @@ export default function Router() {
         <Route path="signup" element={<Signup />} />
         <Route path="report" element={<ReportDisaster />} />
         <Route path="alerts" element={<Alerts />} />
+        <Route path="statistics" element={<Statistics />} />
+        <Route path="ai-predictions" element={<AIPredictions />} />
+        <Route path="coordination" element={<Coordination />} />
+
+     
+
+
       </Route>
 
       {/* DASHBOARD — PROTECTED */}

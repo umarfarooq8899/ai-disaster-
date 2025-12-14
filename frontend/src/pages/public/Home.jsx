@@ -27,7 +27,7 @@ export default function Home() {
             </h1>
 
             <p className="mt-3 text-slate-600">
-              Report incidents, view alerts, coordinate volunteers and responders — with a clean blue & white UI.
+              Report incidents, view alerts, coordinate volunteers and responders.
             </p>
 
             <div className="mt-6 flex flex-wrap gap-3">

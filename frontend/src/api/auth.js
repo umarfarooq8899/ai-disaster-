@@ -1,11 +1,13 @@
-import api from "./client";
+import api from "./axios";
 
-export const signup = async (payload) => {
-  const { data } = await api.post("/auth/signup", payload);
-  return data;
+// SIGNUP
+export const signup = async (form) => {
+  const res = await api.post("/auth/signup", form);
+  return res.data;
 };
 
-export const login = async (payload) => {
-  const { data } = await api.post("/auth/login", payload);
-  return data;
+// LOGIN
+export const login = async (form) => {
+  const res = await api.post("/auth/login", form);
+  return res.data;
 };

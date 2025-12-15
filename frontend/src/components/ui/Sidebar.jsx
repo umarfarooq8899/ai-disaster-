@@ -22,7 +22,7 @@ export default function Sidebar({ role = "general", collapsed }) {
   return (
     <aside
       className={
-        "h-screen shrink-0 border-r border-brand-800/20 bg-gradient-to-b from-brand-800 to-brand-700 text-white shadow-soft " +
+        "h-auto shrink-0 border-r border-brand-800/20 bg-gradient-to-b from-brand-800 to-brand-700 text-white shadow-soft " +
         (collapsed ? "w-20" : "w-72")
       }
     >

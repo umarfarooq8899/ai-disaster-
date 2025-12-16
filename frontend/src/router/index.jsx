@@ -15,9 +15,7 @@ import AIPredictions from "../pages/components/AIPredictions";
 import Coordination from "../pages/components/Coordination";
 import ForgotPassword from "../pages/components/ForgotPassword";
 import ResetPassword from "../pages/components/ResetPassword";
-
-
-
+import Profile from "../pages/user/Profile";
 
 // User pages
 import UserHome from "../pages/user/UserHome";
@@ -63,13 +61,10 @@ export default function Router() {
         <Route path="coordination" element={<Coordination />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password/:token" element={<ResetPassword />} />
-
-     
-
-
+        <Route path="/profile" element={<Profile />} />
       </Route>
 
-      {/* DASHBOARD — PROTECTED */}
+      {/* DASHBOARD — PROTECTED (accessed manually from Home links) */}
       <Route
         path="/dashboard"
         element={
@@ -153,4 +148,6 @@ export default function Router() {
     </Routes>
   );
 }
+
+
 

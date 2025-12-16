@@ -9,7 +9,7 @@ import {
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
-// Fix default marker icon issue in React Leaflet
+// Fix default marker icon issue
 import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
 import markerIcon from "leaflet/dist/images/marker-icon.png";
 import markerShadow from "leaflet/dist/images/marker-shadow.png";
@@ -21,24 +21,24 @@ L.Icon.Default.mergeOptions({
 });
 
 export default function MapView({ disasters = [] }) {
-  const validDisasters = disasters.filter(
-    (d) => typeof d.latitude === "number" && typeof d.longitude === "number"
+  // 🔒 HARD SAFETY
+  const safeDisasters = Array.isArray(disasters) ? disasters : [];
+
+  const validDisasters = safeDisasters.filter(
+    (d) =>
+      d &&
+      typeof d.latitude === "number" &&
+      typeof d.longitude === "number"
   );
 
   return (
     <div className="relative w-full h-[300px] sm:h-[400px] md:h-[500px] rounded-2xl overflow-hidden shadow-lg">
       <MapContainer
-        center={[20, 78]}
+        center={[30, 70]}
         zoom={5}
         scrollWheelZoom
         zoomControl={false}
-        dragging={true}
         className="h-full w-full"
-        maxBounds={[
-          [-90, -180],
-          [90, 180],
-        ]}
-        maxBoundsViscosity={1.0}
       >
         <ZoomControl position="bottomright" />
 

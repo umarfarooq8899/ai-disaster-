@@ -5,17 +5,17 @@ import PublicLayout from "../layouts/PublicLayout";
 import DashboardLayout from "../layouts/DashboardLayout";
 
 // Public pages
-import Home from "../pages/public/Home";
-import Login from "../pages/public/Login";
-import Signup from "../pages/public/Signup";
-import ReportDisaster from "../pages/public/ReportDisaster";
-import Alerts from "../pages/public/Alerts";
-import Statistics from "../pages/public/Statistics";
-import AIPredictions from "../pages/public/AIPredictions";
-import Coordination from "../pages/public/Coordination";
-
-
-
+import Home from "../pages/components/Home";
+import Login from "../pages/components/Login";
+import Signup from "../pages/components/Signup";
+import ReportDisaster from "../pages/components/ReportDisaster";
+import Alerts from "../pages/components/Alerts";
+import Statistics from "../pages/components/Statistics";
+import AIPredictions from "../pages/components/AIPredictions";
+import Coordination from "../pages/components/Coordination";
+import ForgotPassword from "../pages/components/ForgotPassword";
+import ResetPassword from "../pages/components/ResetPassword";
+import Profile from "../pages/user/Profile";
 
 // User pages
 import UserHome from "../pages/user/UserHome";
@@ -59,13 +59,12 @@ export default function Router() {
         <Route path="statistics" element={<Statistics />} />
         <Route path="ai-predictions" element={<AIPredictions />} />
         <Route path="coordination" element={<Coordination />} />
-
-     
-
-
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password/:token" element={<ResetPassword />} />
+        <Route path="/profile" element={<Profile />} />
       </Route>
 
-      {/* DASHBOARD — PROTECTED */}
+      {/* DASHBOARD — PROTECTED (accessed manually from Home links) */}
       <Route
         path="/dashboard"
         element={
@@ -149,4 +148,6 @@ export default function Router() {
     </Routes>
   );
 }
+
+
 

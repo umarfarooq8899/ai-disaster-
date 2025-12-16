@@ -14,26 +14,33 @@ const readUser = () => {
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(readUser);
 
+  // Keep localStorage in sync
   useEffect(() => {
-    localStorage.setItem("adr_user", JSON.stringify(user));
+    if (user) {
+      localStorage.setItem("adr_user", JSON.stringify(user));
+    } else {
+      localStorage.removeItem("adr_user");
+      localStorage.removeItem("adr_token");
+    }
   }, [user]);
 
+  // Set session after login
   const setSession = (payload) => {
-    // payload: { user, token }
     localStorage.setItem("adr_token", payload.token);
     setUser(payload.user);
   };
 
+  // Clear session on logout
   const clearSession = () => {
     localStorage.removeItem("adr_token");
     localStorage.removeItem("adr_user");
     setUser(null);
   };
 
+  // Signup: does NOT auto-login
   const signupUser = async (form) => {
     try {
       const data = await AuthAPI.signup(form);
-      if (data?.token && data?.user) setSession(data);
       return { success: true, data };
     } catch (err) {
       const message = err?.response?.data?.message || "Signup failed";
@@ -41,6 +48,7 @@ export function AuthProvider({ children }) {
     }
   };
 
+  // Login: sets session
   const loginUser = async (form) => {
     try {
       const data = await AuthAPI.login(form);
@@ -52,9 +60,17 @@ export function AuthProvider({ children }) {
     }
   };
 
+  // Update current user (used by Profile page)
+  const updateUser = (newData) => {
+    setUser((prev) => ({ ...prev, ...newData }));
+  };
+
   const logout = () => clearSession();
 
-  const value = useMemo(() => ({ user, signupUser, loginUser, logout }), [user]);
+  const value = useMemo(
+    () => ({ user, signupUser, loginUser, logout, updateUser }),
+    [user]
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

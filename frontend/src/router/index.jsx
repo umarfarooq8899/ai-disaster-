@@ -17,6 +17,12 @@ import ForgotPassword from "../pages/components/ForgotPassword";
 import ResetPassword from "../pages/components/ResetPassword";
 import Profile from "../pages/user/Profile";
 
+// Admin pages
+import AdminHome from "../pages/admin/AdminHome";
+import ManageUsers from "../pages/admin/ManageUsers";
+import ManageDisasters from "../pages/admin/ManageDisasters";
+import ManageAlerts from "../pages/admin/ManageAlerts";
+
 // User pages
 import UserHome from "../pages/user/UserHome";
 import MyReports from "../pages/user/MyReports";
@@ -31,16 +37,14 @@ import NearbyReports from "../pages/volunteer/NearbyReports";
 import NGOHome from "../pages/ngo/NGOHome";
 import ManageVolunteers from "../pages/ngo/ManageVolunteers";
 
-// Rescue & Admin
+// Rescue pages
 import RescueHome from "../pages/rescue/RescueHome";
-import AdminHome from "../pages/admin/AdminHome";
 
 import { AuthContext } from "../context/AuthContext";
 
 export default function Router() {
   const { user } = useContext(AuthContext);
 
-  // PROTECTED ROUTE WRAPPER
   const PrivateRoute = ({ children, roles }) => {
     if (!user) return <Navigate to="/login" />;
     if (roles && !roles.includes(user.role)) return <Navigate to="/" />;
@@ -59,12 +63,12 @@ export default function Router() {
         <Route path="statistics" element={<Statistics />} />
         <Route path="ai-predictions" element={<AIPredictions />} />
         <Route path="coordination" element={<Coordination />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/reset-password/:token" element={<ResetPassword />} />
-        <Route path="/profile" element={<Profile />} />
+        <Route path="forgot-password" element={<ForgotPassword />} />
+        <Route path="reset-password/:token" element={<ResetPassword />} />
+        <Route path="profile" element={<Profile />} />
       </Route>
 
-      {/* DASHBOARD — PROTECTED (accessed manually from Home links) */}
+      {/* DASHBOARD — ALL PROTECTED ROUTES */}
       <Route
         path="/dashboard"
         element={
@@ -73,12 +77,15 @@ export default function Router() {
           </PrivateRoute>
         }
       >
-        {/* USER */}
+ 
+
+        
+        {/* USER ROUTES */}
         <Route path="user" element={<UserHome />} />
         <Route path="user/reports" element={<MyReports />} />
         <Route path="user/safe-zones" element={<SafeZones />} />
 
-        {/* VOLUNTEER */}
+        {/* VOLUNTEER ROUTES */}
         <Route
           path="volunteer"
           element={
@@ -104,7 +111,7 @@ export default function Router() {
           }
         />
 
-        {/* NGO */}
+        {/* NGO ROUTES */}
         <Route
           path="ngo"
           element={
@@ -122,7 +129,7 @@ export default function Router() {
           }
         />
 
-        {/* RESCUE */}
+        {/* RESCUE ROUTES */}
         <Route
           path="rescue"
           element={
@@ -132,12 +139,36 @@ export default function Router() {
           }
         />
 
-        {/* ADMIN */}
+        {/* ADMIN ROUTES */}
         <Route
           path="admin"
           element={
             <PrivateRoute roles={["admin"]}>
               <AdminHome />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="admin/users"
+          element={
+            <PrivateRoute roles={["admin"]}>
+              <ManageUsers />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="admin/disasters"
+          element={
+            <PrivateRoute roles={["admin"]}>
+              <ManageDisasters />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="admin/alerts"
+          element={
+            <PrivateRoute roles={["admin"]}>
+              <ManageAlerts />
             </PrivateRoute>
           }
         />
@@ -148,6 +179,3 @@ export default function Router() {
     </Routes>
   );
 }
-
-
-

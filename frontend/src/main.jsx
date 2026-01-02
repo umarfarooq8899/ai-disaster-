@@ -1,6 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
+import "leaflet/dist/leaflet.css";
 
 import AppRouter from "./router";
 import { AuthProvider } from "./context/AuthContext";

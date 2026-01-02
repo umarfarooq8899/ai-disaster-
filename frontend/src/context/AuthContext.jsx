@@ -24,43 +24,53 @@ export function AuthProvider({ children }) {
     }
   }, [user]);
 
-  // Set session after login
   const setSession = (payload) => {
     localStorage.setItem("adr_token", payload.token);
     setUser(payload.user);
   };
 
-  // Clear session on logout
   const clearSession = () => {
     localStorage.removeItem("adr_token");
     localStorage.removeItem("adr_user");
     setUser(null);
   };
 
-  // Signup: does NOT auto-login
+  // Signup Logic
   const signupUser = async (form) => {
     try {
       const data = await AuthAPI.signup(form);
-      return { success: true, data };
+      
+      // FIX: Verify the success flag from the backend response
+      if (data.success) {
+        return { success: true, data };
+      } else {
+        return { success: false, message: data.message || "Signup failed" };
+      }
     } catch (err) {
       const message = err?.response?.data?.message || "Signup failed";
       return { success: false, message };
     }
   };
 
-  // Login: sets session
+  // Login Logic
   const loginUser = async (form) => {
     try {
       const data = await AuthAPI.login(form);
-      if (data?.token && data?.user) setSession(data);
-      return { success: true, data };
+      
+      // FIX: Ensure data is valid before setting session
+      if (data?.token && data?.user) {
+        setSession(data);
+        return { success: true, data };
+      } 
+      
+      return { success: false, message: data?.message || "Invalid response from server" };
     } catch (err) {
+      // This catches 400, 401, and 500 errors from Axios
       const message = err?.response?.data?.message || "Login failed";
       return { success: false, message };
     }
   };
 
-  // Update current user (used by Profile page)
   const updateUser = (newData) => {
     setUser((prev) => ({ ...prev, ...newData }));
   };

@@ -1,85 +1,73 @@
+// src/pages/admin/ManageAlerts.jsx
 import React, { useEffect, useState } from "react";
+import { getAlerts, changeAlertStatus, deleteAlert } from "../../api/admin";
 
 export default function ManageAlerts() {
   const [alerts, setAlerts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // TEMP data (API later)
+  const fetchAlerts = async () => {
+    try {
+      const res = await getAlerts();
+      setAlerts(res.data);
+    } catch (err) {
+      console.error(err);
+      setError("Failed to fetch alerts");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    setAlerts([
-      {
-        id: 1,
-        title: "Flood Warning",
-        type: "Emergency",
-        target: "Karachi",
-        status: "Active",
-        createdAt: "22 Aug 2025",
-      },
-      {
-        id: 2,
-        title: "Heatwave Alert",
-        type: "Weather",
-        target: "All Users",
-        status: "Disabled",
-        createdAt: "18 Aug 2025",
-      },
-    ]);
+    fetchAlerts();
   }, []);
+
+  const handleToggle = async (id, status) => {
+    await changeAlertStatus(id, status === "Active" ? "Disabled" : "Active");
+    fetchAlerts();
+  };
+
+  const handleDelete = async (id) => {
+    await deleteAlert(id);
+    fetchAlerts();
+  };
+
+  if (loading) return <div className="p-6">Loading alerts...</div>;
+  if (error) return <div className="p-6 text-red-600">{error}</div>;
 
   return (
     <div className="p-6 space-y-4">
-      {/* HEADER */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Manage Alerts</h1>
-
-        <button className="px-4 py-2 bg-blue-600 text-white rounded">
-          + Create Alert
-        </button>
-      </div>
-
-      {/* TABLE */}
-      <div className="bg-white rounded shadow overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="p-3 text-left">Title</th>
-              <th className="p-3 text-left">Type</th>
-              <th className="p-3 text-left">Target</th>
-              <th className="p-3 text-left">Status</th>
-              <th className="p-3 text-left">Created</th>
-              <th className="p-3 text-left">Actions</th>
+      <h1 className="text-xl font-semibold">Manage Alerts</h1>
+      <table className="w-full text-sm bg-white shadow rounded overflow-x-auto">
+        <thead className="bg-gray-100">
+          <tr>
+            <th className="p-3">Title</th>
+            <th className="p-3">Type</th>
+            <th className="p-3">Target</th>
+            <th className="p-3">Status</th>
+            <th className="p-3">Created</th>
+            <th className="p-3">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {alerts.map((a) => (
+            <tr key={a._id} className="border-t">
+              <td className="p-3">{a.title}</td>
+              <td className="p-3">{a.type}</td>
+              <td className="p-3">{a.target}</td>
+              <td className="p-3">{a.status}</td>
+              <td className="p-3">{new Date(a.createdAt).toLocaleDateString()}</td>
+              <td className="p-3 flex gap-2">
+                <button onClick={() => handleToggle(a._id, a.status)}>
+                  {a.status === "Active" ? "Disable" : "Enable"}
+                </button>
+                <button onClick={() => handleDelete(a._id)}>Delete</button>
+              </td>
             </tr>
-          </thead>
-
-          <tbody>
-            {alerts.map((a) => (
-              <tr key={a.id} className="border-t">
-                <td className="p-3">{a.title}</td>
-                <td className="p-3">{a.type}</td>
-                <td className="p-3">{a.target}</td>
-                <td className="p-3">
-                  <span
-                    className={`px-2 py-1 rounded text-xs ${
-                      a.status === "Active"
-                        ? "bg-green-100 text-green-600"
-                        : "bg-gray-200 text-gray-600"
-                    }`}
-                  >
-                    {a.status}
-                  </span>
-                </td>
-                <td className="p-3">{a.createdAt}</td>
-                <td className="p-3 flex gap-2">
-                  <button className="text-blue-600">Edit</button>
-                  <button className="text-yellow-600">
-                    {a.status === "Active" ? "Disable" : "Enable"}
-                  </button>
-                  <button className="text-red-600">Delete</button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

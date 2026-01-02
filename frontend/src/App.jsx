@@ -1,19 +1,14 @@
-import { Routes, Route } from "react-router-dom";
-import PublicLayout from "./layouts/PublicLayout";
-import PublicStatistics from "./pages/components/Statistics";
+import DisasterMap from "./components/DisasterMap";
 
 function App() {
   return (
-    <Routes>
-
-      {/* PUBLIC LAYOUT */}
-      <Route path="/" element={<PublicLayout />}>
-        <Route path="statistics" element={<PublicStatistics />} />
-      </Route>
-
-    </Routes>
+    <div>
+      <h2 style={{ textAlign: "center" }}>
+        Live Disaster Map
+      </h2>
+      <DisasterMap />
+    </div>
   );
 }
 
 export default App;
-

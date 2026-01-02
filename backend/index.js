@@ -17,9 +17,16 @@ app.use(express.json());
 // Routes
 const authRoutes = require("./routes/auth");
 const disasterRoutes = require("./routes/disaster");
+const adminRoutes = require("./routes/admin");
+
+
+
 
 app.use("/api/auth", authRoutes);
 app.use("/api/disasters", disasterRoutes);
+app.use("/api/admin", adminRoutes);
+
+
 
 const PORT = process.env.PORT || 5000;
 

@@ -1,11 +1,12 @@
-// src/pages/admin/ManageAlerts.jsx
 import React, { useEffect, useState } from "react";
 import { getAlerts, changeAlertStatus, deleteAlert } from "../../api/admin";
+import { useNavigate } from "react-router-dom";
 
 export default function ManageAlerts() {
   const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const navigate = useNavigate();
 
   const fetchAlerts = async () => {
     try {
@@ -13,15 +14,15 @@ export default function ManageAlerts() {
       setAlerts(res.data);
     } catch (err) {
       console.error(err);
-      setError("Failed to fetch alerts");
+      setError("Unauthorized. Redirecting...");
+      localStorage.removeItem("token");
+      setTimeout(() => navigate("/admin/login"), 2000);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchAlerts();
-  }, []);
+  useEffect(() => fetchAlerts(), []);
 
   const handleToggle = async (id, status) => {
     await changeAlertStatus(id, status === "Active" ? "Disabled" : "Active");

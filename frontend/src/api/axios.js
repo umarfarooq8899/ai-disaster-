@@ -1,8 +1,15 @@
-import axios from 'axios'
+import axios from "axios";
 
 const api = axios.create({
-  baseURL: '/api',
-  timeout: 5000
-})
+  baseURL: "http://localhost:5000/api", // backend API
+  withCredentials: true,                // send headers/cookies
+});
 
-export default api
+// Automatically add JWT token to headers
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem("token");
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+});
+
+export default api;

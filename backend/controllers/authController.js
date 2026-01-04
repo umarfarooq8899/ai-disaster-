@@ -1,77 +1,45 @@
 const User = require("../models/User");
-const jwt = require("jsonwebtoken");
+const generateToken = require("../utils/generateToken");
+const bcrypt = require("bcryptjs");
 
-// Generate JWT
-const generateToken = (user) => {
-  return jwt.sign(
-    { id: user._id, role: user.role },
-    process.env.JWT_SECRET,
-    { expiresIn: "1d" }
-  );
-};
-
-// REGISTER
-exports.registerUser = async (req, res) => {
+/* ===== LOGIN USER ===== */
+exports.loginUser = async (req,res) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { email, password } = req.body;
+    if (!email || !password) return res.status(400).json({ message: "Email and password required" });
 
-    // 1. Check if user exists
-    const userExists = await User.findOne({ email });
-    if (userExists) {
-      return res.status(400).json({ success: false, message: "User already exists" });
+    const user = await User.findOne({ email }).select("+password");
+    if (!user || !(await user.matchPassword(password))) {
+      return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    // 2. Create user with role from frontend (dropdown)
-    const user = await User.create({
-      name,
-      email,
-      password,
-      role: role || "general", 
-    });
-
-    // 3. Send success response
-    res.status(201).json({
-      success: true,
+    res.json({
       token: generateToken(user),
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-      },
+      user: { id: user._id, name: user.name, email: user.email, role: user.role }
     });
   } catch (error) {
-    console.error("Signup Error:", error.message);
-    res.status(400).json({ success: false, message: error.message });
+    res.status(500).json({ message: error.message });
   }
 };
 
-// LOGIN
-exports.loginUser = async (req, res) => {
+/* ===== REGISTER USER ===== */
+exports.registerUser = async (req,res) => {
   try {
-    const { email, password } = req.body;
+    const { name,email,password,role } = req.body;
 
-    // 1. Find user and explicitly select password field
-    const user = await User.findOne({ email }).select("+password");
+    // ❌ Prevent admin registration
+    if (role === "admin") return res.status(403).json({ message: "Cannot register as admin" });
 
-    // 2. Validate user and password
-    if (!user || !(await user.matchPassword(password))) {
-      return res.status(401).json({ success: false, message: "Invalid credentials" });
-    }
+    const existing = await User.findOne({ email });
+    if (existing) return res.status(400).json({ message: "Email already registered" });
 
-    // 3. Send success response
-    res.json({
-      success: true,
+    const user = await User.create({ name, email, password, role: role || "general" });
+
+    res.status(201).json({
       token: generateToken(user),
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-      },
+      user: { id: user._id, name: user.name, email: user.email, role: user.role }
     });
   } catch (error) {
-    console.error("Login Error:", error.message);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ message: error.message });
   }
 };

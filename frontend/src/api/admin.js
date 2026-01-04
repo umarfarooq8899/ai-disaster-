@@ -1,32 +1,33 @@
-import axios from "axios";
+// src/api/admin.js
+import axios from "./axios"; // your preconfigured axios instance
 
-const api = axios.create({
-  baseURL: "/api/admin",
-  timeout: 5000,
-});
-
-// Add JWT token automatically to all requests
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token"); // get token
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
+// Attach admin JWT token automatically
+axios.interceptors.request.use((config) => {
+  const token = localStorage.getItem("adminToken"); // use separate admin token
+  if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
 
-export const getDashboardStats = () => api.get("/stats");
-export const getUsers = () => api.get("/users");
-export const changeUserRole = (id, role) => api.patch(`/users/${id}/role`, { role });
-export const changeUserStatus = (id, status) => api.patch(`/users/${id}/status`, { status });
-export const deleteUser = (id) => api.delete(`/users/${id}`);
+// ===== Dashboard =====
+export const getDashboardStats = () => axios.get("/admin/stats");
 
-export const getDisasters = () => api.get("/disasters");
-export const resolveDisaster = (id) => api.patch(`/disasters/${id}/resolve`, { status: "Resolved" });
-export const deleteDisaster = (id) => api.delete(`/disasters/${id}`);
+// ===== Users =====
+export const getUsers = () => axios.get("/admin/users");
+export const changeUserRole = (id, role) =>
+  axios.patch(`/admin/users/${id}/role`, { role });
+export const changeUserStatus = (id, status) =>
+  axios.patch(`/admin/users/${id}/status`, { status });
+export const deleteUser = (id) => axios.delete(`/admin/users/${id}`);
 
-export const getAlerts = () => api.get("/alerts");
-export const changeAlertStatus = (id, status) => api.patch(`/alerts/${id}/status`, { status });
-export const deleteAlert = (id) => api.delete(`/alerts/${id}`);
-export const editAlert = (id, data) => api.patch(`/alerts/${id}`, data);
+// ===== Disasters =====
+export const getDisasters = () => axios.get("/admin/disasters");
+export const resolveDisaster = (id) =>
+  axios.patch(`/admin/disasters/${id}/resolve`);
+export const deleteDisaster = (id) => axios.delete(`/admin/disasters/${id}`);
 
-export default api;
+// ===== Alerts =====
+export const getAlerts = () => axios.get("/admin/alerts");
+export const editAlert = (id, data) => axios.patch(`/admin/alerts/${id}`, data);
+export const changeAlertStatus = (id, status) =>
+  axios.patch(`/admin/alerts/${id}/status`, { status });
+export const deleteAlert = (id) => axios.delete(`/admin/alerts/${id}`);

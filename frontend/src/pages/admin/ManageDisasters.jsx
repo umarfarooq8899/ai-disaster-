@@ -1,11 +1,12 @@
-// src/pages/admin/ManageDisasters.jsx
 import React, { useEffect, useState } from "react";
 import { getDisasters, resolveDisaster, deleteDisaster } from "../../api/admin";
+import { useNavigate } from "react-router-dom";
 
 export default function ManageDisasters() {
   const [disasters, setDisasters] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const navigate = useNavigate();
 
   const fetchDisasters = async () => {
     try {
@@ -13,15 +14,15 @@ export default function ManageDisasters() {
       setDisasters(res.data);
     } catch (err) {
       console.error(err);
-      setError("Failed to fetch disasters");
+      setError("Unauthorized. Redirecting...");
+      localStorage.removeItem("token");
+      setTimeout(() => navigate("/admin/login"), 2000);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchDisasters();
-  }, []);
+  useEffect(() => fetchDisasters(), []);
 
   const handleResolve = async (id) => {
     await resolveDisaster(id);

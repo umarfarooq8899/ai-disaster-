@@ -99,11 +99,9 @@ export default function Signup() {
               <option value="volunteer">Volunteer</option>
               <option value="ngo">NGO</option>
               <option value="rescue">Rescue Team</option>
-              <option value="admin">Admin</option>
+              
             </select>
-            <p className="mt-2 text-xs text-slate-500 italic">
-              * In this demo, you can select "Admin" to access the dashboard immediately.
-            </p>
+        
           </div>
 
           <button className="btn-primary w-full bg-blue-600 text-white py-2 rounded-lg font-bold hover:bg-blue-700 transition" type="submit">

@@ -1,14 +1,14 @@
+import AdminDashboard from "./pages/AdminDashboard";
 import DisasterMap from "./components/DisasterMap";
 
 function App() {
-  return (
-    <div>
-      <h2 style={{ textAlign: "center" }}>
-        Live Disaster Map
-      </h2>
-      <DisasterMap />
-    </div>
-  );
+  const user = JSON.parse(localStorage.getItem("user"));
+
+  if (user?.role === "admin") {
+    return <AdminDashboard />;
+  }
+
+  return <DisasterMap />;
 }
 
 export default App;

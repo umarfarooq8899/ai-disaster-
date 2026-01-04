@@ -1,11 +1,12 @@
-// src/pages/admin/ManageUsers.jsx
 import React, { useEffect, useState } from "react";
 import { getUsers, changeUserRole, changeUserStatus, deleteUser } from "../../api/admin";
+import { useNavigate } from "react-router-dom";
 
 export default function ManageUsers() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const navigate = useNavigate();
 
   const fetchUsers = async () => {
     try {
@@ -13,15 +14,15 @@ export default function ManageUsers() {
       setUsers(res.data);
     } catch (err) {
       console.error(err);
-      setError("Failed to fetch users");
+      setError("Unauthorized. Redirecting...");
+      localStorage.removeItem("token");
+      setTimeout(() => navigate("/admin/login"), 2000);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
+  useEffect(() => fetchUsers(), []);
 
   const handleRoleChange = async (id, role) => {
     await changeUserRole(id, role);
@@ -62,10 +63,18 @@ export default function ManageUsers() {
               <td className="p-3">{user.role}</td>
               <td className="p-3">{user.status}</td>
               <td className="p-3 flex gap-2">
-                <button onClick={() => handleRoleChange(user._id, user.role === "admin" ? "user" : "admin")}>
+                <button
+                  onClick={() =>
+                    handleRoleChange(user._id, user.role === "admin" ? "general" : "admin")
+                  }
+                >
                   Change Role
                 </button>
-                <button onClick={() => handleStatusChange(user._id, user.status === "active" ? "blocked" : "active")}>
+                <button
+                  onClick={() =>
+                    handleStatusChange(user._id, user.status === "active" ? "blocked" : "active")
+                  }
+                >
                   {user.status === "active" ? "Block" : "Unblock"}
                 </button>
                 <button onClick={() => handleDelete(user._id)}>Delete</button>

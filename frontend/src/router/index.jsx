@@ -42,18 +42,30 @@ import RescueHome from "../pages/rescue/RescueHome";
 
 import { AuthContext } from "../context/AuthContext";
 
+/* -------------------- ROUTE GUARDS -------------------- */
 export default function Router() {
   const { user } = useContext(AuthContext);
 
+  // Normal protected route (users, volunteers, NGO, rescue)
   const PrivateRoute = ({ children, roles }) => {
     if (!user) return <Navigate to="/login" />;
     if (roles && !roles.includes(user.role)) return <Navigate to="/" />;
     return children;
   };
 
+  // Admin protected route (separate entity)
+  const AdminRoute = ({ children }) => {
+    const token = localStorage.getItem("adminToken");
+    const adminStr = localStorage.getItem("admin");
+    const admin = adminStr ? JSON.parse(adminStr) : null;
+
+    if (!token || !admin) return <Navigate to="/admin/login" replace />;
+    return children;
+  };
+
   return (
     <Routes>
-      {/* PUBLIC ROUTES */}
+      {/* -------------------- PUBLIC ROUTES -------------------- */}
       <Route path="/" element={<PublicLayout />}>
         <Route index element={<Home />} />
         <Route path="login" element={<Login />} />
@@ -68,7 +80,7 @@ export default function Router() {
         <Route path="profile" element={<Profile />} />
       </Route>
 
-      {/* DASHBOARD — ALL PROTECTED ROUTES */}
+      {/* -------------------- DASHBOARD — ALL PROTECTED ROUTES -------------------- */}
       <Route
         path="/dashboard"
         element={
@@ -77,9 +89,6 @@ export default function Router() {
           </PrivateRoute>
         }
       >
- 
-
-        
         {/* USER ROUTES */}
         <Route path="user" element={<UserHome />} />
         <Route path="user/reports" element={<MyReports />} />
@@ -139,42 +148,42 @@ export default function Router() {
           }
         />
 
-        {/* ADMIN ROUTES */}
+        {/* -------------------- ADMIN ROUTES -------------------- */}
         <Route
           path="admin"
           element={
-            <PrivateRoute roles={["admin"]}>
+            <AdminRoute>
               <AdminHome />
-            </PrivateRoute>
+            </AdminRoute>
           }
         />
         <Route
           path="admin/users"
           element={
-            <PrivateRoute roles={["admin"]}>
+            <AdminRoute>
               <ManageUsers />
-            </PrivateRoute>
+            </AdminRoute>
           }
         />
         <Route
           path="admin/disasters"
           element={
-            <PrivateRoute roles={["admin"]}>
+            <AdminRoute>
               <ManageDisasters />
-            </PrivateRoute>
+            </AdminRoute>
           }
         />
         <Route
           path="admin/alerts"
           element={
-            <PrivateRoute roles={["admin"]}>
+            <AdminRoute>
               <ManageAlerts />
-            </PrivateRoute>
+            </AdminRoute>
           }
         />
       </Route>
 
-      {/* CATCH ALL */}
+      {/* -------------------- CATCH ALL -------------------- */}
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
   );

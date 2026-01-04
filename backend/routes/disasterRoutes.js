@@ -7,6 +7,7 @@ const {
 
 const authMiddleware = require("../middleware/authMiddleware");
 const allowRoles = require("../middleware/allowRoles");
+
 const {
   createDisaster,
   getApprovedDisasters,
@@ -32,8 +33,13 @@ router.put(
 
 const router = express.Router();
 
-// Citizen
-router.post("/", authMiddleware, createDisaster);
+router.post(
+  "/",
+  authMiddleware,
+  allowRoles("user", "volunteer", "ngo"),
+  createDisaster
+);
+
 
 // Public (for map later)
 router.get("/approved", getApprovedDisasters);

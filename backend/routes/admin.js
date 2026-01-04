@@ -1,48 +1,41 @@
 const express = require("express");
 const router = express.Router();
-
+const protectAdmin = require("../middleware/adminAuth");
 const {
-  // Dashboard
-  getDashboardStats,
-
-  // Users
+  getAdminStats,
   getAllUsers,
   changeUserRole,
   changeUserStatus,
   deleteUser,
-
-  // Disasters
   getAllDisasters,
   resolveDisaster,
   deleteDisaster,
-
-  // Alerts
   getAllAlerts,
   editAlert,
   changeAlertStatus,
   deleteAlert,
 } = require("../controllers/adminController");
 
-const { protect, adminOnly } = require("../middleware/authMiddleware");
+router.use(protectAdmin);
 
-// ================== DASHBOARD ==================
-router.get("/stats", protect, adminOnly, getDashboardStats);
+// Dashboard stats
+router.get("/stats", getAdminStats);
 
-// ================== USERS ==================
-router.get("/users", protect, adminOnly, getAllUsers);
-router.patch("/users/:id/role", protect, adminOnly, changeUserRole);
-router.patch("/users/:id/status", protect, adminOnly, changeUserStatus);
-router.delete("/users/:id", protect, adminOnly, deleteUser);
+// Users
+router.get("/users", getAllUsers);
+router.patch("/users/:id/role", changeUserRole);
+router.patch("/users/:id/status", changeUserStatus);
+router.delete("/users/:id", deleteUser);
 
-// ================== DISASTERS ==================
-router.get("/disasters", protect, adminOnly, getAllDisasters);
-router.patch("/disasters/:id/resolve", protect, adminOnly, resolveDisaster);
-router.delete("/disasters/:id", protect, adminOnly, deleteDisaster);
+// Disasters
+router.get("/disasters", getAllDisasters);
+router.patch("/disasters/:id/resolve", resolveDisaster);
+router.delete("/disasters/:id", deleteDisaster);
 
-// ================== ALERTS ==================
-router.get("/alerts", protect, adminOnly, getAllAlerts);
-router.patch("/alerts/:id/status", protect, adminOnly, changeAlertStatus);
-router.patch("/alerts/:id", protect, adminOnly, editAlert);
-router.delete("/alerts/:id", protect, adminOnly, deleteAlert);
+// Alerts
+router.get("/alerts", getAllAlerts);
+router.patch("/alerts/:id", editAlert);
+router.patch("/alerts/:id/status", changeAlertStatus);
+router.delete("/alerts/:id", deleteAlert);
 
 module.exports = router;

@@ -9,24 +9,33 @@ export default function Login() {
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
 
-  const handleChange = (e) =>
-    setForm((s) => ({ ...s, [e.target.name]: e.target.value }));
+  const handleChange = (e) => {
+    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+
     const res = await loginUser(form);
-    if (!res.success) return setError(res.message);
+
+    if (!res?.success) {
+      return setError(res?.message || "Login failed");
+    }
 
     const role = res.data.user.role;
-    const map = {
-      general: "/dashboard/user",
-      volunteer: "/dashboard/volunteer",
-      ngo: "/dashboard/ngo",
-      rescue: "/dashboard/rescue",
-      admin: "/dashboard/admin",
-    };
-    navigate(map[role] || "/login");
+
+   const map = {
+  admin: "/dashboard/admin",
+  general: "/dashboard/user",
+  volunteer: "/dashboard/volunteer",
+  ngo: "/dashboard/ngo",
+  rescue: "/dashboard/rescue",
+};
+navigate(map[role] || "/");
+
+
+    navigate(redirectMap[role] || "/");
   };
 
   return (
@@ -35,8 +44,9 @@ export default function Login() {
         <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
           Login
         </h1>
+
         <p className="mt-1 text-sm text-slate-600">
-          Sign in to access your dashboard.
+          Sign in to access your dashboard
         </p>
 
         {error && (
@@ -55,6 +65,7 @@ export default function Login() {
               type="email"
               name="email"
               required
+              autoComplete="email"
               onChange={handleChange}
             />
           </div>
@@ -68,17 +79,9 @@ export default function Login() {
               type="password"
               name="password"
               required
+              autoComplete="current-password"
               onChange={handleChange}
             />
-          </div>
-
-          <div className="text-right">
-            <Link
-              to="/forgot-password"
-              className="text-sm font-medium text-blue-600 hover:underline"
-            >
-              Forgot password?
-            </Link>
           </div>
 
           <button className="btn-primary w-full" type="submit">
@@ -96,3 +99,4 @@ export default function Login() {
     </div>
   );
 }
+

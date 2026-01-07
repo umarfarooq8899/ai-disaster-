@@ -22,10 +22,16 @@ export default function Sidebar({ role = "general", collapsed }) {
   return (
     <aside
       className={
-        "h-auto shrink-0 border-r border-brand-800/20 bg-gradient-to-b from-brand-800 to-brand-700 text-white shadow-soft " +
+        "flex flex-col shrink-0 border-r border-brand-800/20 bg-gradient-to-b from-brand-800 to-brand-700 text-white shadow-soft transition-all " +
         (collapsed ? "w-20" : "w-72")
       }
+      style={{
+        position: "sticky",
+        top: 0,
+        height: "100vh",
+      }}
     >
+      {/* Logo */}
       <div className="flex h-16 items-center px-4">
         <div className="flex items-center gap-3">
           <div className="grid h-10 w-10 place-items-center rounded-2xl bg-white/15">
@@ -40,12 +46,19 @@ export default function Sidebar({ role = "general", collapsed }) {
         </div>
       </div>
 
-      <nav className="px-3 pb-6">
-        {/* Common */}
+      {/* Navigation */}
+      <nav
+        className="flex-1 px-3 pb-6 overflow-y-auto"
+        style={{
+          WebkitOverflowScrolling: "touch",
+        }}
+      >
+        {/* Common links for all roles */}
         <NavItem to="/dashboard/user">Home</NavItem>
         <NavItem to="/dashboard/user/reports">My Reports</NavItem>
         <NavItem to="/dashboard/user/safe-zones">Safe Zones</NavItem>
 
+        {/* Role-specific links */}
         {role === "volunteer" && (
           <>
             <div className="mt-5 px-3 text-xs font-bold uppercase tracking-wider text-white/70">
@@ -82,6 +95,9 @@ export default function Sidebar({ role = "general", collapsed }) {
               Admin
             </div>
             <NavItem to="/dashboard/admin">Admin Panel</NavItem>
+            <NavItem to="/dashboard/admin/users">Manage Users</NavItem>
+            <NavItem to="/dashboard/admin/disasters">Manage Disasters</NavItem>
+            <NavItem to="/dashboard/admin/alerts">Manage Alerts</NavItem>
           </>
         )}
       </nav>

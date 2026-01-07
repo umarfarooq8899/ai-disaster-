@@ -4,6 +4,12 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import PublicLayout from "../layouts/PublicLayout";
 import DashboardLayout from "../layouts/DashboardLayout";
 
+// Admin pages
+import AdminDashboard from "../pages/admin/AdminDashboard";
+import ManageUsers from "../pages/admin/ManageUsers";
+import ManageDisasters from "../pages/admin/ManageDisasters";
+import ManageAlerts from "../pages/admin/ManageAlerts";
+
 // Public pages
 import Home from "../pages/components/Home";
 import Login from "../pages/components/Login";
@@ -16,12 +22,6 @@ import Coordination from "../pages/components/Coordination";
 import ForgotPassword from "../pages/components/ForgotPassword";
 import ResetPassword from "../pages/components/ResetPassword";
 import Profile from "../pages/user/Profile";
-
-// Admin pages
-import AdminHome from "../pages/admin/AdminHome";
-import ManageUsers from "../pages/admin/ManageUsers";
-import ManageDisasters from "../pages/admin/ManageDisasters";
-import ManageAlerts from "../pages/admin/ManageAlerts";
 
 // User pages
 import UserHome from "../pages/user/UserHome";
@@ -42,30 +42,18 @@ import RescueHome from "../pages/rescue/RescueHome";
 
 import { AuthContext } from "../context/AuthContext";
 
-/* -------------------- ROUTE GUARDS -------------------- */
 export default function Router() {
   const { user } = useContext(AuthContext);
 
-  // Normal protected route (users, volunteers, NGO, rescue)
   const PrivateRoute = ({ children, roles }) => {
     if (!user) return <Navigate to="/login" />;
     if (roles && !roles.includes(user.role)) return <Navigate to="/" />;
     return children;
   };
 
-  // Admin protected route (separate entity)
-  const AdminRoute = ({ children }) => {
-    const token = localStorage.getItem("adminToken");
-    const adminStr = localStorage.getItem("admin");
-    const admin = adminStr ? JSON.parse(adminStr) : null;
-
-    if (!token || !admin) return <Navigate to="/admin/login" replace />;
-    return children;
-  };
-
   return (
     <Routes>
-      {/* -------------------- PUBLIC ROUTES -------------------- */}
+      {/* PUBLIC ROUTES */}
       <Route path="/" element={<PublicLayout />}>
         <Route index element={<Home />} />
         <Route path="login" element={<Login />} />
@@ -80,7 +68,7 @@ export default function Router() {
         <Route path="profile" element={<Profile />} />
       </Route>
 
-      {/* -------------------- DASHBOARD — ALL PROTECTED ROUTES -------------------- */}
+      {/* DASHBOARD ROUTES */}
       <Route
         path="/dashboard"
         element={
@@ -89,12 +77,53 @@ export default function Router() {
           </PrivateRoute>
         }
       >
-        {/* USER ROUTES */}
+        {/* Admin */}
+        <Route
+          path="admin"
+          element={
+            <PrivateRoute roles={["admin"]}>
+              <AdminDashboard />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="admin/users"
+          element={
+            <PrivateRoute roles={["admin"]}>
+              <ManageUsers />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="admin/disasters"
+          element={
+            <PrivateRoute roles={["admin"]}>
+              <ManageDisasters />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="admin/alerts"
+          element={
+            <PrivateRoute roles={["admin"]}>
+              <ManageAlerts />
+            </PrivateRoute>
+          }
+        />
+         <Route
+          path="admin/statistics"
+          element={
+            <PrivateRoute roles={["admin"]}>
+              <ManageAlerts />
+            </PrivateRoute>
+          }
+        />
+        {/* User */}
         <Route path="user" element={<UserHome />} />
         <Route path="user/reports" element={<MyReports />} />
         <Route path="user/safe-zones" element={<SafeZones />} />
 
-        {/* VOLUNTEER ROUTES */}
+        {/* Volunteer */}
         <Route
           path="volunteer"
           element={
@@ -120,7 +149,7 @@ export default function Router() {
           }
         />
 
-        {/* NGO ROUTES */}
+        {/* NGO */}
         <Route
           path="ngo"
           element={
@@ -138,7 +167,7 @@ export default function Router() {
           }
         />
 
-        {/* RESCUE ROUTES */}
+        {/* Rescue */}
         <Route
           path="rescue"
           element={
@@ -147,44 +176,13 @@ export default function Router() {
             </PrivateRoute>
           }
         />
-
-        {/* -------------------- ADMIN ROUTES -------------------- */}
-        <Route
-          path="admin"
-          element={
-            <AdminRoute>
-              <AdminHome />
-            </AdminRoute>
-          }
-        />
-        <Route
-          path="admin/users"
-          element={
-            <AdminRoute>
-              <ManageUsers />
-            </AdminRoute>
-          }
-        />
-        <Route
-          path="admin/disasters"
-          element={
-            <AdminRoute>
-              <ManageDisasters />
-            </AdminRoute>
-          }
-        />
-        <Route
-          path="admin/alerts"
-          element={
-            <AdminRoute>
-              <ManageAlerts />
-            </AdminRoute>
-          }
-        />
       </Route>
 
-      {/* -------------------- CATCH ALL -------------------- */}
+      {/* CATCH ALL */}
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
   );
 }
+
+
+

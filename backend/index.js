@@ -1,45 +1,81 @@
 const express = require("express");
+const dotenv = require("dotenv");
 const mongoose = require("mongoose");
 const cors = require("cors");
-const dotenv = require("dotenv");
+const morgan = require("morgan");
 
-// Load env variables
+// ================== CONFIG ==================
 dotenv.config();
-
-const connectDB = require("./config/db");
-
 const app = express();
 
-// Middleware
-app.use(express.json());
-
-// ✅ CORS configured for frontend with credentials
+// ================== MIDDLEWARE ==================
+// ✅ Correct CORS for credentials (IMPORTANT)
 app.use(
   cors({
-    origin: "http://localhost:5173", // your frontend URL
-    credentials: true,               // allow sending JWT in headers or cookies
+    origin: "http://localhost:5173", // Frontend (Vite)
+    credentials: true,
   })
 );
 
-// Routes
+app.use(express.json()); // Parse JSON bodies
+app.use(morgan("dev"));  // HTTP request logging
+
+// ================== DATABASE ==================
+const DB_URI =
+  process.env.MONGO_URI || "mongodb://127.0.0.1:27017/ai-disaster";
+
+mongoose
+  .connect(DB_URI)
+  .then(() => console.log("MongoDB connected ✅"))
+  .catch((err) => {
+    console.error("MongoDB connection error ❌", err);
+    process.exit(1);
+  });
+
+// ================== ROUTES ==================
+
+// Auth routes (login / register)
 const authRoutes = require("./routes/auth");
-const disasterRoutes = require("./routes/disaster");
-const adminRoutes = require("./routes/admin");
-
-
 app.use("/api/auth", authRoutes);
+
+// Users routes
+const userRoutes = require("./routes/users");
+app.use("/api/users", userRoutes);
+
+// Disasters routes
+const disasterRoutes = require("./routes/disasters");
 app.use("/api/disasters", disasterRoutes);
+
+// Alerts routes
+const alertRoutes = require("./routes/alerts");
+app.use("/api/alerts", alertRoutes);
+
+// Admin routes
+const adminRoutes = require("./routes/admin");
 app.use("/api/admin", adminRoutes);
 
+// Statistics routes
+const statisticsRoutes = require("./routes/statistics");
+app.use("/api/statistics", statisticsRoutes);
 
+// ================== HEALTH CHECK ==================
+app.get("/", (req, res) => {
+  res.json({ status: "API running 🚀" });
+});
+
+// ================== ERROR HANDLING ==================
+app.use((req, res) => {
+  res.status(404).json({ message: "Route not found ❌" });
+});
+
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ message: "Internal server error ❌" });
+});
+
+// ================== SERVER ==================
 const PORT = process.env.PORT || 5000;
 
-// Connect DB and start server
-connectDB()
-  .then(() => console.log("MongoDB connected"))
-  .then(() =>
-    app.listen(PORT, () =>
-      console.log(`Server running on port ${PORT}`)
-    )
-  )
-  .catch((err) => console.error(err));
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT} 🚀`);
+});

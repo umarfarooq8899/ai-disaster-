@@ -1,11 +1,8 @@
 import api from "./client";
 
-export async function getAllDisasters() {
-  const { data } = await api.get("/statistics");
-  return data;
-}
-
-export async function createDisaster(payload) {
-  const { data } = await api.post("/statistics", payload);
+export async function getAllAlerts(userToken) {
+  const { data } = await api.get("/statistics", {
+    headers: { Authorization: `Bearer ${userToken}` },
+  });
   return data;
 }

@@ -4,7 +4,7 @@ import { AuthContext } from "../../context/AuthContext";
 
 export default function Login() {
   const navigate = useNavigate();
-  const { loginUser } = useContext(AuthContext);
+  const { loginUser, getDashboardPath } = useContext(AuthContext);
 
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
@@ -24,18 +24,7 @@ export default function Login() {
     }
 
     const role = res.data.user.role;
-
-   const map = {
-  admin: "/dashboard/admin",
-  general: "/dashboard/user",
-  volunteer: "/dashboard/volunteer",
-  ngo: "/dashboard/ngo",
-  rescue: "/dashboard/rescue",
-};
-navigate(map[role] || "/");
-
-
-    navigate(redirectMap[role] || "/");
+    navigate(getDashboardPath(role)); // navigate to correct dashboard
   };
 
   return (
@@ -44,7 +33,6 @@ navigate(map[role] || "/");
         <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
           Login
         </h1>
-
         <p className="mt-1 text-sm text-slate-600">
           Sign in to access your dashboard
         </p>
@@ -99,4 +87,3 @@ navigate(map[role] || "/");
     </div>
   );
 }
-

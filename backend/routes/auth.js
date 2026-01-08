@@ -1,7 +1,5 @@
 const express = require("express");
 const router = express.Router();
-
-// Correct User model path — make sure the file is "User.js"
 const User = require("../models/User");
 const generateToken = require("../utils/generateToken");
 
@@ -10,20 +8,26 @@ router.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    // Find user by email and include password
-    const user = await User.findOne({ email }).select("+password");
+    const user = await User.findOne({ email }).select("+password").populate("organization", "name");
 
     if (!user) {
-      return res.status(401).json({ message: "User not found" });
+      return res.status(401).json({ message: "Invalid email or password" });
+    }
+
+    if (user.status === "blocked") {
+      return res.status(403).json({ message: "Account is blocked" });
     }
 
     const isMatch = await user.matchPassword(password);
+
     if (!isMatch) {
-      return res.status(401).json({ message: "Invalid credentials" });
+      return res.status(401).json({ message: "Invalid email or password" });
     }
 
-    // Generate token with full user info (id + role)
-    const token = generateToken(user);
+    const token = generateToken({
+      id: user._id,
+      role: user.role,
+    });
 
     res.json({
       token,
@@ -32,6 +36,8 @@ router.post("/login", async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        status: user.status,
+        organization: user.organization || null, // <-- added for rescue coordinators
       },
     });
   } catch (err) {

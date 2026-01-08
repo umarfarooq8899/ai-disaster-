@@ -1,33 +1,29 @@
-const Statistic = require("../models/Statistic");
+const User = require("../models/User");
+const Disaster = require("../models/Disaster");
+const Alert = require("../models/Alert");
 
-// Get all statistics (admin only)
-exports.getAllStatistics = async (req, res) => {
+exports.getStatistics = async (req, res) => {
   try {
-    const stats = await Statistic.find()
-      .populate("createdBy", "name email")
-      .sort({ createdAt: -1 });
-    res.json(stats);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-};
+    const totalUsers = await User.countDocuments();
+    const totalVolunteers = await User.countDocuments({ role: "volunteer" });
+    const totalNGOs = await User.countDocuments({ role: "ngo" });
 
-// Create a statistic (admin only)
-exports.createStatistic = async (req, res) => {
-  try {
-    const { title, value } = req.body;
-    if (!title || value == null) {
-      return res.status(400).json({ message: "All fields required" });
-    }
+    const totalDisasters = await Disaster.countDocuments();
+    const activeDisasters = await Disaster.countDocuments({ status: "active" });
+    const resolvedDisasters = await Disaster.countDocuments({ status: "resolved" });
 
-    const stat = new Statistic({
-      title,
-      value,
-      createdBy: req.user._id,
+    const activeAlerts = await Alert.countDocuments({ status: "active" });
+
+    res.json({
+      totalUsers,
+      totalVolunteers,
+      totalNGOs,
+      totalDisasters,
+      activeDisasters,
+      resolvedDisasters,
+      activeAlerts,
     });
-    await stat.save();
-    res.status(201).json(stat);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch statistics" });
   }
 };

@@ -1,6 +1,8 @@
 import React, { useContext } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
+import { AuthContext } from "../context/AuthContext";
 
+// Layouts
 import PublicLayout from "../layouts/PublicLayout";
 import DashboardLayout from "../layouts/DashboardLayout";
 
@@ -39,15 +41,17 @@ import ManageVolunteers from "../pages/ngo/ManageVolunteers";
 
 // Rescue pages
 import RescueHome from "../pages/rescue/RescueHome";
-
-import { AuthContext } from "../context/AuthContext";
+import RescueDashboard from "../pages/rescue/RescueDashboard";
+import Missions from "../pages/rescue/Missions";
+import MissionForm from "../pages/rescue/MissionForm";
 
 export default function Router() {
-  const { user } = useContext(AuthContext);
+  const { user, loading } = useContext(AuthContext);
 
   const PrivateRoute = ({ children, roles }) => {
-    if (!user) return <Navigate to="/login" />;
-    if (roles && !roles.includes(user.role)) return <Navigate to="/" />;
+    if (loading) return null;
+    if (!user) return <Navigate to="/login" replace />;
+    if (roles && !roles.includes(user.role)) return <Navigate to="/" replace />;
     return children;
   };
 
@@ -70,7 +74,7 @@ export default function Router() {
 
       {/* DASHBOARD ROUTES */}
       <Route
-        path="/dashboard"
+        path="/dashboard/*"
         element={
           <PrivateRoute>
             <DashboardLayout />
@@ -78,111 +82,38 @@ export default function Router() {
         }
       >
         {/* Admin */}
-        <Route
-          path="admin"
-          element={
-            <PrivateRoute roles={["admin"]}>
-              <AdminDashboard />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="admin/users"
-          element={
-            <PrivateRoute roles={["admin"]}>
-              <ManageUsers />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="admin/disasters"
-          element={
-            <PrivateRoute roles={["admin"]}>
-              <ManageDisasters />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="admin/alerts"
-          element={
-            <PrivateRoute roles={["admin"]}>
-              <ManageAlerts />
-            </PrivateRoute>
-          }
-        />
-         <Route
-          path="admin/statistics"
-          element={
-            <PrivateRoute roles={["admin"]}>
-              <ManageAlerts />
-            </PrivateRoute>
-          }
-        />
+        <Route path="admin" element={<AdminDashboard />} />
+        <Route path="admin/users" element={<ManageUsers />} />
+        <Route path="admin/disasters" element={<ManageDisasters />} />
+        <Route path="admin/alerts" element={<ManageAlerts />} />
+        <Route path="admin/statistics" element={<Statistics />} />
+
         {/* User */}
         <Route path="user" element={<UserHome />} />
         <Route path="user/reports" element={<MyReports />} />
         <Route path="user/safe-zones" element={<SafeZones />} />
 
         {/* Volunteer */}
-        <Route
-          path="volunteer"
-          element={
-            <PrivateRoute roles={["volunteer"]}>
-              <VolunteerHome />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="volunteer/tasks"
-          element={
-            <PrivateRoute roles={["volunteer"]}>
-              <Tasks />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="volunteer/nearby"
-          element={
-            <PrivateRoute roles={["volunteer"]}>
-              <NearbyReports />
-            </PrivateRoute>
-          }
-        />
+        <Route path="volunteer" element={<VolunteerHome />} />
+        <Route path="volunteer/tasks" element={<Tasks />} />
+        <Route path="volunteer/nearby" element={<NearbyReports />} />
 
         {/* NGO */}
-        <Route
-          path="ngo"
-          element={
-            <PrivateRoute roles={["ngo"]}>
-              <NGOHome />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="ngo/volunteers"
-          element={
-            <PrivateRoute roles={["ngo"]}>
-              <ManageVolunteers />
-            </PrivateRoute>
-          }
-        />
+        <Route path="ngo" element={<NGOHome />} />
+        <Route path="ngo/volunteers" element={<ManageVolunteers />} />
 
-        {/* Rescue */}
-        <Route
-          path="rescue"
-          element={
-            <PrivateRoute roles={["rescue"]}>
-              <RescueHome />
-            </PrivateRoute>
-          }
-        />
+        {/* ✅ Rescue (CLEAN & FIXED) */}
+        <Route path="rescue" element={<RescueHome />} />
+        <Route path="rescue/dashboard" element={<RescueDashboard />} />
+        <Route path="rescue/missions" element={<Missions />} />
+        <Route path="rescue/missions/new" element={<MissionForm />} />
+
+        {/* Catch-all inside dashboard */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
 
-      {/* CATCH ALL */}
-      <Route path="*" element={<Navigate to="/" />} />
+      {/* PUBLIC CATCH-ALL */}
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }
-
-
-

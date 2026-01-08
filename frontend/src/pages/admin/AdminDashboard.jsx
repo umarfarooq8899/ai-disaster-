@@ -1,7 +1,16 @@
-// src/pages/admin/AdminDashboard.jsx
 import React, { useEffect, useState, useContext } from "react";
 import axios from "../../api/axios";
 import { AuthContext } from "../../context/AuthContext";
+import {
+  Users,
+  ShieldCheck,
+  Building2,
+  AlertTriangle,
+  Activity,
+  Bell,
+  TrendingUp,
+  TrendingDown,
+} from "lucide-react";
 
 export default function AdminDashboard() {
   const { user } = useContext(AuthContext);
@@ -9,90 +18,183 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Fetch statistics from backend
   useEffect(() => {
+    if (!user?.token) return;
+
     const fetchStats = async () => {
       try {
-        const token = user?.token; // assume user object has token
-        const res = await axios.get("/statistics", {
-          headers: { Authorization: `Bearer ${token}` },
+        setLoading(true);
+
+        const res = await axios.get("/statistics/dashboard", {
+          headers: {
+            Authorization: `Bearer ${user.token}`,
+          },
         });
+
+        console.log("Dashboard stats:", res.data); // debug once
         setStats(res.data);
       } catch (err) {
-        console.error("Failed to load statistics", err);
-        setError("Failed to load statistics");
+        console.error(err);
+        setError("Failed to load dashboard data");
       } finally {
         setLoading(false);
       }
     };
 
-    if (user?.token) fetchStats();
-  }, [user]);
+    fetchStats();
+  }, [user?.token]);
 
-  if (loading) return <div className="p-6 text-gray-700">Loading statistics...</div>;
-  if (error) return <div className="p-6 text-red-500">{error}</div>;
+  if (error) {
+    return <div className="p-6 text-sm text-red-600">{error}</div>;
+  }
+
+  if (loading) {
+    return (
+      <div className="p-8 bg-gray-50 min-h-screen grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <SkeletonCard />
+        <SkeletonCard />
+        <SkeletonCard />
+        <SkeletonCard />
+      </div>
+    );
+  }
+
+  if (!stats) {
+    return (
+      <div className="p-6 text-sm text-gray-500">
+        No statistics available
+      </div>
+    );
+  }
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
-      {/* PAGE HEADER */}
-      <header className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-800">Admin Dashboard</h1>
-        <p className="text-gray-600 mt-1">
-          Overview of users, disasters, alerts, and system statistics
+    <div className="p-8 bg-gray-50 min-h-screen">
+      {/* HEADER */}
+      <header className="mb-8">
+        <h1 className="text-2xl font-semibold text-gray-800">
+          Admin Dashboard
+        </h1>
+        <p className="text-sm text-gray-500 mt-1">
+          System overview & operational metrics
         </p>
       </header>
 
-      {/* STATISTICS CARDS */}
+      {/* METRICS */}
       <section>
-        <h2 className="text-xl font-semibold mb-4 text-gray-700">
-          Key Statistics
+        <h2 className="text-lg font-medium text-gray-700 mb-4">
+          Key Metrics
         </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {/* Users */}
-          <div className="bg-gradient-to-r from-blue-600 to-blue-500 text-white p-5 rounded-xl shadow hover:scale-105 transform transition">
-            <h3 className="text-lg font-semibold">Total Users</h3>
-            <p className="text-3xl font-bold mt-2">{stats.totalUsers}</p>
-          </div>
 
-          {/* Volunteers */}
-          <div className="bg-gradient-to-r from-green-600 to-green-500 text-white p-5 rounded-xl shadow hover:scale-105 transform transition">
-            <h3 className="text-lg font-semibold">Volunteers</h3>
-            <p className="text-3xl font-bold mt-2">{stats.totalVolunteers}</p>
-          </div>
-
-          {/* NGOs */}
-          <div className="bg-gradient-to-r from-purple-600 to-purple-500 text-white p-5 rounded-xl shadow hover:scale-105 transform transition">
-            <h3 className="text-lg font-semibold">NGOs</h3>
-            <p className="text-3xl font-bold mt-2">{stats.totalNGOs}</p>
-          </div>
-
-          {/* Disasters */}
-          <div className="bg-gradient-to-r from-red-600 to-red-500 text-white p-5 rounded-xl shadow hover:scale-105 transform transition">
-            <h3 className="text-lg font-semibold">Total Disasters</h3>
-            <p className="text-3xl font-bold mt-2">{stats.totalDisasters}</p>
-          </div>
-
-          {/* Active Disasters */}
-          <div className="bg-gradient-to-r from-orange-600 to-orange-500 text-white p-5 rounded-xl shadow hover:scale-105 transform transition">
-            <h3 className="text-lg font-semibold">Active Disasters</h3>
-            <p className="text-3xl font-bold mt-2">{stats.activeDisasters}</p>
-          </div>
-
-          {/* Resolved Disasters */}
-          <div className="bg-gradient-to-r from-teal-600 to-teal-500 text-white p-5 rounded-xl shadow hover:scale-105 transform transition">
-            <h3 className="text-lg font-semibold">Resolved Disasters</h3>
-            <p className="text-3xl font-bold mt-2">{stats.resolvedDisasters}</p>
-          </div>
-
-          {/* Alerts */}
-          <div className="bg-gradient-to-r from-yellow-600 to-yellow-500 text-white p-5 rounded-xl shadow hover:scale-105 transform transition">
-            <h3 className="text-lg font-semibold">Active Alerts</h3>
-            <p className="text-3xl font-bold mt-2">{stats.activeAlerts}</p>
-          </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <StatCard
+            icon={Users}
+            label="Total Users"
+            value={stats.totalUsers}
+            color="blue"
+            trend="up"
+          />
+          <StatCard
+            icon={ShieldCheck}
+            label="Volunteers"
+            value={stats.totalVolunteers}
+            color="green"
+            trend="up"
+          />
+          <StatCard
+            icon={Building2}
+            label="NGOs"
+            value={stats.totalNGOs}
+            color="purple"
+          />
+          <StatCard
+            icon={AlertTriangle}
+            label="Total Disasters"
+            value={stats.totalDisasters}
+            color="red"
+            trend="down"
+          />
+          <StatCard
+            icon={Activity}
+            label="Active Disasters"
+            value={stats.activeDisasters}
+            color="orange"
+          />
+          <StatCard
+            icon={ShieldCheck}
+            label="Resolved Disasters"
+            value={stats.resolvedDisasters}
+            color="teal"
+            trend="up"
+          />
+          <StatCard
+            icon={Bell}
+            label="Active Alerts"
+            value={stats.activeAlerts}
+            color="yellow"
+          />
         </div>
       </section>
     </div>
   );
 }
 
+/* ===============================
+   STAT CARD
+================================ */
+function StatCard({ icon: Icon, label, value, color, trend }) {
+  const colors = {
+    blue: "bg-blue-50 text-blue-600",
+    green: "bg-green-50 text-green-600",
+    purple: "bg-purple-50 text-purple-600",
+    red: "bg-red-50 text-red-600",
+    orange: "bg-orange-50 text-orange-600",
+    teal: "bg-teal-50 text-teal-600",
+    yellow: "bg-yellow-50 text-yellow-600",
+  };
 
+  return (
+    <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow transition relative">
+      {/* Accent Bar */}
+      <div
+        className={`absolute left-0 top-0 h-full w-1 rounded-l-xl ${
+          colors[color]?.replace("text", "bg")
+        }`}
+      />
+
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className={`p-2 rounded-lg ${colors[color]}`}>
+            <Icon className="w-5 h-5" />
+          </div>
+          <p className="text-sm text-gray-500">{label}</p>
+        </div>
+
+        {trend === "up" && (
+          <TrendingUp className="w-4 h-4 text-green-500" />
+        )}
+        {trend === "down" && (
+          <TrendingDown className="w-4 h-4 text-red-500" />
+        )}
+      </div>
+
+      <p className="mt-4 text-3xl font-semibold text-gray-800">
+        {value ?? 0}
+      </p>
+    </div>
+  );
+}
+
+/* ===============================
+   SKELETON CARD
+================================ */
+function SkeletonCard() {
+  return (
+    <div className="bg-white border border-gray-200 rounded-xl p-6 animate-pulse">
+      <div className="flex items-center gap-3">
+        <div className="w-9 h-9 bg-gray-200 rounded-lg" />
+        <div className="h-4 w-24 bg-gray-200 rounded" />
+      </div>
+      <div className="mt-6 h-8 w-20 bg-gray-200 rounded" />
+    </div>
+  );
+}

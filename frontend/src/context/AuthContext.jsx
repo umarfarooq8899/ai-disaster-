@@ -13,12 +13,12 @@ const readUser = () => {
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(readUser);
-  const [token, setToken] = useState(() => localStorage.getItem("adr_token") || null);
+  const [token, setToken] = useState(() => localStorage.getItem("adr_token"));
   const [loading, setLoading] = useState(true);
 
-  // Sync user & token to localStorage
+  // ================= Sync state with localStorage =================
   useEffect(() => {
-    if (user?.token) {
+    if (user && user.token) {
       localStorage.setItem("adr_user", JSON.stringify(user));
       localStorage.setItem("adr_token", user.token);
       setToken(user.token);
@@ -30,9 +30,9 @@ export function AuthProvider({ children }) {
     setLoading(false);
   }, [user]);
 
-  const setSession = (payload) => {
-    setUser({ ...payload.user, token: payload.token });
-    setToken(payload.token);
+  // ================= Helpers =================
+  const setSession = ({ token, user }) => {
+    setUser({ ...user, token });
   };
 
   const clearSession = () => {
@@ -42,50 +42,95 @@ export function AuthProvider({ children }) {
     localStorage.removeItem("adr_token");
   };
 
+  // ================= AUTH ACTIONS =================
   const signupUser = async (form) => {
     try {
-      const data = await AuthAPI.signup(form);
-      if (data.success) return { success: true, data };
-      return { success: false, message: data.message || "Signup failed" };
+      // Ensure required fields for volunteer/rescue coordinator
+      if (
+        (form.role === "volunteer" || form.role === "rescue_coordinator") &&
+        (!form.phone || !form.address)
+      ) {
+        return {
+          success: false,
+          message: "Phone number and address are required for this role.",
+        };
+      }
+
+      const data = await AuthAPI.signup(form); // calls /auth/register
+
+      if (data?.token && data?.user) {
+        // Auto-set session
+        setSession(data);
+        return { success: true, data };
+      }
+
+      return {
+        success: false,
+        message: data?.message || "Signup failed",
+      };
     } catch (err) {
-      const message = err?.response?.data?.message || "Signup failed";
-      return { success: false, message };
+      return {
+        success: false,
+        message: err?.response?.data?.message || "Signup failed",
+      };
     }
   };
 
   const loginUser = async (form) => {
     try {
       const data = await AuthAPI.login(form);
+
       if (data?.token && data?.user) {
         setSession(data);
         return { success: true, data };
       }
-      return { success: false, message: data?.message || "Invalid login" };
+
+      return {
+        success: false,
+        message: data?.message || "Invalid credentials",
+      };
     } catch (err) {
-      const message = err?.response?.data?.message || "Login failed";
-      return { success: false, message };
+      return {
+        success: false,
+        message: err?.response?.data?.message || "Login failed",
+      };
     }
   };
 
-  const updateUser = (newData) => setUser((prev) => ({ ...prev, ...newData }));
   const logout = () => clearSession();
 
-  // Map roles to dashboard paths
+  const updateUser = (newData) =>
+    setUser((prev) => ({ ...prev, ...newData }));
+
+  // ================= Dashboard Routing =================
   const getDashboardPath = (role) => {
     const map = {
       admin: "/dashboard/admin",
       general: "/dashboard/user",
       volunteer: "/dashboard/volunteer",
-      ngo: "/dashboard/ngo",
-      rescue: "/dashboard/rescue",
+      rescue_coordinator: "/dashboard/rescue",
     };
     return map[role] || "/";
   };
 
+  // ================= Context Value =================
   const value = useMemo(
-    () => ({ user, token, loading, signupUser, loginUser, logout, updateUser, getDashboardPath }),
+    () => ({
+      user,
+      token,
+      loading,
+      signupUser,
+      loginUser,
+      logout,
+      updateUser,
+      getDashboardPath,
+    }),
     [user, token, loading]
   );
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
 }

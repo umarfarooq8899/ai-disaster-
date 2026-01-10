@@ -7,6 +7,14 @@ export default function Signup() {
   const navigate = useNavigate();
   const { signupUser } = useContext(AuthContext);
 
+  // Predefined Rescue Organizations
+  const rescueOrgs = [
+    "Rescue 1122",
+    "Edhi Foundation",
+    "Al-Khidmat Foundation",
+    "Pakistan Red Crescent",
+  ];
+
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -14,6 +22,7 @@ export default function Signup() {
     role: "general",
     phone: "",
     address: "",
+    organization: "",
   });
 
   const [error, setError] = useState("");
@@ -27,12 +36,19 @@ export default function Signup() {
     setError("");
     setSuccess("");
 
+    // Prevent admin registration
     if (form.role === "admin") {
       return setError("You cannot register as an admin.");
     }
 
-    if ((form.role === "volunteer" || form.role === "rescue") && (!form.phone || !form.address)) {
-      return setError("Please provide your phone number and address.");
+    // Validate volunteers
+    if (form.role === "volunteer") {
+      if (!form.phone || !form.address) {
+        return setError("Phone number and address are required for volunteers.");
+      }
+      if (!form.organization) {
+        return setError("Please select a rescue organization to volunteer for.");
+      }
     }
 
     const res = await signupUser(form);
@@ -119,11 +135,11 @@ export default function Signup() {
               >
                 <option value="general">General User</option>
                 <option value="volunteer">Volunteer</option>
-                <option value="rescue">Rescue Coordinator</option>
               </select>
             </div>
 
-            {(form.role === "volunteer" || form.role === "rescue") && (
+            {/* Volunteer-specific fields */}
+            {form.role === "volunteer" && (
               <>
                 <div>
                   <label className="mb-1 block text-sm font-semibold text-slate-700">
@@ -138,6 +154,7 @@ export default function Signup() {
                     className="input w-full"
                   />
                 </div>
+
                 <div>
                   <label className="mb-1 block text-sm font-semibold text-slate-700">
                     Address
@@ -151,13 +168,30 @@ export default function Signup() {
                     className="input w-full"
                   />
                 </div>
+
+                <div>
+                  <label className="mb-1 block text-sm font-semibold text-slate-700">
+                    Select Rescue Organization
+                  </label>
+                  <select
+                    name="organization"
+                    value={form.organization}
+                    onChange={handleChange}
+                    className="input w-full"
+                    required
+                  >
+                    <option value="">Select an organization</option>
+                    {rescueOrgs.map((org, idx) => (
+                      <option key={idx} value={org}>
+                        {org}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </>
             )}
 
-            <button
-              type="submit"
-              className="btn-primary w-full"
-            >
+            <button type="submit" className="btn-primary w-full">
               Sign Up
             </button>
           </form>

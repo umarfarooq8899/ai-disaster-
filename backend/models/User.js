@@ -6,12 +6,14 @@ const userSchema = new mongoose.Schema(
     name: {
       type: String,
       required: true,
+      trim: true,
     },
 
     email: {
       type: String,
       required: true,
       unique: true,
+      lowercase: true,
     },
 
     password: {
@@ -20,10 +22,10 @@ const userSchema = new mongoose.Schema(
       select: false,
     },
 
-    // ✅ Role updated for Rescue Module
+    // ✅ Roles aligned with frontend
     role: {
       type: String,
-      enum: ["general", "volunteer", "admin", "rescue_coordinator"],
+      enum: ["general", "volunteer", "admin", "rescue"],
       default: "general",
     },
 
@@ -33,22 +35,39 @@ const userSchema = new mongoose.Schema(
       default: "active",
     },
 
-    // ✅ Link user to Rescue Organization (optional, only for coordinators)
+    // ✅ Extra fields for volunteers & rescue coordinators
+    phone: {
+      type: String,
+      required: function () {
+        return this.role === "volunteer" || this.role === "rescue";
+      },
+    },
+
+    address: {
+      type: String,
+      required: function () {
+        return this.role === "volunteer" || this.role === "rescue";
+      },
+    },
+
+    // 🔹 Optional for now (can be enforced later)
     organization: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "RescueOrganization",
-      required: function () {
-        return this.role === "rescue_coordinator";
-      },
+      default: null,
     },
   },
   { timestamps: true }
 );
 
+// ================= METHODS =================
+
 // ✅ Compare password
 userSchema.methods.matchPassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
+
+// ================= MIDDLEWARE =================
 
 // ✅ Hash password before saving
 userSchema.pre("save", async function (next) {

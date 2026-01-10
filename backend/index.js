@@ -46,6 +46,7 @@ const auth = require("./middleware/auth");
 const rescueOnly = require("./middleware/rescueOnly"); // make sure this allows rescue_coordinator
 const rescueRoutes = require("./routes/rescue");
 app.use("/api/rescue", auth, rescueRoutes);
+app.use("/api/volunteer", require("./routes/volunteer"));
 
 // ================= STATS CARD ROUTE =================
 app.get("/api/statscard/dashboard", auth, rescueOnly, async (req, res) => {

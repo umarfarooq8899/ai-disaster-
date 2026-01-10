@@ -1,42 +1,55 @@
 const Volunteer = require("../models/Volunteer");
+const User = require("../models/User");
 
-// Register volunteer
-exports.registerVolunteer = async (req, res) => {
+/**
+ * Create a new volunteer profile
+ * Required: userId, phone, location (lat,lng), skills (optional)
+ */
+exports.createVolunteer = async (req, res) => {
   try {
-    const { phone, skills, location } = req.body;
+    const { phone, skills = [], location } = req.body;
+    const userId = req.user._id; // user must be logged in
 
-    const volunteerExists = await Volunteer.findOne({
-      user: req.user._id,
-    });
-
-    if (volunteerExists) {
-      return res
-        .status(400)
-        .json({ message: "Already registered as volunteer" });
+    // Validate required fields
+    if (!phone || !location?.lat || !location?.lng) {
+      return res.status(400).json({ message: "Phone number and location are required" });
     }
 
+    // Check if volunteer profile already exists
+    const existing = await Volunteer.findOne({ user: userId });
+    if (existing) {
+      return res.status(400).json({ message: "Volunteer profile already exists" });
+    }
+
+    // Create volunteer
     const volunteer = await Volunteer.create({
-      user: req.user._id,
+      user: userId,
       phone,
       skills,
       location,
     });
 
-    res.status(201).json(volunteer);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(201).json({
+      success: true,
+      volunteer,
+    });
+  } catch (err) {
+    console.error("Volunteer creation error:", err);
+    res.status(500).json({ message: "Failed to create volunteer profile" });
   }
 };
 
-// Get all volunteers (Admin)
-exports.getVolunteers = async (req, res) => {
+/**
+ * Get volunteer profile of logged-in user
+ */
+exports.getMyProfile = async (req, res) => {
   try {
-    const volunteers = await Volunteer.find().populate(
-      "user",
-      "name email"
-    );
-    res.json(volunteers);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+    const volunteer = await Volunteer.findOne({ user: req.user._id }).populate("user", "name email role");
+    if (!volunteer) return res.status(404).json({ message: "Volunteer profile not found" });
+
+    res.json({ success: true, volunteer });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to fetch volunteer profile" });
   }
 };

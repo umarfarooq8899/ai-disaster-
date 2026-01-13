@@ -1,7 +1,55 @@
 import React, { useEffect, useState, useContext } from "react";
 import axios from "axios";
+import { createPortal } from "react-dom";
+import toast, { Toaster } from "react-hot-toast";
 import { AuthContext } from "../../context/AuthContext";
 
+/* ================= DELETE MODAL (PORTAL) ================= */
+function DeleteUserModal({ user, onClose, onConfirm }) {
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/50"
+      onClick={onClose} // click outside to close
+    >
+      <div
+        className="w-full max-w-md rounded-xl bg-white p-6 shadow-2xl"
+        onClick={(e) => e.stopPropagation()} // prevent close on inside click
+      >
+        <h2 className="text-xl font-semibold text-gray-800 mb-3">
+          Delete User
+        </h2>
+
+        <p className="text-sm text-gray-600 mb-6">
+          Are you sure you want to delete{" "}
+          <span className="font-semibold">{user?.name}</span>?
+          <br />
+          <span className="text-red-600 font-medium">
+            This action cannot be undone.
+          </span>
+        </p>
+
+        <div className="flex justify-end gap-3">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 rounded-md bg-gray-100 hover:bg-gray-200"
+          >
+            Cancel
+          </button>
+
+          <button
+            onClick={onConfirm}
+            className="px-4 py-2 rounded-md bg-red-600 text-white hover:bg-red-700"
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+/* ================= MAIN COMPONENT ================= */
 export default function ManageUsers() {
   const { user, token } = useContext(AuthContext);
 
@@ -13,6 +61,10 @@ export default function ManageUsers() {
   const [roleFilter, setRoleFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
 
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
+
+  /* ================= FETCH USERS ================= */
   const fetchUsers = async () => {
     setLoading(true);
     setError("");
@@ -30,7 +82,7 @@ export default function ManageUsers() {
     }
   };
 
-  // Apply filters
+  /* ================= FILTERS ================= */
   useEffect(() => {
     let data = [...users];
 
@@ -45,31 +97,41 @@ export default function ManageUsers() {
     setFilteredUsers(data);
   }, [roleFilter, statusFilter, users]);
 
-  const changeRole = async (id, role) => {
-    await axios.patch(
-      `http://localhost:5000/api/users/${id}/role`,
-      { role },
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-    fetchUsers();
-  };
-
+  /* ================= STATUS CHANGE ================= */
   const changeStatus = async (id, status) => {
-    await axios.patch(
-      `http://localhost:5000/api/users/${id}/status`,
-      { status },
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-    fetchUsers();
+    try {
+      await axios.patch(
+        `http://localhost:5000/api/users/${id}/status`,
+        { status },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      toast.success("User status updated");
+      fetchUsers();
+    } catch (err) {
+      toast.error("Failed to update status");
+    }
   };
 
-  const deleteUser = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this user?")) return;
+  /* ================= DELETE ================= */
+  const confirmDelete = (user) => {
+    setSelectedUser(user);
+    setShowDeleteModal(true);
+  };
 
-    await axios.delete(`http://localhost:5000/api/users/${id}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    fetchUsers();
+  const deleteUser = async () => {
+    try {
+      await axios.delete(
+        `http://localhost:5000/api/users/${selectedUser._id}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      toast.success("User deleted successfully");
+      setShowDeleteModal(false);
+      setSelectedUser(null);
+      fetchUsers();
+    } catch (err) {
+      toast.error("Failed to delete user");
+    }
   };
 
   useEffect(() => {
@@ -88,11 +150,16 @@ export default function ManageUsers() {
 
   return (
     <div className="p-6">
+      {/* Toast Container */}
+      <Toaster position="top-right" />
+
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-3xl font-semibold text-gray-800">User Management</h1>
+        <h1 className="text-3xl font-semibold text-gray-800">
+          User Management
+        </h1>
         <p className="text-sm text-gray-500">
-          Filter, manage roles and user access
+          Manage user status and access
         </p>
       </div>
 
@@ -101,7 +168,7 @@ export default function ManageUsers() {
         <select
           value={roleFilter}
           onChange={(e) => setRoleFilter(e.target.value)}
-          className="border rounded-md px-3 py-2 text-sm focus:ring focus:ring-blue-200"
+          className="border rounded-md px-3 py-2 text-sm"
         >
           <option value="all">All Roles</option>
           <option value="admin">Admin</option>
@@ -112,7 +179,7 @@ export default function ManageUsers() {
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="border rounded-md px-3 py-2 text-sm focus:ring focus:ring-blue-200"
+          className="border rounded-md px-3 py-2 text-sm"
         >
           <option value="all">All Status</option>
           <option value="active">Active</option>
@@ -139,7 +206,6 @@ export default function ManageUsers() {
                 <td className="p-4 font-medium">{u.name}</td>
                 <td className="p-4 text-gray-600">{u.email}</td>
 
-                {/* Role Badge */}
                 <td className="p-4">
                   <span
                     className={`px-3 py-1 rounded-full text-xs font-semibold
@@ -155,7 +221,6 @@ export default function ManageUsers() {
                   </span>
                 </td>
 
-                {/* Status Badge */}
                 <td className="p-4">
                   <span
                     className={`px-3 py-1 rounded-full text-xs font-semibold
@@ -169,20 +234,7 @@ export default function ManageUsers() {
                   </span>
                 </td>
 
-                {/* Actions */}
                 <td className="p-4 flex justify-center gap-2">
-                  <button
-                    onClick={() =>
-                      changeRole(
-                        u._id,
-                        u.role === "general" ? "volunteer" : "general"
-                      )
-                    }
-                    className="px-3 py-1 text-xs rounded-md bg-blue-500 text-white hover:bg-blue-600"
-                  >
-                    Change Role
-                  </button>
-
                   <button
                     onClick={() =>
                       changeStatus(
@@ -201,7 +253,7 @@ export default function ManageUsers() {
                   </button>
 
                   <button
-                    onClick={() => deleteUser(u._id)}
+                    onClick={() => confirmDelete(u)}
                     className="px-3 py-1 text-xs rounded-md bg-red-500 text-white hover:bg-red-600"
                   >
                     Delete
@@ -220,6 +272,18 @@ export default function ManageUsers() {
           </tbody>
         </table>
       </div>
+
+      {/* Delete Modal */}
+      {showDeleteModal && (
+        <DeleteUserModal
+          user={selectedUser}
+          onClose={() => {
+            setShowDeleteModal(false);
+            setSelectedUser(null);
+          }}
+          onConfirm={deleteUser}
+        />
+      )}
     </div>
   );
 }

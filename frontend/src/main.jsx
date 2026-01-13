@@ -3,7 +3,15 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import "leaflet/dist/leaflet.css";
-
+import { Toaster } from "react-hot-toast";
+function App() {
+  return (
+    <>
+      <Toaster position="top-right" />
+      {/* rest of app */}
+    </>
+  );
+}
 import AppRouter from "./router"; // your router file
 import { AuthProvider } from "./context/AuthContext";
 

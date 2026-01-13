@@ -27,7 +27,7 @@ import Profile from "../pages/user/Profile";
 
 // User pages
 import UserHome from "../pages/user/UserHome";
-import MyReports from "../pages/user/MyReports";
+import MyReports from "../pages/user/Reports";
 import SafeZones from "../pages/user/SafeZones";
 
 // Volunteer pages

@@ -59,7 +59,7 @@ export default function Sidebar({ role = "general", collapsed }) {
       <nav className="flex-1 px-3 pb-6 overflow-y-auto">
         {/* User */}
         <NavItem to="/dashboard/user" exact>Home</NavItem>
-        <NavItem to="/dashboard/user/reports">My Reports</NavItem>
+        <NavItem to="/dashboard/user/reports">Reports</NavItem>
         <NavItem to="/dashboard/user/safe-zones">Safe Zones</NavItem>
 
         {/* Volunteer */}

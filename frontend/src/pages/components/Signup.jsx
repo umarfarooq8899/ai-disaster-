@@ -1,19 +1,63 @@
-// src/pages/components/Signup.jsx
 import React, { useContext, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import Select from "react-select";
 import { AuthContext } from "../../context/AuthContext";
 
 export default function Signup() {
   const navigate = useNavigate();
   const { signupUser } = useContext(AuthContext);
 
-  // Predefined Rescue Organizations
+  // Rescue Organizations
   const rescueOrgs = [
-    "Rescue 1122",
-    "Edhi Foundation",
-    "Al-Khidmat Foundation",
-    "Pakistan Red Crescent",
+    { value: "Rescue 1122", label: "Rescue 1122" },
+    { value: "Edhi Foundation", label: "Edhi Foundation" },
+    { value: "Al-Khidmat Foundation", label: "Al-Khidmat Foundation" },
+    { value: "Pakistan Red Crescent", label: "Pakistan Red Crescent" },
   ];
+
+  // NGO Organizations
+  const ngoOrgs = [
+    { value: "Edhi Foundation", label: "Edhi Foundation" },
+    { value: "Al-Khidmat Foundation", label: "Al-Khidmat Foundation" },
+    { value: "Saylani Welfare", label: "Saylani Welfare" },
+    { value: "Aman Foundation", label: "Aman Foundation" },
+  ];
+
+  // Pakistan Provinces & Cities
+  const pakistanData = {
+    Punjab: [
+      "Lahore","Rawalpindi","Islamabad","Faisalabad","Multan","Gujranwala",
+      "Sialkot","Sargodha","Bahawalpur","Rahim Yar Khan","Kasur","Okara",
+      "Sheikhupura","Jhelum","Attock","Chakwal","Mandi Bahauddin","Hafizabad",
+      "Vehari","Layyah","Bhakkar","Toba Tek Singh"
+    ],
+    Sindh: [
+      "Karachi","Hyderabad","Sukkur","Larkana","Nawabshah","Mirpurkhas",
+      "Thatta","Badin","Jacobabad","Khairpur","Shikarpur","Umerkot",
+      "Dadu","Ghotki","Tando Adam","Tando Allahyar"
+    ],
+    KPK: [
+      "Peshawar","Mardan","Abbottabad","Swat","Mingora","Mansehra",
+      "Charsadda","Nowshera","Kohat","Bannu","Dera Ismail Khan",
+      "Swabi","Haripur","Lower Dir","Upper Dir","Batkhela"
+    ],
+    Balochistan: [
+      "Quetta","Gwadar","Turbat","Khuzdar","Chaman","Zhob",
+      "Sibi","Loralai","Panjgur","Awaran","Kalat","Mastung"
+    ],
+    Islamabad: ["Islamabad"],
+    "Gilgit-Baltistan": [
+      "Gilgit","Skardu","Hunza","Ghizer","Diamer","Astore"
+    ],
+    AJK: [
+      "Muzaffarabad","Mirpur","Kotli","Bhimber","Bagh","Rawalakot"
+    ],
+  };
+
+  const provinceOptions = Object.keys(pakistanData).map((prov) => ({
+    value: prov,
+    label: prov,
+  }));
 
   const [form, setForm] = useState({
     name: "",
@@ -21,33 +65,37 @@ export default function Signup() {
     password: "",
     role: "general",
     phone: "",
-    address: "",
+    province: "",
+    city: "",
+    organizationType: "",
     organization: "",
   });
 
+  const [selectedProvince, setSelectedProvince] = useState(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  const handleChange = (e) =>
-    setForm({ ...form, [e.target.name]: e.target.value });
+  const cityOptions = selectedProvince
+    ? pakistanData[selectedProvince.value].map((city) => ({
+        value: city,
+        label: city,
+      }))
+    : [];
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setSuccess("");
 
-    // Prevent admin registration
-    if (form.role === "admin") {
-      return setError("You cannot register as an admin.");
-    }
-
-    // Validate volunteers
     if (form.role === "volunteer") {
-      if (!form.phone || !form.address) {
-        return setError("Phone number and address are required for volunteers.");
+      if (!form.phone || !form.province || !form.city) {
+        return setError("Phone, province and city are required for volunteers.");
+      }
+      if (!form.organizationType) {
+        return setError("Please select volunteer type.");
       }
       if (!form.organization) {
-        return setError("Please select a rescue organization to volunteer for.");
+        return setError("Please select an organization.");
       }
     }
 
@@ -60,145 +108,134 @@ export default function Signup() {
 
   return (
     <div className="min-h-screen flex justify-center items-start bg-gray-50 px-4 py-12">
-      <div className="sticky top-20 w-full max-w-md">
-        <div className="card p-8 bg-white border border-gray-200 shadow-md rounded-2xl">
-          <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
-            Sign Up
-          </h1>
-          <p className="mt-1 text-sm text-slate-600">
-            Create an account to access your dashboard
-          </p>
+      <div className="w-full max-w-md">
+        <div className="p-8 bg-white border shadow-md rounded-2xl">
+          <h1 className="text-3xl font-bold text-center">Sign Up</h1>
 
           {error && (
-            <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            <div className="mt-4 text-sm text-red-700 bg-red-50 border p-3 rounded">
               {error}
             </div>
           )}
+
           {success && (
-            <div className="mt-4 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+            <div className="mt-4 text-sm text-green-700 bg-green-50 border p-3 rounded">
               {success}
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-            <div>
-              <label className="mb-1 block text-sm font-semibold text-slate-700">
-                Full Name
-              </label>
-              <input
-                type="text"
-                name="name"
-                required
-                value={form.name}
-                onChange={handleChange}
-                className="input w-full"
-              />
-            </div>
+            <input
+              className="input w-full"
+              placeholder="Full Name"
+              required
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+            />
 
-            <div>
-              <label className="mb-1 block text-sm font-semibold text-slate-700">
-                Email
-              </label>
-              <input
-                type="email"
-                name="email"
-                required
-                value={form.email}
-                onChange={handleChange}
-                className="input w-full"
-              />
-            </div>
+            <input
+              type="email"
+              className="input w-full"
+              placeholder="Email"
+              required
+              onChange={(e) => setForm({ ...form, email: e.target.value })}
+            />
 
-            <div>
-              <label className="mb-1 block text-sm font-semibold text-slate-700">
-                Password
-              </label>
-              <input
-                type="password"
-                name="password"
-                required
-                value={form.password}
-                onChange={handleChange}
-                className="input w-full"
-              />
-            </div>
+            <input
+              type="password"
+              className="input w-full"
+              placeholder="Password"
+              required
+              onChange={(e) => setForm({ ...form, password: e.target.value })}
+            />
 
-            <div>
-              <label className="mb-1 block text-sm font-semibold text-slate-700">
-                Role
-              </label>
-              <select
-                name="role"
-                value={form.role}
-                onChange={handleChange}
-                className="input w-full"
-              >
-                <option value="general">General User</option>
-                <option value="volunteer">Volunteer</option>
-              </select>
-            </div>
+            <select
+              className="input w-full"
+              value={form.role}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  role: e.target.value,
+                  organizationType: "",
+                  organization: "",
+                })
+              }
+            >
+              <option value="general">General User</option>
+              <option value="volunteer">Volunteer</option>
+            </select>
 
-            {/* Volunteer-specific fields */}
             {form.role === "volunteer" && (
               <>
-                <div>
-                  <label className="mb-1 block text-sm font-semibold text-slate-700">
-                    Phone Number
-                  </label>
-                  <input
-                    type="text"
-                    name="phone"
-                    required
-                    value={form.phone}
-                    onChange={handleChange}
-                    className="input w-full"
-                  />
-                </div>
+                <input
+                  className="input w-full"
+                  placeholder="Phone Number"
+                  onChange={(e) =>
+                    setForm({ ...form, phone: e.target.value })
+                  }
+                />
 
-                <div>
-                  <label className="mb-1 block text-sm font-semibold text-slate-700">
-                    Address
-                  </label>
-                  <input
-                    type="text"
-                    name="address"
-                    required
-                    value={form.address}
-                    onChange={handleChange}
-                    className="input w-full"
-                  />
-                </div>
+                <select
+                  className="input w-full"
+                  value={form.organizationType}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      organizationType: e.target.value,
+                      organization: "",
+                    })
+                  }
+                >
+                  <option value="">Select Volunteer Type</option>
+                  <option value="rescue">Rescue Organization</option>
+                  <option value="ngo">NGO</option>
+                </select>
 
-                <div>
-                  <label className="mb-1 block text-sm font-semibold text-slate-700">
-                    Select Rescue Organization
-                  </label>
-                  <select
-                    name="organization"
-                    value={form.organization}
-                    onChange={handleChange}
-                    className="input w-full"
-                    required
-                  >
-                    <option value="">Select an organization</option>
-                    {rescueOrgs.map((org, idx) => (
-                      <option key={idx} value={org}>
-                        {org}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <Select
+                  options={provinceOptions}
+                  placeholder="Select Province"
+                  onChange={(prov) => {
+                    setSelectedProvince(prov);
+                    setForm({ ...form, province: prov.value, city: "" });
+                  }}
+                />
+
+                <Select
+                  options={cityOptions}
+                  placeholder="Select City"
+                  isDisabled={!selectedProvince}
+                  onChange={(city) =>
+                    setForm({ ...form, city: city.value })
+                  }
+                />
+
+                {form.organizationType === "rescue" && (
+                  <Select
+                    options={rescueOrgs}
+                    placeholder="Select Rescue Organization"
+                    onChange={(org) =>
+                      setForm({ ...form, organization: org.value })
+                    }
+                  />
+                )}
+
+                {form.organizationType === "ngo" && (
+                  <Select
+                    options={ngoOrgs}
+                    placeholder="Select NGO"
+                    onChange={(org) =>
+                      setForm({ ...form, organization: org.value })
+                    }
+                  />
+                )}
               </>
             )}
 
-            <button type="submit" className="btn-primary w-full">
-              Sign Up
-            </button>
+            <button className="btn-primary w-full">Sign Up</button>
           </form>
 
-          <p className="mt-5 text-sm text-slate-600">
+          <p className="mt-4 text-sm text-center">
             Already have an account?{" "}
-            <Link className="link font-semibold text-blue-600" to="/login">
+            <Link to="/login" className="text-blue-600 font-semibold">
               Login
             </Link>
           </p>

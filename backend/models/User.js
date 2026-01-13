@@ -3,76 +3,32 @@ const bcrypt = require("bcryptjs");
 
 const userSchema = new mongoose.Schema(
   {
-    name: {
-      type: String,
-      required: true,
-      trim: true,
-    },
+    name: { type: String, required: true, trim: true },
+    email: { type: String, required: true, unique: true, lowercase: true },
+    password: { type: String, required: true, select: false },
 
-    email: {
-      type: String,
-      required: true,
-      unique: true,
-      lowercase: true,
-    },
-
-    password: {
-      type: String,
-      required: true,
-      select: false,
-    },
-
-    // ✅ Roles aligned with frontend
     role: {
       type: String,
-      enum: ["general", "volunteer", "admin", "rescue"],
+      enum: ["general", "volunteer", "admin", "rescue", "ngo"],
       default: "general",
     },
 
-    status: {
-      type: String,
-      enum: ["active", "blocked"],
-      default: "active",
-    },
+    status: { type: String, enum: ["active", "blocked"], default: "active" },
 
-    // ✅ Extra fields for volunteers & rescue coordinators
-    phone: {
-      type: String,
-      required: function () {
-        return this.role === "volunteer" || this.role === "rescue";
-      },
-    },
-
-    address: {
-      type: String,
-      required: function () {
-        return this.role === "volunteer" || this.role === "rescue";
-      },
-    },
-
-    // 🔹 Optional for now (can be enforced later)
-    organization: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "RescueOrganization",
-      default: null,
-    },
+    // 🔑 Controls onboarding flow for volunteers
+    profileCompleted: { type: Boolean, default: function () { return this.role !== "volunteer"; } },
   },
   { timestamps: true }
 );
 
-// ================= METHODS =================
-
-// ✅ Compare password
+// Compare password
 userSchema.methods.matchPassword = async function (enteredPassword) {
-  return await bcrypt.compare(enteredPassword, this.password);
+  return bcrypt.compare(enteredPassword, this.password);
 };
 
-// ================= MIDDLEWARE =================
-
-// ✅ Hash password before saving
+// Hash password before saving
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
-
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
   next();

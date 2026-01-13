@@ -1,5 +1,6 @@
 import React, { createContext, useEffect, useMemo, useState } from "react";
 import * as AuthAPI from "../api/auth";
+import * as VolunteerAPI from "../api/volunteer";
 
 export const AuthContext = createContext();
 
@@ -45,29 +46,14 @@ export function AuthProvider({ children }) {
   // ================= AUTH ACTIONS =================
   const signupUser = async (form) => {
     try {
-      // Ensure required fields for volunteer/rescue coordinator
-      if (
-        (form.role === "volunteer" || form.role === "rescue_coordinator") &&
-        (!form.phone || !form.address)
-      ) {
-        return {
-          success: false,
-          message: "Phone number and address are required for this role.",
-        };
-      }
-
-      const data = await AuthAPI.signup(form); // calls /auth/register
+      const data = await AuthAPI.signup(form); // /auth/register
 
       if (data?.token && data?.user) {
-        // Auto-set session
         setSession(data);
         return { success: true, data };
       }
 
-      return {
-        success: false,
-        message: data?.message || "Signup failed",
-      };
+      return { success: false, message: data?.message || "Signup failed" };
     } catch (err) {
       return {
         success: false,
@@ -85,10 +71,7 @@ export function AuthProvider({ children }) {
         return { success: true, data };
       }
 
-      return {
-        success: false,
-        message: data?.message || "Invalid credentials",
-      };
+      return { success: false, message: data?.message || "Invalid credentials" };
     } catch (err) {
       return {
         success: false,
@@ -101,6 +84,25 @@ export function AuthProvider({ children }) {
 
   const updateUser = (newData) =>
     setUser((prev) => ({ ...prev, ...newData }));
+
+  // ================= Volunteer Profile =================
+  const createVolunteerProfile = async (form) => {
+    try {
+      const res = await VolunteerAPI.createVolunteer(form, token); // /volunteer/create
+
+      if (res?.success) {
+        updateUser({ ...res.volunteer });
+        return { success: true, data: res.volunteer };
+      }
+
+      return { success: false, message: res?.message || "Failed to create volunteer profile" };
+    } catch (err) {
+      return {
+        success: false,
+        message: err?.response?.data?.message || "Failed to create volunteer profile",
+      };
+    }
+  };
 
   // ================= Dashboard Routing =================
   const getDashboardPath = (role) => {
@@ -123,14 +125,11 @@ export function AuthProvider({ children }) {
       loginUser,
       logout,
       updateUser,
+      createVolunteerProfile,
       getDashboardPath,
     }),
     [user, token, loading]
   );
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

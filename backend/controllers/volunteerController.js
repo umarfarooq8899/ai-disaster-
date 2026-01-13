@@ -1,55 +1,72 @@
-const Volunteer = require("../models/Volunteer");
+const Volunteer = require("../models/volunteer");
 const User = require("../models/User");
 
-/**
- * Create a new volunteer profile
- * Required: userId, phone, location (lat,lng), skills (optional)
- */
+// Create or update volunteer profile
 exports.createVolunteer = async (req, res) => {
+  const { phone, province, city, skills, organizationType, organization } = req.body;
+  const userId = req.user.id;
+
   try {
-    const { phone, skills = [], location } = req.body;
-    const userId = req.user._id; // user must be logged in
+    let volunteer = await Volunteer.findOne({ user: userId });
 
-    // Validate required fields
-    if (!phone || !location?.lat || !location?.lng) {
-      return res.status(400).json({ message: "Phone number and location are required" });
+    if (volunteer) {
+      // Update existing
+      volunteer.phone = phone;
+      volunteer.province = province;
+      volunteer.city = city;
+      volunteer.skills = skills;
+      volunteer.organizationType = organizationType;
+      volunteer.organization = organization;
+      await volunteer.save();
+    } else {
+      // Create new
+      volunteer = new Volunteer({
+        user: userId,
+        phone,
+        province,
+        city,
+        skills,
+        organizationType,
+        organization,
+      });
+      await volunteer.save();
     }
 
-    // Check if volunteer profile already exists
-    const existing = await Volunteer.findOne({ user: userId });
-    if (existing) {
-      return res.status(400).json({ message: "Volunteer profile already exists" });
-    }
+    // Mark profile as completed in User
+    await User.findByIdAndUpdate(userId, { profileCompleted: true });
 
-    // Create volunteer
-    const volunteer = await Volunteer.create({
-      user: userId,
-      phone,
-      skills,
-      location,
-    });
-
-    res.status(201).json({
+    res.json({
       success: true,
       volunteer,
+      message: "Volunteer profile saved successfully",
     });
   } catch (err) {
-    console.error("Volunteer creation error:", err);
-    res.status(500).json({ message: "Failed to create volunteer profile" });
+    console.error("Create Volunteer error:", err);
+    res.status(500).json({
+      success: false,
+      message: "Failed to create volunteer profile",
+    });
   }
 };
 
-/**
- * Get volunteer profile of logged-in user
- */
+// Get logged-in volunteer profile
 exports.getMyProfile = async (req, res) => {
+  const userId = req.user.id;
+
   try {
-    const volunteer = await Volunteer.findOne({ user: req.user._id }).populate("user", "name email role");
-    if (!volunteer) return res.status(404).json({ message: "Volunteer profile not found" });
+    const volunteer = await Volunteer.findOne({ user: userId })
+      .populate("organization")
+      .lean();
+
+    if (!volunteer)
+      return res.status(404).json({ message: "Volunteer profile not found" });
 
     res.json({ success: true, volunteer });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Failed to fetch volunteer profile" });
+    console.error("Get Volunteer profile error:", err);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch volunteer profile",
+    });
   }
 };

@@ -1,14 +1,44 @@
-const express = require("express");
-const router = express.Router();
-const { createVolunteer, getMyProfile } = require("../controllers/volunteerController");
-const auth = require("../middleware/auth"); // make sure auth middleware is correct
+const mongoose = require("mongoose");
 
-// ================== Routes ==================
+const volunteerSchema = new mongoose.Schema(
+  {
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
 
-// Create volunteer profile (must be logged in)
-router.post("/create", auth, createVolunteer);
+    phone: { type: String, required: true },
+    province: { type: String, required: true },
+    city: { type: String, required: true },
 
-// Get volunteer profile of logged-in user
-router.get("/me", auth, getMyProfile);
+    skills: {
+      type: [String],
+      required: true,
+      default: [],
+    },
 
-module.exports = router;
+    organizationType: {
+      type: String,
+      enum: ["RescueOrganization", "NGOOrganization"],
+      required: true,
+    },
+
+    organization: {
+      type: mongoose.Schema.Types.ObjectId,
+      refPath: "organizationType", // <-- dynamic ref
+      default: null,
+    },
+
+    available: { type: Boolean, default: true },
+
+    status: {
+      type: String,
+      enum: ["active", "blocked"],
+      default: "active",
+    },
+  },
+  { timestamps: true }
+);
+
+module.exports = mongoose.model("Volunteer", volunteerSchema);

@@ -34,6 +34,7 @@ import SafeZones from "../pages/user/SafeZones";
 import VolunteerHome from "../pages/volunteer/VolunteerHome";
 import Tasks from "../pages/volunteer/Tasks";
 import NearbyReports from "../pages/volunteer/NearbyReports";
+import CreateVolunteer from "../pages/volunteer/CreateVolunteer";
 
 // NGO pages
 import NGOHome from "../pages/ngo/NGOHome";
@@ -48,6 +49,7 @@ import MissionForm from "../pages/rescue/MissionForm";
 export default function Router() {
   const { user, loading } = useContext(AuthContext);
 
+  // PrivateRoute for role-based access
   const PrivateRoute = ({ children, roles }) => {
     if (loading) return null;
     if (!user) return <Navigate to="/login" replace />;
@@ -57,7 +59,7 @@ export default function Router() {
 
   return (
     <Routes>
-      {/* PUBLIC ROUTES */}
+      {/* ================= PUBLIC ROUTES ================= */}
       <Route path="/" element={<PublicLayout />}>
         <Route index element={<Home />} />
         <Route path="login" element={<Login />} />
@@ -72,7 +74,7 @@ export default function Router() {
         <Route path="profile" element={<Profile />} />
       </Route>
 
-      {/* DASHBOARD ROUTES */}
+      {/* ================= DASHBOARD ROUTES ================= */}
       <Route
         path="/dashboard/*"
         element={
@@ -81,28 +83,33 @@ export default function Router() {
           </PrivateRoute>
         }
       >
-        {/* Admin */}
+        {/* ===== Admin ===== */}
         <Route path="admin" element={<AdminDashboard />} />
         <Route path="admin/users" element={<ManageUsers />} />
         <Route path="admin/disasters" element={<ManageDisasters />} />
         <Route path="admin/alerts" element={<ManageAlerts />} />
         <Route path="admin/statistics" element={<Statistics />} />
 
-        {/* User */}
+        {/* ===== User ===== */}
         <Route path="user" element={<UserHome />} />
         <Route path="user/reports" element={<MyReports />} />
         <Route path="user/safe-zones" element={<SafeZones />} />
 
-        {/* Volunteer */}
+        {/* ===== Volunteer ===== */}
         <Route path="volunteer" element={<VolunteerHome />} />
+        <Route path="volunteer/create-profile" element={
+          <PrivateRoute roles={["volunteer"]}>
+            <CreateVolunteer />
+          </PrivateRoute>
+        } />
         <Route path="volunteer/tasks" element={<Tasks />} />
         <Route path="volunteer/nearby" element={<NearbyReports />} />
 
-        {/* NGO */}
+        {/* ===== NGO ===== */}
         <Route path="ngo" element={<NGOHome />} />
         <Route path="ngo/volunteers" element={<ManageVolunteers />} />
 
-        {/* ✅ Rescue (CLEAN & FIXED) */}
+        {/* ===== Rescue ===== */}
         <Route path="rescue" element={<RescueHome />} />
         <Route path="rescue/dashboard" element={<RescueDashboard />} />
         <Route path="rescue/missions" element={<Missions />} />
@@ -112,7 +119,7 @@ export default function Router() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
 
-      {/* PUBLIC CATCH-ALL */}
+      {/* ================= PUBLIC CATCH-ALL ================= */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

@@ -53,40 +53,52 @@ exports.loginUser = async (req, res) => {
 /* ================= REGISTER USER ================= */
 exports.registerUser = async (req, res) => {
   try {
-    let { name, email, password, role, phone, address } = req.body;
+    let {
+      name,
+      email,
+      password,
+      role,
+      phone,
+      province,
+      city,
+      organizationType,
+      organization,
+    } = req.body;
 
     // ❌ Prevent admin registration
     if (role === "admin") {
       return res.status(403).json({ message: "Cannot register as admin" });
     }
 
-    // ✅ Normalize role from frontend
-    if (role === "rescue") {
-      role = "rescue_coordinator";
+    // ✅ Normalize role
+    if (!role) role = "general";
+
+    // ✅ Volunteer validation
+    if (role === "volunteer") {
+      if (!phone || !province || !city) {
+        return res.status(400).json({
+          message: "Phone number, province and city are required for this role",
+        });
+      }
     }
 
-    // ✅ Validate required extra fields
-    if (
-      (role === "volunteer" || role === "rescue_coordinator") &&
-      (!phone || !address)
-    ) {
-      return res
-        .status(400)
-        .json({ message: "Phone number and address are required" });
-    }
-
+    // ❌ Duplicate email check
     const existing = await User.findOne({ email });
     if (existing) {
       return res.status(400).json({ message: "Email already registered" });
     }
 
+    // ✅ Create user
     const user = await User.create({
       name,
       email,
       password,
-      role: role || "general",
+      role,
       phone,
-      address,
+      province,
+      city,
+      organizationType,
+      organization,
     });
 
     const token = generateToken({

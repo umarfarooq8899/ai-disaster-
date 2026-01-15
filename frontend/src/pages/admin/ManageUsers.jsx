@@ -192,10 +192,10 @@ export default function ManageUsers() {
         <table className="w-full text-sm">
           <thead className="bg-gray-100 text-gray-600 uppercase text-xs">
             <tr>
-              <th className="p-4">Name</th>
-              <th className="p-4">Email</th>
-              <th className="p-4">Role</th>
-              <th className="p-4">Status</th>
+              <th className="p-4 text-left">Name</th>
+              <th className="p-4 text-left">Email</th>
+              <th className="p-4 text-center">Role</th>
+              <th className="p-4 text-center">Status</th>
               <th className="p-4 text-center">Actions</th>
             </tr>
           </thead>
@@ -203,16 +203,15 @@ export default function ManageUsers() {
           <tbody>
             {filteredUsers.map((u) => (
               <tr key={u._id} className="border-t hover:bg-gray-50">
-                <td className="p-4 font-medium">{u.name}</td>
-                <td className="p-4 text-gray-600">{u.email}</td>
+                <td className="p-4 font-medium text-left">{u.name}</td>
+                <td className="p-4 text-gray-600 text-left">{u.email}</td>
 
-                <td className="p-4">
+                <td className="p-4 text-center">
                   <span
                     className={`px-3 py-1 rounded-full text-xs font-semibold
-                      ${
-                        u.role === "admin"
-                          ? "bg-purple-100 text-purple-700"
-                          : u.role === "volunteer"
+                      ${u.role === "admin"
+                        ? "bg-purple-100 text-purple-700"
+                        : u.role === "volunteer"
                           ? "bg-blue-100 text-blue-700"
                           : "bg-gray-100 text-gray-700"
                       }`}
@@ -221,13 +220,12 @@ export default function ManageUsers() {
                   </span>
                 </td>
 
-                <td className="p-4">
+                <td className="p-4 text-center">
                   <span
                     className={`px-3 py-1 rounded-full text-xs font-semibold
-                      ${
-                        u.status === "active"
-                          ? "bg-green-100 text-green-700"
-                          : "bg-red-100 text-red-700"
+                      ${u.status === "active"
+                        ? "bg-green-100 text-green-700"
+                        : "bg-red-100 text-red-700"
                       }`}
                   >
                     {u.status}
@@ -243,10 +241,9 @@ export default function ManageUsers() {
                       )
                     }
                     className={`px-3 py-1 text-xs rounded-md text-white
-                      ${
-                        u.status === "active"
-                          ? "bg-yellow-500 hover:bg-yellow-600"
-                          : "bg-green-500 hover:bg-green-600"
+                      ${u.status === "active"
+                        ? "bg-yellow-500 hover:bg-yellow-600"
+                        : "bg-green-500 hover:bg-green-600"
                       }`}
                   >
                     {u.status === "active" ? "Block" : "Unblock"}

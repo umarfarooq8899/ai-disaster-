@@ -10,6 +10,7 @@ import {
   MapPin,
   X,
 } from "lucide-react";
+import MapView from "../../components/map/MapView";
 
 export default function ManageDisasters() {
   const { user, token } = useContext(AuthContext);
@@ -24,7 +25,7 @@ export default function ManageDisasters() {
   const fetchDisasters = async () => {
     try {
       setLoading(true);
-      const res = await axios.get("http://localhost:5000/api/disasters", {
+      const res = await axios.get("http://localhost:5000/api/disasters/admin/all", {
         headers: { Authorization: `Bearer ${token}` },
       });
       setDisasters(res.data);
@@ -32,6 +33,36 @@ export default function ManageDisasters() {
       toast.error("Failed to load disasters");
     } finally {
       setLoading(false);
+    }
+  };
+
+
+
+  const verifyDisaster = async (id) => {
+    try {
+      await axios.patch(
+        `http://localhost:5000/api/disasters/${id}/verify`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      toast.success("Disaster verified");
+      fetchDisasters();
+    } catch {
+      toast.error("Failed to verify disaster");
+    }
+  };
+
+  const rejectDisaster = async (id) => {
+    try {
+      await axios.patch(
+        `http://localhost:5000/api/disasters/${id}/reject`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      toast.success("Disaster rejected");
+      fetchDisasters();
+    } catch {
+      toast.error("Failed to reject disaster");
     }
   };
 
@@ -85,13 +116,12 @@ export default function ManageDisasters() {
       {/* TABLE */}
       <div className="bg-white border rounded-xl shadow-sm overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="bg-gray-100">
+          <thead className="bg-gray-100 font-semibold text-gray-600 uppercase text-xs">
             <tr>
-              <th className="p-4">Type</th>
-              <th className="p-4">Location</th>
-              <th className="p-4">Severity</th>
-              <th className="p-4">Status</th>
-              <th className="p-4 text-right">Actions</th>
+              <th className="p-4 text-left">Title</th>
+              <th className="p-4 text-left">Location</th>
+              <th className="p-4 text-center">Severity</th>
+              <th className="p-4 text-center">Status</th>
             </tr>
           </thead>
 
@@ -102,35 +132,22 @@ export default function ManageDisasters() {
                 onClick={() => setSelectedDisaster(d)}
                 className="border-t hover:bg-gray-50 cursor-pointer"
               >
-                <td className="p-4 font-medium">{d.type}</td>
+                <td className="p-4 font-medium text-left">{d.title}</td>
 
-                <td className="p-4 flex items-center gap-1">
+                <td className="p-4 flex items-center gap-1 text-left">
                   <MapPin className="w-4 h-4 text-gray-400" />
                   {d.location}
                 </td>
 
-                <td className="p-4">{d.severity}</td>
-                <td className="p-4">{d.status}</td>
-
-                <td
-                  className="p-4 flex justify-end gap-2"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  {d.status === "Active" && (
-                    <button
-                      onClick={() => resolveDisaster(d._id)}
-                      className="px-3 py-1 text-xs border rounded text-green-600 hover:bg-green-50"
-                    >
-                      <CheckCircle className="w-4 h-4 inline" /> Resolve
-                    </button>
-                  )}
-
-                  <button
-                    onClick={() => setDeleteTarget(d._id)}
-                    className="px-3 py-1 text-xs border rounded text-red-600 hover:bg-red-50"
-                  >
-                    <Trash2 className="w-4 h-4 inline" /> Delete
-                  </button>
+                <td className="p-4 text-center">{d.severity}</td>
+                <td className="p-4 text-center">
+                  <span className={`px-2 py-1 rounded text-xs font-semibold
+                    ${d.status === 'active' ? 'bg-green-100 text-green-700' :
+                      d.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+                        d.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                          'bg-blue-100 text-blue-700'}`}>
+                    {d.status}
+                  </span>
                 </td>
               </tr>
             ))}
@@ -148,15 +165,98 @@ export default function ManageDisasters() {
 
       {/* DETAILS MODAL */}
       {selectedDisaster && (
-        <Modal onClose={() => setSelectedDisaster(null)}>
-          <h2 className="text-lg font-semibold mb-3">Disaster Details</h2>
-          <p><b>Type:</b> {selectedDisaster.type}</p>
-          <p><b>Location:</b> {selectedDisaster.location}</p>
-          <p><b>Severity:</b> {selectedDisaster.severity}</p>
-          <p><b>Status:</b> {selectedDisaster.status}</p>
-          <p className="mt-2 text-sm text-gray-600">
-            {selectedDisaster.description || "No description available"}
-          </p>
+        <Modal onClose={() => setSelectedDisaster(null)} wide>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* LEFT COLUMN: MAP & LOCATION */}
+            <div className="space-y-4">
+              <div className="h-64 md:h-80 rounded-xl overflow-hidden border shadow-sm">
+                <MapView disasters={[selectedDisaster]} />
+              </div>
+
+              <div className="bg-gray-50 p-4 rounded-lg border">
+                <h3 className="font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                  <MapPin className="w-4 h-4" /> Location Details
+                </h3>
+                <p className="text-sm text-gray-600 mb-1">
+                  <strong>Address:</strong> {selectedDisaster.location}
+                </p>
+                <p className="text-xs text-gray-400 font-mono">
+                  Lat: {selectedDisaster.latitude}, Lng: {selectedDisaster.longitude}
+                </p>
+              </div>
+            </div>
+
+            {/* RIGHT COLUMN: INFO & ACTIONS */}
+            <div className="flex flex-col h-full">
+              <div className="flex-1 space-y-4">
+                {selectedDisaster.image && (
+                  <div className="rounded-lg overflow-hidden border h-48 w-full bg-gray-100">
+                    <img
+                      src={`http://localhost:5000/${selectedDisaster.image}`}
+                      alt="Disaster"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                )}
+
+                <div>
+                  <div className="flex justify-between items-start mb-2">
+                    <h2 className="text-xl font-bold text-gray-800">{selectedDisaster.title}</h2>
+                    <span className={`px-2 py-1 rounded text-xs font-bold uppercase
+                          ${selectedDisaster.severity === 'high' ? 'bg-red-100 text-red-700' :
+                        selectedDisaster.severity === 'medium' ? 'bg-orange-100 text-orange-700' :
+                          'bg-green-100 text-green-700'}`}>
+                      {selectedDisaster.severity}
+                    </span>
+                  </div>
+
+                  <div className="bg-white p-3 rounded border text-gray-600 text-sm min-h-[80px]">
+                    {selectedDisaster.description || "No description provided."}
+                  </div>
+
+                  <p className="text-xs text-gray-400 mt-2">
+                    Reported on: {new Date(selectedDisaster.createdAt).toLocaleString()}
+                  </p>
+                </div>
+              </div>
+
+              {/* ACTION BAR */}
+              <div className="mt-6 pt-4 border-t grid grid-cols-2 gap-3">
+                {selectedDisaster.status === "pending" && (
+                  <>
+                    <button
+                      onClick={() => verifyDisaster(selectedDisaster._id)}
+                      className="flex items-center justify-center gap-2 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition"
+                    >
+                      <CheckCircle className="w-4 h-4" /> Approve
+                    </button>
+                    <button
+                      onClick={() => rejectDisaster(selectedDisaster._id)}
+                      className="flex items-center justify-center gap-2 bg-red-100 text-red-700 py-2 rounded-lg hover:bg-red-200 transition"
+                    >
+                      <X className="w-4 h-4" /> Reject
+                    </button>
+                  </>
+                )}
+
+                {selectedDisaster.status === "active" && (
+                  <button
+                    onClick={() => resolveDisaster(selectedDisaster._id)}
+                    className="col-span-2 flex items-center justify-center gap-2 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition"
+                  >
+                    <CheckCircle className="w-4 h-4" /> Mark as Resolved
+                  </button>
+                )}
+
+                <button
+                  onClick={() => setDeleteTarget(selectedDisaster._id)}
+                  className={`flex items-center justify-center gap-2 border border-red-200 text-red-600 py-2 rounded-lg hover:bg-red-50 transition ${selectedDisaster.status !== 'pending' ? 'col-span-2' : 'col-span-2 mt-2'}`}
+                >
+                  <Trash2 className="w-4 h-4" /> Delete Report
+                </button>
+              </div>
+            </div>
+          </div>
         </Modal>
       )}
 
@@ -192,7 +292,7 @@ export default function ManageDisasters() {
 /* ===============================
    ANIMATED MODAL
 ================================ */
-function Modal({ children, onClose }) {
+function Modal({ children, onClose, ...props }) {
   return (
     <div
       onClick={onClose}
@@ -200,17 +300,20 @@ function Modal({ children, onClose }) {
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="bg-white rounded-xl p-6 w-full max-w-md relative
+        className={`bg-white rounded-xl p-6 w-full relative
                    transform transition-all duration-300 scale-95 opacity-0
-                   animate-modal"
+                   animate-modal overflow-hidden flex flex-col max-h-[90vh]
+                   ${props.wide ? 'max-w-4xl' : 'max-w-md'}`}
       >
         <button
           onClick={onClose}
-          className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
+          className="absolute top-3 right-3 text-gray-500 hover:text-gray-700 z-10 bg-white rounded-full p-1"
         >
           <X className="w-4 h-4" />
         </button>
-        {children}
+        <div className="overflow-y-auto">
+          {children}
+        </div>
       </div>
     </div>
   );

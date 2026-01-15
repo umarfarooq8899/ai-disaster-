@@ -6,7 +6,10 @@ const disasterSchema = new mongoose.Schema(
     description: String,
     location: String,
     severity: { type: String, enum: ["low", "medium", "high"], default: "low" },
-    status: { type: String, enum: ["active", "resolved"], default: "active" },
+    status: { type: String, enum: ["pending", "active", "resolved", "rejected"], default: "pending" },
+    image: { type: String }, // URL/path to uploaded image
+    latitude: { type: Number },
+    longitude: { type: Number },
     reportedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   },
   { timestamps: true }

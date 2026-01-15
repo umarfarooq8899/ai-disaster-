@@ -6,17 +6,15 @@ const userSchema = new mongoose.Schema(
     name: { type: String, required: true, trim: true },
     email: { type: String, required: true, unique: true, lowercase: true },
     password: { type: String, required: true, select: false },
-
     role: {
       type: String,
-      enum: ["general", "volunteer", "admin", "rescue", "ngo"],
+      enum: ["general", "volunteer", "admin", "rescue", "ngo", "rescue_coordinator", "ngo_coordinator"],
       default: "general",
     },
-
     status: { type: String, enum: ["active", "blocked"], default: "active" },
-
-    // 🔑 Controls onboarding flow for volunteers
     profileCompleted: { type: Boolean, default: function () { return this.role !== "volunteer"; } },
+    organizationType: { type: String, enum: ["NgoOrganization", "RescueOrganization"], default: null },
+    organization: { type: mongoose.Schema.Types.ObjectId, refPath: "organizationType", default: null },
   },
   { timestamps: true }
 );

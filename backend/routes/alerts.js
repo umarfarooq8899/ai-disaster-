@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 
 // Middleware
-const auth = require("../middleware/auth");
+const { protect: auth } = require("../middleware/auth");
 const adminOnly = require("../middleware/adminOnly");
 
 // Model

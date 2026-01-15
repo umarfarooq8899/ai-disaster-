@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
 import { createDisaster } from "../../api/disasters";
 import { FaImage } from "react-icons/fa";
-import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from "react-leaflet";
 import L from "leaflet";
 import toast, { Toaster } from "react-hot-toast";
 import "leaflet/dist/leaflet.css";
@@ -21,11 +21,17 @@ L.Icon.Default.mergeOptions({
 
 /* ================= REVERSE GEOCODING ================= */
 const getAddressFromCoords = async (lat, lng) => {
-  const res = await fetch(
-    `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`
-  );
-  const data = await res.json();
-  return data.display_name || "Unknown location";
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`
+    );
+    if (!res.ok) throw new Error("Network response was not ok");
+    const data = await res.json();
+    return data.display_name || "Unknown location";
+  } catch (error) {
+    console.warn("Geocoding failed:", error);
+    return "Location selected (Address unavailable)";
+  }
 };
 
 /* ================= MAP CLICK HANDLER ================= */
@@ -36,17 +42,45 @@ function LocationPicker({ setLocation, setAddress }) {
       const lng = e.latlng.lng;
 
       setLocation({ lat, lng });
+      setAddress("Fetching address...");
 
-      try {
-        const address = await getAddressFromCoords(lat, lng);
-        setAddress(address);
-      } catch {
-        setAddress("Unable to fetch address");
-      }
+      // Non-blocking fetch
+      getAddressFromCoords(lat, lng).then(addr => setAddress(addr));
     },
   });
 
   return null;
+}
+
+// "Locate Me" Button Component
+function LocateControl({ setLocation, setAddress }) {
+  const map = useMap();
+
+  const handleLocate = () => {
+    map.locate().on("locationfound", function (e) {
+      setLocation(e.latlng);
+      setAddress("Fetching address...");
+      getAddressFromCoords(e.latlng.lat, e.latlng.lng).then(addr => setAddress(addr));
+      map.flyTo(e.latlng, map.getZoom());
+    });
+  };
+
+  return (
+    <div className="leaflet-bottom leaflet-left pointer-events-auto">
+      <div className="leaflet-control leaflets-bar m-4">
+        <button
+          onClick={(e) => {
+            e.preventDefault(); // prevent form submit
+            handleLocate();
+          }}
+          className="bg-white p-2 rounded shadow hover:bg-gray-50 text-sm font-semibold border text-gray-700"
+          type="button"
+        >
+          📍 Locate Me
+        </button>
+      </div>
+    </div>
+  );
 }
 
 export default function ReportDisaster() {
@@ -59,7 +93,7 @@ export default function ReportDisaster() {
   const [form, setForm] = useState({
     title: "",
     description: "",
-    severity: "moderate",
+    severity: "medium",
     image: null,
   });
 
@@ -79,20 +113,18 @@ export default function ReportDisaster() {
     }
   }, [user, loading, navigate]);
 
-  // Measure form total height and set map height
-  const updateMapHeight = () => {
-    if (formRef.current) {
-      const height = formRef.current.offsetHeight;
-      setMapHeight(height);
-    }
-  };
-
   useEffect(() => {
-    // Delay measurement to allow render
-    setTimeout(updateMapHeight, 100);
-    window.addEventListener("resize", updateMapHeight);
-    return () => window.removeEventListener("resize", updateMapHeight);
-  }, [form, location, address]);
+    if (!formRef.current) return;
+
+    const resizeObserver = new ResizeObserver(() => {
+      if (formRef.current) {
+        setMapHeight(formRef.current.offsetHeight);
+      }
+    });
+
+    resizeObserver.observe(formRef.current);
+    return () => resizeObserver.disconnect();
+  }, []);
 
   const handleChange = (e) =>
     setForm((s) => ({ ...s, [e.target.name]: e.target.value }));
@@ -130,7 +162,7 @@ export default function ReportDisaster() {
       setForm({
         title: "",
         description: "",
-        severity: "moderate",
+        severity: "medium",
         image: null,
       });
       setLocation(null);
@@ -198,9 +230,9 @@ export default function ReportDisaster() {
             onChange={handleChange}
             className="w-full border rounded-lg px-4 py-2"
           >
-            <option value="safe">Safe</option>
-            <option value="moderate">Moderate</option>
-            <option value="danger">Danger</option>
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
           </select>
 
           <label className="flex items-center gap-3 cursor-pointer border rounded-lg px-4 py-2">
@@ -234,10 +266,11 @@ export default function ReportDisaster() {
             style={{ height: `${mapHeight}px` }} // map height matches full form
           >
             <TileLayer
-              attribution="&copy; OpenStreetMap"
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+              url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
             />
             <LocationPicker setLocation={setLocation} setAddress={setAddress} />
+            <LocateControl setLocation={setLocation} setAddress={setAddress} />
             {location && <Marker position={[location.lat, location.lng]} />}
           </MapContainer>
 

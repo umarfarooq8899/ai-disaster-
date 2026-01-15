@@ -19,21 +19,20 @@ export function AuthProvider({ children }) {
 
   // ================= Sync state with localStorage =================
   useEffect(() => {
-    if (user && user.token) {
+    if (user && token) {
       localStorage.setItem("adr_user", JSON.stringify(user));
-      localStorage.setItem("adr_token", user.token);
-      setToken(user.token);
+      localStorage.setItem("adr_token", token);
     } else {
       localStorage.removeItem("adr_user");
       localStorage.removeItem("adr_token");
-      setToken(null);
     }
     setLoading(false);
-  }, [user]);
+  }, [user, token]);
 
   // ================= Helpers =================
-  const setSession = ({ token, user }) => {
-    setUser({ ...user, token });
+  const setSession = ({ token: newToken, user: newUser }) => {
+    setToken(newToken);
+    setUser(newUser);
   };
 
   const clearSession = () => {
@@ -49,7 +48,7 @@ export function AuthProvider({ children }) {
       const data = await AuthAPI.signup(form); // /auth/register
 
       if (data?.token && data?.user) {
-        setSession(data);
+        setSession({ token: data.token, user: data.user });
         return { success: true, data };
       }
 
@@ -67,7 +66,7 @@ export function AuthProvider({ children }) {
       const data = await AuthAPI.login(form);
 
       if (data?.token && data?.user) {
-        setSession(data);
+        setSession({ token: data.token, user: data.user });
         return { success: true, data };
       }
 
@@ -82,16 +81,17 @@ export function AuthProvider({ children }) {
 
   const logout = () => clearSession();
 
-  const updateUser = (newData) =>
-    setUser((prev) => ({ ...prev, ...newData }));
+  const updateUser = (newData) => setUser((prev) => ({ ...prev, ...newData }));
 
   // ================= Volunteer Profile =================
   const createVolunteerProfile = async (form) => {
+    if (!token) return { success: false, message: "User not logged in" };
+
     try {
       const res = await VolunteerAPI.createVolunteer(form, token); // /volunteer/create
 
       if (res?.success) {
-        updateUser({ ...res.volunteer });
+        updateUser({ ...res.volunteer, profileCompleted: true });
         return { success: true, data: res.volunteer };
       }
 
@@ -111,6 +111,7 @@ export function AuthProvider({ children }) {
       general: "/dashboard/user",
       volunteer: "/dashboard/volunteer",
       rescue_coordinator: "/dashboard/rescue",
+      ngo_coordinator: "/dashboard/ngo",
     };
     return map[role] || "/";
   };

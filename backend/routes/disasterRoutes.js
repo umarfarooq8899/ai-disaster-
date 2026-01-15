@@ -11,8 +11,8 @@ const {
 } = require("../controllers/disasterController");
 
 // Middleware
-const authMiddleware = require("../middleware/authMiddleware"); // make sure file exists
-const allowRoles = require("../middleware/allowRoles");         // make sure file exists
+const { protect: authMiddleware } = require("../middleware/auth");
+const allowRoles = require("../middleware/allowRoles");
 
 // ================== Routes ==================
 

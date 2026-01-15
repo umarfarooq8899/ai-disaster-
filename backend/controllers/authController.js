@@ -73,14 +73,16 @@ exports.registerUser = async (req, res) => {
     // ✅ Normalize role
     if (!role) role = "general";
 
-    // ✅ Volunteer validation
+    // ✅ Volunteer validation (REMOVED: Handled in Step 2)
+    /* 
     if (role === "volunteer") {
       if (!phone || !province || !city) {
         return res.status(400).json({
           message: "Phone number, province and city are required for this role",
         });
       }
-    }
+    } 
+    */
 
     // ❌ Duplicate email check
     const existing = await User.findOne({ email });

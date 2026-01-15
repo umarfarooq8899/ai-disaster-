@@ -11,6 +11,7 @@ import AdminDashboard from "../pages/admin/AdminDashboard";
 import ManageUsers from "../pages/admin/ManageUsers";
 import ManageDisasters from "../pages/admin/ManageDisasters";
 import ManageAlerts from "../pages/admin/ManageAlerts";
+import ManageOrganizations from "../pages/admin/ManageOrganizations";
 
 // Public pages
 import Home from "../pages/components/Home";
@@ -87,6 +88,7 @@ export default function Router() {
         <Route path="admin" element={<AdminDashboard />} />
         <Route path="admin/users" element={<ManageUsers />} />
         <Route path="admin/disasters" element={<ManageDisasters />} />
+        <Route path="admin/organizations" element={<ManageOrganizations />} />
         <Route path="admin/alerts" element={<ManageAlerts />} />
         <Route path="admin/statistics" element={<Statistics />} />
 
@@ -95,16 +97,10 @@ export default function Router() {
         <Route path="user/reports" element={<MyReports />} />
         <Route path="user/safe-zones" element={<SafeZones />} />
 
-        {/* ===== Volunteer ===== */}
         <Route path="volunteer" element={<VolunteerHome />} />
-        <Route path="volunteer/create-profile" element={
-          <PrivateRoute roles={["volunteer"]}>
-            <CreateVolunteer />
-          </PrivateRoute>
-        } />
+        <Route path="volunteer/create" element={<CreateVolunteer />} />
         <Route path="volunteer/tasks" element={<Tasks />} />
         <Route path="volunteer/nearby" element={<NearbyReports />} />
-
         {/* ===== NGO ===== */}
         <Route path="ngo" element={<NGOHome />} />
         <Route path="ngo/volunteers" element={<ManageVolunteers />} />

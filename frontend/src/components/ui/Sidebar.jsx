@@ -113,6 +113,9 @@ export default function Sidebar({ role = "general", collapsed }) {
             <NavItem to="/dashboard/admin/disasters">
               Manage Disasters
             </NavItem>
+            <NavItem to="/dashboard/admin/organizations">
+              Manage Organizations
+            </NavItem>
             <NavItem to="/dashboard/admin/alerts">
               Manage Alerts
             </NavItem>

@@ -31,21 +31,20 @@ const pakistanData = {
 
 export default function Signup() {
   const navigate = useNavigate();
-  const { signupUser, createVolunteerProfile, getDashboardPath } = useContext(AuthContext);
+  const { signupUser, createVolunteerProfile, getDashboardPath } =
+    useContext(AuthContext);
 
-  const provinceOptions = Object.keys(pakistanData).map((prov) => ({
-    value: prov,
-    label: prov,
-  }));
+  const [step, setStep] = useState(1);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   const [form, setForm] = useState({
     name: "",
     email: "",
     password: "",
-    role: "general",
+    role: "volunteer", // default volunteer
   });
 
-  // Volunteer profile state
   const [volProfile, setVolProfile] = useState({
     phone: "",
     province: "",
@@ -55,12 +54,10 @@ export default function Signup() {
   });
 
   const [selectedProvince, setSelectedProvince] = useState(null);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
-  const [step, setStep] = useState(1); // Step 1 = signup, Step 2 = volunteer profile
 
+  const provinceOptions = Object.keys(pakistanData).map((p) => ({ value: p, label: p }));
   const cityOptions = selectedProvince
-    ? pakistanData[selectedProvince.value].map((city) => ({ value: city, label: city }))
+    ? pakistanData[selectedProvince.value].map((c) => ({ value: c, label: c }))
     : [];
 
   // ================= Step 1: Signup =================
@@ -69,17 +66,14 @@ export default function Signup() {
     setError("");
     setSuccess("");
 
-    // Basic frontend validation
-    if (!form.name || !form.email || !form.password) {
-      return setError("Please fill all required fields.");
-    }
+    if (!form.name || !form.email || !form.password) return setError("All fields are required");
 
     const res = await signupUser(form);
 
     if (!res.success) return setError(res.message);
 
     if (form.role === "volunteer") {
-      // Move to volunteer profile step
+      setSuccess("Account created! Please complete your profile.");
       setStep(2);
     } else {
       setSuccess("Account created! Redirecting...");
@@ -87,7 +81,7 @@ export default function Signup() {
     }
   };
 
-  // ================= Step 2: Create Volunteer Profile =================
+  // ================= Step 2: Volunteer Profile =================
   const handleVolunteerProfile = async (e) => {
     e.preventDefault();
     setError("");
@@ -95,16 +89,8 @@ export default function Signup() {
 
     const { phone, province, city, organizationType, organization } = volProfile;
 
-    // Validate volunteer profile
-    if (!phone || !province || !city || !organizationType || !organization) {
-      return setError("All fields are required for volunteers.");
-    }
-
-    // Optional: Validate phone format
-    const phoneRegex = /^[0-9]{10,15}$/;
-    if (!phoneRegex.test(phone)) {
-      return setError("Invalid phone number format.");
-    }
+    if (!phone || !province || !city || !organizationType || !organization)
+      return setError("All volunteer fields are required");
 
     const res = await createVolunteerProfile(volProfile);
 
@@ -116,39 +102,31 @@ export default function Signup() {
 
   // ================= Render =================
   return (
-    <div className="min-h-screen flex justify-center items-start bg-gray-50 px-4 py-12">
+    <div className="min-h-screen flex justify-center items-start bg-gray-50 py-12 px-4">
       <div className="w-full max-w-md">
-        <div className="p-8 bg-white border shadow-md rounded-2xl">
+        <div className="bg-white p-8 border shadow-md rounded-2xl">
           <h1 className="text-3xl font-bold text-center">Sign Up</h1>
 
-          {error && (
-            <div className="mt-4 text-sm text-red-700 bg-red-50 border p-3 rounded">{error}</div>
-          )}
-          {success && (
-            <div className="mt-4 text-sm text-green-700 bg-green-50 border p-3 rounded">{success}</div>
-          )}
+          {error && <div className="mt-4 text-sm text-red-700 bg-red-50 border p-3 rounded">{error}</div>}
+          {success && <div className="mt-4 text-sm text-green-700 bg-green-50 border p-3 rounded">{success}</div>}
 
-          {/* Step 1: General Signup */}
           {step === 1 && (
             <form onSubmit={handleSignup} className="mt-6 space-y-4">
               <input
                 className="input w-full"
                 placeholder="Full Name"
-                required
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
               />
               <input
                 type="email"
                 className="input w-full"
                 placeholder="Email"
-                required
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
               />
               <input
                 type="password"
                 className="input w-full"
                 placeholder="Password"
-                required
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
               />
               <select
@@ -159,11 +137,10 @@ export default function Signup() {
                 <option value="general">General User</option>
                 <option value="volunteer">Volunteer</option>
               </select>
-              <button className="btn-primary w-full">Sign Up</button>
+              <button className="btn-primary w-full">Create Account</button>
             </form>
           )}
 
-          {/* Step 2: Volunteer Profile */}
           {step === 2 && (
             <form onSubmit={handleVolunteerProfile} className="mt-6 space-y-4">
               <input
@@ -180,6 +157,7 @@ export default function Signup() {
                   setVolProfile({ ...volProfile, province: prov.value, city: "" });
                 }}
               />
+
               <Select
                 options={cityOptions}
                 placeholder="Select City"
@@ -194,7 +172,7 @@ export default function Signup() {
                   setVolProfile({ ...volProfile, organizationType: e.target.value, organization: "" })
                 }
               >
-                <option value="">Select Volunteer Type</option>
+                <option value="">Select Organization Type</option>
                 <option value="rescue">Rescue Organization</option>
                 <option value="ngo">NGO</option>
               </select>
@@ -215,7 +193,7 @@ export default function Signup() {
                 />
               )}
 
-              <button className="btn-primary w-full">Create Volunteer Profile</button>
+              <button className="btn-primary w-full">Complete Volunteer Profile</button>
             </form>
           )}
 

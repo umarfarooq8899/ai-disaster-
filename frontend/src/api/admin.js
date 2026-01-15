@@ -3,7 +3,7 @@ import axios from "./axios"; // your preconfigured axios instance
 
 // Attach admin JWT token automatically
 axios.interceptors.request.use((config) => {
-  const token = localStorage.getItem("adminToken"); // use separate admin token
+  const token = localStorage.getItem("adr_token"); // use consistent token key
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });

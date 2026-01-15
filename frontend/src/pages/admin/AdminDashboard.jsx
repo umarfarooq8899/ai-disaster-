@@ -13,21 +13,22 @@ import {
 } from "lucide-react";
 
 export default function AdminDashboard() {
-  const { user } = useContext(AuthContext);
+  const { user, token } = useContext(AuthContext);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (!user?.token) return;
+    if (!token) return;
 
     const fetchStats = async () => {
       try {
         setLoading(true);
 
+        // Note: axios baseURL typically includes /api
         const res = await axios.get("/statistics/dashboard", {
           headers: {
-            Authorization: `Bearer ${user.token}`,
+            Authorization: `Bearer ${token}`,
           },
         });
 
@@ -42,7 +43,7 @@ export default function AdminDashboard() {
     };
 
     fetchStats();
-  }, [user?.token]);
+  }, [token]);
 
   if (error) {
     return <div className="p-6 text-sm text-red-600">{error}</div>;
@@ -156,9 +157,8 @@ function StatCard({ icon: Icon, label, value, color, trend }) {
     <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow transition relative">
       {/* Accent Bar */}
       <div
-        className={`absolute left-0 top-0 h-full w-1 rounded-l-xl ${
-          colors[color]?.replace("text", "bg")
-        }`}
+        className={`absolute left-0 top-0 h-full w-1 rounded-l-xl ${colors[color]?.replace("text", "bg")
+          }`}
       />
 
       <div className="flex items-center justify-between">

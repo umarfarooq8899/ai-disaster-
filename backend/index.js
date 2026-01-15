@@ -19,6 +19,7 @@ app.use(
 );
 app.use(express.json());
 app.use(morgan("dev"));
+app.use("/uploads", express.static("uploads"));
 
 // ================= DATABASE =================
 const DB_URI = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/ai-disaster";
@@ -36,21 +37,25 @@ require("./models/volunteer");
 require("./models/Mission");
 require("./models/Alert");
 require("./models/RescueOrganization");
+require("./models/NgoOrganization");
+// require("./models/NgoCoordinator"); // Optional, if needed
+// require("./models/RescueCoordinator"); // Optional, if needed
 // ================= ROUTES =================
 app.use("/api/auth", require("./routes/auth")); // <-- register & login
 app.use("/api/users", require("./routes/users"));
 app.use("/api/disasters", require("./routes/disasters"));
 app.use("/api/alerts", require("./routes/alerts"));
 app.use("/api/statistics", require("./routes/statistics"));
+app.use("/api/organizations", require("./routes/organizationRoutes"));
 
 // ================= RESCUE & VOLUNTEER ROUTES =================
-const auth = require("./middleware/auth");
+const { protect } = require("./middleware/auth");
 const rescueOnly = require("./middleware/rescueOnly");
-app.use("/api/rescue", auth, rescueOnly, require("./routes/rescue"));
-app.use("/api/volunteer", auth, require("./routes/volunteer"));
+app.use("/api/rescue", protect, rescueOnly, require("./routes/rescue"));
+app.use("/api/volunteer", protect, require("./routes/volunteer"));
 
 // ================= DASHBOARD STATS =================
-app.get("/api/statscard/dashboard", auth, rescueOnly, async (req, res) => {
+app.get("/api/statscard/dashboard", protect, rescueOnly, async (req, res) => {
   try {
     const Volunteer = mongoose.model("Volunteer");
     const Mission = mongoose.model("Mission");

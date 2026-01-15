@@ -25,7 +25,7 @@ export default function Home() {
   }, []);
 
   // Example volunteers count (hardcoded here, could be dynamic)
-  const volunteers = 120;
+  const volunteers = 30;
 
   return (
     <div className="grid gap-6">

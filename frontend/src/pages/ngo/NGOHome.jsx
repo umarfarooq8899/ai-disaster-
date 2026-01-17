@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useContext } from "react";
 import axios from "../../api/axios";
 import { AuthContext } from "../../context/AuthContext";
+import { Link } from "react-router-dom";
 import { Users, Activity, HeartHandshake, Package } from "lucide-react";
 
 /* ================= STAT CARD ================= */
@@ -37,17 +38,17 @@ export default function NGOHome() {
   });
 
   useEffect(() => {
-    // In a real app we would fetch stats. For now mocking or using generic stats
-    // We can implement a specific endpoint later.
-    // Simulating loading
-    setTimeout(() => {
-      setStats({
-        volunteers: 12, // example
-        activeMissions: 3,
-        resources: 150,
-      });
-      setLoading(false);
-    }, 800);
+    const fetchStats = async () => {
+      try {
+        const res = await axios.get("/ngo/stats");
+        setStats(res.data);
+      } catch (err) {
+        console.error("Failed to fetch NGO stats", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchStats();
   }, []);
 
   return (
@@ -93,12 +94,12 @@ export default function NGOHome() {
         <div className="bg-white p-6 rounded-xl shadow-sm border">
           <h3 className="font-semibold text-lg mb-4">Quick Links</h3>
           <div className="space-y-3">
-            <button className="w-full text-left p-3 rounded-lg bg-gray-50 hover:bg-gray-100 text-blue-600 font-medium transition">
+            <Link to="/dashboard/ngo/volunteers" className="block w-full text-left p-3 rounded-lg bg-gray-50 hover:bg-gray-100 text-blue-600 font-medium transition">
               View All Volunteers
-            </button>
-            <button className="w-full text-left p-3 rounded-lg bg-gray-50 hover:bg-gray-100 text-blue-600 font-medium transition">
+            </Link>
+            <Link to="/dashboard/ngo/resources" className="block w-full text-left p-3 rounded-lg bg-gray-50 hover:bg-gray-100 text-blue-600 font-medium transition">
               Manage Resources
-            </button>
+            </Link>
           </div>
         </div>
       </div>

@@ -10,7 +10,10 @@ const RescueOrganization = require("../models/RescueOrganization");
 // ================= GET ALL MISSIONS FOR COORDINATOR =================
 router.get("/missions", auth, async (req, res) => {
   try {
-    const missions = await Mission.find()
+    const orgId = req.user.organization;
+    if (!orgId) return res.status(400).json({ message: "Only organization coordinators can view their missions" });
+
+    const missions = await Mission.find({ organization: orgId })
       .populate("organization", "name")
       .populate("assignedVolunteers", "name email")
       .populate("assignedResources", "name type quantity");
@@ -18,6 +21,28 @@ router.get("/missions", auth, async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Failed to fetch missions" });
+  }
+});
+
+// ================= CREATE MISSION =================
+router.post("/missions", auth, async (req, res) => {
+  const { title, description, location, skillsRequired } = req.body;
+  const orgId = req.user.organization;
+
+  if (!orgId) return res.status(400).json({ message: "Organization ID is missing for this coordinator" });
+
+  try {
+    const mission = await Mission.create({
+      title,
+      description,
+      location,
+      skillsRequired,
+      organization: orgId,
+    });
+    res.status(201).json(mission);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to create mission" });
   }
 });
 
@@ -67,5 +92,8 @@ router.get("/volunteers", auth, async (req, res) => {
     res.status(500).json({ message: "Failed to fetch volunteers" });
   }
 });
+
+// ================= VOLUNTEER MANAGEMENT (COORDINATOR) =================
+router.get("/volunteer-management", auth, require("../controllers/volunteerController").getOrgVolunteers);
 
 module.exports = router;

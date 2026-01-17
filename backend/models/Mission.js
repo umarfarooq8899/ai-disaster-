@@ -8,7 +8,8 @@ const missionSchema = new mongoose.Schema(
     organization: { type: mongoose.Schema.Types.ObjectId, ref: "RescueOrganization", required: true },
     assignedVolunteers: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
     assignedResources: [{ type: mongoose.Schema.Types.ObjectId, ref: "Resource" }],
-    status: { type: String, enum: ["pending", "ongoing", "completed"], default: "pending" },
+    skillsRequired: [{ type: String, enum: ["medical", "technical", "rescue", "logistics", "communication"] }],
+    status: { type: String, enum: ["pending", "ongoing", "completed", "cancelled"], default: "pending" },
   },
   { timestamps: true }
 );

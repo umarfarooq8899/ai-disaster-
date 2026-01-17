@@ -2,22 +2,7 @@ import React, { useContext, useState, useEffect } from "react";
 import Select from "react-select";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
-
-// Rescue organizations
-const rescueOrgs = [
-  { value: "Rescue 1122", label: "Rescue 1122" },
-  { value: "Edhi Foundation", label: "Edhi Foundation" },
-  { value: "Al-Khidmat Foundation", label: "Al-Khidmat Foundation" },
-  { value: "Pakistan Red Crescent", label: "Pakistan Red Crescent" },
-];
-
-// NGOs
-const ngoOrgs = [
-  { value: "Edhi Foundation", label: "Edhi Foundation" },
-  { value: "Al-Khidmat Foundation", label: "Al-Khidmat Foundation" },
-  { value: "Saylani Welfare", label: "Saylani Welfare" },
-  { value: "Aman Foundation", label: "Aman Foundation" },
-];
+import axiosInstance from "../../api/axios";
 
 // Provinces & cities
 const pakistanData = {
@@ -55,6 +40,7 @@ export default function CreateVolunteer() {
 
   const [selectedProvince, setSelectedProvince] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [orgs, setOrgs] = useState([]);
 
   const [form, setForm] = useState({
     phone: "",
@@ -63,11 +49,30 @@ export default function CreateVolunteer() {
     organizationType: "",
     organization: "",
     skills: [],
-    available: false,
+    available: true,
   });
 
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+
+  // Fetch organizations based on type
+  useEffect(() => {
+    if (!form.organizationType) {
+      setOrgs([]);
+      return;
+    }
+
+    async function fetchOrgs() {
+      try {
+        const type = form.organizationType === "RescueOrganization" ? "rescue" : "ngo";
+        const res = await axiosInstance.get(`/organizations/${type}`);
+        setOrgs(res.data.map(o => ({ value: o._id, label: o.name })));
+      } catch (err) {
+        console.error("Failed to fetch organizations", err);
+      }
+    }
+    fetchOrgs();
+  }, [form.organizationType]);
 
   // Redirect if not logged in
   useEffect(() => {
@@ -82,19 +87,20 @@ export default function CreateVolunteer() {
       try {
         const res = await getVolunteerProfile();
 
-        if (res?.success && res.data) {
+        if (res?.success && res.volunteer) {
+          const profile = res.volunteer;
           setForm({
-            ...res.data,
-            skills: (res.data.skills || []).map((s) => ({
+            ...profile,
+            skills: (profile.skills || []).map((s) => ({
               value: s,
               label: s,
             })),
           });
 
-          if (res.data.province) {
+          if (profile.province) {
             setSelectedProvince({
-              value: res.data.province,
-              label: res.data.province,
+              value: profile.province,
+              label: profile.province,
             });
           }
         }
@@ -108,9 +114,9 @@ export default function CreateVolunteer() {
 
   const cityOptions = selectedProvince
     ? pakistanData[selectedProvince.value].map((c) => ({
-        value: c,
-        label: c,
-      }))
+      value: c,
+      label: c,
+    }))
     : [];
 
   const handleSubmit = async (e) => {
@@ -150,7 +156,7 @@ export default function CreateVolunteer() {
       return setError(res?.message || "Failed to save profile");
     }
 
-    setSuccess("Volunteer profile created successfully!");
+    setSuccess("Volunteer profile saved successfully!");
     setTimeout(() => {
       navigate(getDashboardPath("volunteer"));
     }, 1200);
@@ -174,105 +180,122 @@ export default function CreateVolunteer() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-          <input
-            type="text"
-            placeholder="Phone Number"
-            className="input w-full"
-            value={form.phone}
-            onChange={(e) =>
-              setForm({ ...form, phone: e.target.value })
-            }
-          />
-
-          <Select
-            options={provinceOptions}
-            placeholder="Select Province"
-            value={selectedProvince}
-            onChange={(p) => {
-              setSelectedProvince(p);
-              setForm({ ...form, province: p.value, city: "" });
-            }}
-          />
-
-          <Select
-            options={cityOptions}
-            placeholder="Select City"
-            isDisabled={!selectedProvince}
-            value={
-              cityOptions.find((c) => c.value === form.city) || null
-            }
-            onChange={(c) =>
-              setForm({ ...form, city: c.value })
-            }
-          />
-
-          <select
-            className="input w-full"
-            value={form.organizationType}
-            onChange={(e) =>
-              setForm({
-                ...form,
-                organizationType: e.target.value,
-                organization: "",
-              })
-            }
-          >
-            <option value="">Select Volunteer Type</option>
-            <option value="rescue">Rescue Organization</option>
-            <option value="ngo">NGO</option>
-          </select>
-
-          {form.organizationType === "rescue" && (
-            <Select
-              options={rescueOrgs}
-              placeholder="Select Rescue Organization"
-              value={
-                rescueOrgs.find(
-                  (o) => o.value === form.organization
-                ) || null
-              }
-              onChange={(o) =>
-                setForm({ ...form, organization: o.value })
+        <form onSubmit={handleSubmit} className="mt-6 space-y-5">
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">
+              Phone Number
+            </label>
+            <input
+              type="text"
+              placeholder="+92 3XX XXXXXXX"
+              className="input w-full"
+              value={form.phone}
+              onChange={(e) =>
+                setForm({ ...form, phone: e.target.value })
               }
             />
-          )}
+          </div>
 
-          {form.organizationType === "ngo" && (
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">
+              Province
+            </label>
             <Select
-              options={ngoOrgs}
-              placeholder="Select NGO"
+              options={provinceOptions}
+              placeholder="Select Province"
+              value={selectedProvince}
+              onChange={(p) => {
+                setSelectedProvince(p);
+                setForm({ ...form, province: p.value, city: "" });
+              }}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">
+              City
+            </label>
+            <Select
+              options={cityOptions}
+              placeholder="Select City"
+              isDisabled={!selectedProvince}
               value={
-                ngoOrgs.find(
-                  (o) => o.value === form.organization
-                ) || null
+                cityOptions.find((c) => c.value === form.city) || null
               }
-              onChange={(o) =>
-                setForm({ ...form, organization: o.value })
+              onChange={(c) =>
+                setForm({ ...form, city: c.value })
               }
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">
+              Organization Type
+            </label>
+            <select
+              className="input w-full"
+              value={form.organizationType}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  organizationType: e.target.value,
+                  organization: "",
+                })
+              }
+            >
+              <option value="">Select Volunteer Type</option>
+              <option value="RescueOrganization">Rescue Organization</option>
+              <option value="NgoOrganization">NGO</option>
+            </select>
+          </div>
+
+          {form.organizationType && (
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">
+                Organization
+              </label>
+              <Select
+                options={orgs}
+                placeholder={`Select ${form.organizationType === "RescueOrganization" ? "Rescue" : "NGO"}`}
+                value={
+                  orgs.find(
+                    (o) => o.value === form.organization
+                  ) || null
+                }
+                onChange={(o) =>
+                  setForm({ ...form, organization: o.value })
+                }
+              />
+            </div>
           )}
 
-          <Select
-            isMulti
-            options={skillsOptions}
-            placeholder="Select Skills"
-            value={form.skills}
-            onChange={(skills) =>
-              setForm({ ...form, skills })
-            }
-          />
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">
+              Your Skills
+            </label>
+            <Select
+              isMulti
+              options={skillsOptions}
+              placeholder="Select Skills"
+              value={form.skills}
+              onChange={(skills) =>
+                setForm({ ...form, skills })
+              }
+            />
+          </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 bg-gray-50 p-3 rounded-lg border border-gray-100">
             <input
               type="checkbox"
+              id="available-check"
+              className="w-4 h-4 text-brand-600 rounded focus:ring-brand-500"
               checked={form.available}
               onChange={(e) =>
                 setForm({ ...form, available: e.target.checked })
               }
             />
-            <label className="text-sm font-medium">
-              Available for tasks
+            <label htmlFor="available-check" className="text-sm font-semibold text-gray-700 cursor-pointer">
+              I am available for active tasks
             </label>
           </div>
 

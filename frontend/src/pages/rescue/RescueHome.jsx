@@ -1,14 +1,32 @@
-import React from "react";
+import { useState, useEffect, useContext } from "react";
 import { Link } from "react-router-dom";
 import { Users, Activity, Bell, TrendingUp, TrendingDown } from "lucide-react";
+import { AuthContext } from "../../context/AuthContext";
+import axios from "../../api/axios";
 
 export default function RescueHome() {
-  // Example counts for indicators
-  const stats = {
-    missions: 12,
-    newMissions: 3,
-    activeAlerts: 5,
-  };
+  const { user, token } = useContext(AuthContext);
+  const [stats, setStats] = useState({
+    activeVolunteers: 0,
+    ongoingMissions: 0,
+    activeAlerts: 0,
+    resolvedMissions: 0,
+  });
+
+  useEffect(() => {
+    if (!token) return;
+
+    const fetchStats = async () => {
+      try {
+        const res = await axios.get("/statscard/dashboard");
+        setStats(res.data);
+      } catch (err) {
+        console.error("Failed to fetch rescue stats", err);
+      }
+    };
+
+    fetchStats();
+  }, [token]);
 
   const cards = [
     {
@@ -17,7 +35,7 @@ export default function RescueHome() {
       icon: Activity,
       link: "/dashboard/rescue/missions",
       color: "blue",
-      value: stats.missions,
+      value: stats.ongoingMissions + stats.resolvedMissions,
       trend: "up",
     },
     {
@@ -26,7 +44,16 @@ export default function RescueHome() {
       icon: Users,
       link: "/dashboard/rescue/missions/new",
       color: "green",
-      value: stats.newMissions,
+      value: "New",
+      trend: "up",
+    },
+    {
+      title: "Manage Volunteers",
+      description: "Track and assign volunteers in your organization.",
+      icon: Users,
+      link: "/dashboard/rescue/volunteers",
+      color: "blue",
+      value: stats.activeVolunteers,
       trend: "up",
     },
     {

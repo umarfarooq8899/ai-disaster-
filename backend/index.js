@@ -33,7 +33,7 @@ mongoose
 
 // ================= MODELS =================
 require("./models/User");
-require("./models/volunteer");
+require("./models/Volunteer");
 require("./models/Mission");
 require("./models/Alert");
 require("./models/RescueOrganization");
@@ -52,6 +52,7 @@ app.use("/api/organizations", require("./routes/organizationRoutes"));
 const { protect } = require("./middleware/auth");
 const rescueOnly = require("./middleware/rescueOnly");
 app.use("/api/rescue", protect, rescueOnly, require("./routes/rescue"));
+app.use("/api/ngo", protect, require("./middleware/ngoOnly"), require("./routes/ngo"));
 app.use("/api/volunteer", protect, require("./routes/volunteer"));
 
 // ================= DASHBOARD STATS =================
@@ -61,10 +62,27 @@ app.get("/api/statscard/dashboard", protect, rescueOnly, async (req, res) => {
     const Mission = mongoose.model("Mission");
     const Alert = mongoose.model("Alert");
 
-    const activeVolunteers = await Volunteer.countDocuments({ active: true });
-    const ongoingMissions = await Mission.countDocuments({ status: "ongoing" });
-    const resolvedMissions = await Mission.countDocuments({ status: "resolved" });
-    const activeAlerts = await Alert.countDocuments({ active: true });
+    const orgId = req.user.organization;
+    if (!orgId) return res.status(400).json({ message: "Organization not found for this user" });
+
+    // Count volunteers in THIS organization who are available
+    const activeVolunteers = await Volunteer.countDocuments({
+      organization: orgId,
+      available: true
+    });
+
+    // Count missions for THIS organization
+    const ongoingMissions = await Mission.countDocuments({
+      organization: orgId,
+      status: "ongoing"
+    });
+    const resolvedMissions = await Mission.countDocuments({
+      organization: orgId,
+      status: "completed"
+    });
+
+    // Active alerts (global or scoped? Usually alerts are global for now)
+    const activeAlerts = await Alert.countDocuments({ status: "Active" });
 
     res.json({
       activeVolunteers,

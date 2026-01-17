@@ -77,6 +77,7 @@ exports.addCoordinator = async (req, res) => {
             password,
             role,
             organization: id,
+            organizationType: type === 'rescue' ? 'RescueOrganization' : 'NgoOrganization',
             profileCompleted: true // Coordinators don't need profile steps usually
         });
 
@@ -84,5 +85,25 @@ exports.addCoordinator = async (req, res) => {
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: "Failed to create coordinator" });
+    }
+};
+
+exports.deleteOrganization = async (req, res) => {
+    const { type, id } = req.params;
+    const Model = getModel(type);
+
+    if (!Model) return res.status(400).json({ message: "Invalid type" });
+
+    try {
+        const deleted = await Model.findByIdAndDelete(id);
+        if (!deleted) return res.status(404).json({ message: "Organization not found" });
+
+        // Optional: Delete coordinators associated? 
+        // For now, we leave them (they become orphaned or we can handle cleanup later)
+
+        res.json({ message: "Organization deleted successfully" });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Failed to delete organization" });
     }
 };

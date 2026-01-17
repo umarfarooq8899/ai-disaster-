@@ -9,8 +9,8 @@ const getIcon = (severity) => {
     severity === "high"
       ? "red"
       : severity === "medium"
-      ? "orange"
-      : "green";
+        ? "orange"
+        : "green";
 
   return L.divIcon({
     className: "custom-marker",
@@ -52,21 +52,28 @@ const DisasterMap = () => {
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
 
-      {disasters.map((d) => (
-        <Marker
-          key={d._id}
-          position={[d.location.lat, d.location.lng]}
-          icon={getIcon(d.severity)}
-        >
-          <Popup>
-            <strong>{d.type.toUpperCase()}</strong>
-            <br />
-            Severity: {d.severity}
-            <br />
-            {d.description}
-          </Popup>
-        </Marker>
-      ))}
+      {disasters.map((d) => {
+        const lat = d.latitude || d.location?.lat;
+        const lng = d.longitude || d.location?.lng;
+
+        if (typeof lat !== "number" || typeof lng !== "number") return null;
+
+        return (
+          <Marker
+            key={d._id || `${lat}-${lng}`}
+            position={[lat, lng]}
+            icon={getIcon(d.severity)}
+          >
+            <Popup>
+              <div className="text-sm">
+                <strong className="block mb-1 capitalize">{d.title || d.type || "Disaster"}</strong>
+                <p>Severity: <span className="font-semibold">{d.severity}</span></p>
+                {d.description && <p className="mt-1 text-gray-600 line-clamp-2">{d.description}</p>}
+              </div>
+            </Popup>
+          </Marker>
+        );
+      })}
     </MapContainer>
   );
 };

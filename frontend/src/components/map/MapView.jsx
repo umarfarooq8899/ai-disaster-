@@ -9,18 +9,38 @@ import {
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
-// Fix default marker icon issue
-import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
-import markerIcon from "leaflet/dist/images/marker-icon.png";
-import markerShadow from "leaflet/dist/images/marker-shadow.png";
-
+// Fix default marker icon issue using CDN (more reliable for modals/different contexts)
+delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
-  iconRetinaUrl: markerIcon2x,
-  iconUrl: markerIcon,
-  shadowUrl: markerShadow,
+  iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
 
-export default function MapView({ disasters = [] }) {
+// Helper to get severity circle icon
+const getSeverityIcon = (severity) => {
+  const color =
+    severity === "high"
+      ? "#EF4444" // red-500
+      : severity === "medium"
+        ? "#F97316" // orange-500
+        : "#10B981"; // green-500
+
+  return L.divIcon({
+    className: "custom-marker",
+    html: `<div style="
+      background:${color};
+      width:14px;
+      height:14px;
+      border-radius:50%;
+      border:2px solid white;
+      box-shadow: 0 0 5px rgba(0,0,0,0.3)"></div>`,
+    iconSize: [14, 14],
+    iconAnchor: [7, 7],
+  });
+};
+
+export default function MapView({ disasters = [], showPin = false }) {
   // 🔒 HARD SAFETY
   const safeDisasters = Array.isArray(disasters) ? disasters : [];
 
@@ -47,26 +67,39 @@ export default function MapView({ disasters = [] }) {
           url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
         />
 
-        {validDisasters.map((d) => (
-          <Marker
-            key={d._id || `${d.latitude}-${d.longitude}`}
-            position={[d.latitude, d.longitude]}
-          >
-            <Popup>
-              <div className="space-y-1 text-sm">
-                <h3 className="font-semibold text-base">
-                  {d.type || "Disaster"}
-                </h3>
-                <p>
-                  <strong>Severity:</strong> {d.severity || "Unknown"}
-                </p>
-                {d.description && (
-                  <p className="text-gray-600">{d.description}</p>
-                )}
-              </div>
-            </Popup>
-          </Marker>
-        ))}
+        {validDisasters.map((d) => {
+          const markerProps = showPin ? {} : { icon: getSeverityIcon(d.severity) };
+
+          return (
+            <Marker
+              key={d._id || `${d.latitude}-${d.longitude}`}
+              position={[d.latitude, d.longitude]}
+              {...markerProps}
+            >
+              <Popup>
+                <div className="space-y-1 text-sm min-w-[150px]">
+                  <h3 className="font-semibold text-base capitalize">
+                    {d.title || d.type || "Disaster"}
+                  </h3>
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-500 font-medium">Severity:</span>
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase 
+                      ${d.severity === 'high' ? 'bg-red-100 text-red-700' :
+                        d.severity === 'medium' ? 'bg-orange-100 text-orange-700' :
+                          'bg-green-100 text-green-700'}`}>
+                      {d.severity || "Low"}
+                    </span>
+                  </div>
+                  {d.description && (
+                    <p className="text-gray-600 text-xs italic mt-2 line-clamp-3">
+                      "{d.description}"
+                    </p>
+                  )}
+                </div>
+              </Popup>
+            </Marker>
+          );
+        })}
       </MapContainer>
 
       {/* Legend */}

@@ -13,7 +13,7 @@ const userSchema = new mongoose.Schema(
     },
     status: { type: String, enum: ["active", "blocked"], default: "active" },
     profileCompleted: { type: Boolean, default: function () { return this.role !== "volunteer"; } },
-    organizationType: { type: String, enum: ["NgoOrganization", "RescueOrganization"], default: null },
+    organizationType: { type: String, enum: ["NgoOrganization", "RescueOrganization", null], default: null },
     organization: { type: mongoose.Schema.Types.ObjectId, refPath: "organizationType", default: null },
   },
   { timestamps: true }

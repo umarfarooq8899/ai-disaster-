@@ -103,14 +103,33 @@ export default function ManageDisasters() {
   return (
     <div className="p-8 bg-gray-50 min-h-screen">
       {/* HEADER */}
-      <header className="mb-6">
-        <h1 className="text-2xl font-semibold flex items-center gap-2">
-          <AlertTriangle className="w-5 h-5" />
-          Manage Disasters
-        </h1>
-        <p className="text-sm text-gray-500">
-          Monitor, resolve or remove disaster reports
-        </p>
+      <header className="mb-6 flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-semibold flex items-center gap-2">
+            <AlertTriangle className="w-5 h-5" />
+            Manage Disasters
+          </h1>
+          <p className="text-sm text-gray-500">
+            Monitor, resolve or remove disaster reports
+          </p>
+        </div>
+        <button
+          onClick={async () => {
+            try {
+              const res = await axios.post("http://localhost:5000/api/volunteer/admin/auto-assign", {}, {
+                headers: { Authorization: `Bearer ${token}` },
+              });
+              toast.success(res.data.message);
+              fetchDisasters();
+            } catch (err) {
+              toast.error("Auto-assignment failed");
+            }
+          }}
+          className="bg-brand-600 text-white px-4 py-2 rounded-lg hover:bg-brand-700 transition flex items-center gap-2"
+        >
+          <CheckCircle className="w-4 h-4" />
+          Auto-Assign Volunteers
+        </button>
       </header>
 
       {/* TABLE */}
@@ -170,7 +189,7 @@ export default function ManageDisasters() {
             {/* LEFT COLUMN: MAP & LOCATION */}
             <div className="space-y-4">
               <div className="h-64 md:h-80 rounded-xl overflow-hidden border shadow-sm">
-                <MapView disasters={[selectedDisaster]} />
+                <MapView disasters={[selectedDisaster]} showPin={true} />
               </div>
 
               <div className="bg-gray-50 p-4 rounded-lg border">

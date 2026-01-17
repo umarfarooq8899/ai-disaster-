@@ -4,16 +4,16 @@ import { getMissions } from "../../api/rescueApi";
 import { MapPin, CheckCircle, AlertCircle } from "lucide-react";
 
 export default function Missions() {
-  const { user } = useContext(AuthContext);
+  const { user, token } = useContext(AuthContext);
   const [missions, setMissions] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user?.token) return;
+    if (!token) return;
 
     const fetchMissions = async () => {
       try {
-        const data = await getMissions(user.token);
+        const data = await getMissions(token);
         setMissions(data);
       } catch (err) {
         console.error("Failed to fetch missions", err);
@@ -23,7 +23,7 @@ export default function Missions() {
     };
 
     fetchMissions();
-  }, [user]);
+  }, [token]);
 
   if (loading)
     return (
@@ -52,31 +52,36 @@ export default function Missions() {
             >
               {/* Status Indicator */}
               <div
-                className={`absolute top-4 right-4 w-3 h-3 rounded-full ${
-                  mission.status === "Ongoing"
-                    ? "bg-green-500"
-                    : mission.status === "Completed"
+                className={`absolute top-4 right-4 w-3 h-3 rounded-full ${mission.status === "ongoing"
+                  ? "bg-green-500"
+                  : mission.status === "completed"
                     ? "bg-blue-500"
-                    : "bg-red-500"
-                }`}
+                    : mission.status === "pending"
+                      ? "bg-yellow-500"
+                      : "bg-red-500"
+                  }`}
               />
 
-              <h2 className="text-lg font-semibold text-gray-800">{mission.title}</h2>
+              <h2 className="text-lg font-semibold text-gray-800 capitalize">
+                {mission.title}
+              </h2>
               <div className="mt-2 flex items-center gap-2 text-gray-500 text-sm">
                 <MapPin className="w-4 h-4" />
                 <span>{mission.location}</span>
               </div>
               <div className="mt-2 flex items-center gap-2 text-sm">
-                {mission.status === "Ongoing" && (
+                {mission.status === "ongoing" && (
                   <CheckCircle className="w-4 h-4 text-green-500" />
                 )}
-                {mission.status === "Completed" && (
+                {mission.status === "completed" && (
                   <CheckCircle className="w-4 h-4 text-blue-500" />
                 )}
-                {mission.status === "Alert" && (
-                  <AlertCircle className="w-4 h-4 text-red-500" />
+                {mission.status === "pending" && (
+                  <AlertCircle className="w-4 h-4 text-yellow-500" />
                 )}
-                <span className="text-gray-700 font-medium">{mission.status}</span>
+                <span className="text-gray-700 font-medium capitalize">
+                  {mission.status}
+                </span>
               </div>
             </div>
           ))}

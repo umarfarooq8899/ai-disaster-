@@ -1,7 +1,30 @@
 import React, { useEffect, useState } from "react";
 import axiosInstance from "../../api/axios";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+
+const getSeverityIcon = (severity) => {
+  const color =
+    severity === "high"
+      ? "#EF4444"
+      : severity === "medium"
+        ? "#F97316"
+        : "#10B981";
+
+  return L.divIcon({
+    className: "custom-marker",
+    html: `<div style="
+      background:${color};
+      width:14px;
+      height:14px;
+      border-radius:50%;
+      border:2px solid white;
+      box-shadow: 0 0 5px rgba(0,0,0,0.3)"></div>`,
+    iconSize: [14, 14],
+    iconAnchor: [7, 7],
+  });
+};
 
 export default function VolunteerNearby() {
   const [alerts, setAlerts] = useState([]);
@@ -37,7 +60,8 @@ export default function VolunteerNearby() {
             {alerts.map(alert => (
               <Marker
                 key={alert._id}
-                position={[alert.lat, alert.lng]} // alert must have lat/lng
+                position={[alert.lat, alert.lng]}
+                icon={getSeverityIcon(alert.severity)}
               >
                 <Popup>
                   <h3 className="font-bold">{alert.title}</h3>

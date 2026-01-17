@@ -52,31 +52,76 @@ function LocationPicker({ setLocation, setAddress }) {
   return null;
 }
 
+
+/* ================= PERMISSION MODAL ================= */
+function LocationPermissionModal({ onClose, onConfirm }) {
+  return (
+    <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/50" onClick={onClose}>
+      <div className="bg-white p-6 rounded-xl shadow-2xl w-full max-w-sm animate-modal" onClick={e => e.stopPropagation()}>
+        <div className="text-center mb-4">
+          <div className="bg-blue-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3 text-blue-600">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          </div>
+          <h3 className="text-xl font-bold text-gray-800">Use your location?</h3>
+          <p className="text-gray-500 text-sm mt-2">
+            We need access to your device's location to pinpoint the disaster accurately on the map.
+          </p>
+        </div>
+        <div className="flex gap-3">
+          <button
+            onClick={onClose}
+            className="flex-1 py-2 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 font-medium"
+          >
+            Don't Allow
+          </button>
+          <button
+            onClick={onConfirm}
+            className="flex-1 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 font-medium shadow-sm hover:shadow"
+          >
+            Allow Access
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // "Locate Me" Button Component
-function LocateControl({ setLocation, setAddress }) {
+function LocateControl({ setLocation, setAddress, setShowPermissionModal }) {
   const map = useMap();
 
-  const handleLocate = () => {
-    map.locate().on("locationfound", function (e) {
-      setLocation(e.latlng);
-      setAddress("Fetching address...");
-      getAddressFromCoords(e.latlng.lat, e.latlng.lng).then(addr => setAddress(addr));
-      map.flyTo(e.latlng, map.getZoom());
-    });
-  };
+  // We need to listen to the custom event "triggerLocate" which we'll dispatch from the modal
+  useEffect(() => {
+    const handleLocateEvent = () => {
+      map.locate().on("locationfound", function (e) {
+        setLocation(e.latlng);
+        setAddress("Fetching address...");
+        getAddressFromCoords(e.latlng.lat, e.latlng.lng).then(addr => setAddress(addr));
+        map.flyTo(e.latlng, map.getZoom());
+      }).on("locationerror", function (e) {
+        toast.error("Location access denied or unavailable.");
+      });
+    };
+
+    window.addEventListener('triggerLocate', handleLocateEvent);
+    return () => window.removeEventListener('triggerLocate', handleLocateEvent);
+  }, [map, setLocation, setAddress]);
 
   return (
     <div className="leaflet-bottom leaflet-left pointer-events-auto">
       <div className="leaflet-control leaflets-bar m-4">
         <button
           onClick={(e) => {
-            e.preventDefault(); // prevent form submit
-            handleLocate();
+            e.preventDefault();
+            setShowPermissionModal(true);
           }}
-          className="bg-white p-2 rounded shadow hover:bg-gray-50 text-sm font-semibold border text-gray-700"
+          className="bg-white p-2 rounded shadow hover:bg-gray-50 text-sm font-semibold border text-gray-700 flex items-center gap-2"
           type="button"
         >
-          📍 Locate Me
+          <span>📍</span> Locate Me
         </button>
       </div>
     </div>
@@ -104,6 +149,14 @@ export default function ReportDisaster() {
     loading: false,
     error: "",
   });
+
+  const [showPermissionModal, setShowPermissionModal] = useState(false);
+
+  const handlePermissionConfirm = () => {
+    setShowPermissionModal(false);
+    // Dispatch custom event to trigger map.locate() inside the map component
+    window.dispatchEvent(new Event('triggerLocate'));
+  };
 
   useEffect(() => {
     if (!loading && !user) {
@@ -266,11 +319,12 @@ export default function ReportDisaster() {
             style={{ height: `${mapHeight}px` }} // map height matches full form
           >
             <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
               url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
             />
+
             <LocationPicker setLocation={setLocation} setAddress={setAddress} />
-            <LocateControl setLocation={setLocation} setAddress={setAddress} />
+            <LocateControl setLocation={setLocation} setAddress={setAddress} setShowPermissionModal={setShowPermissionModal} />
             {location && <Marker position={[location.lat, location.lng]} />}
           </MapContainer>
 
@@ -279,6 +333,14 @@ export default function ReportDisaster() {
               <strong>Selected Location:</strong>
               <div>{address}</div>
             </div>
+          )}
+
+          {/* PERMISSION MODAL */}
+          {showPermissionModal && (
+            <LocationPermissionModal
+              onClose={() => setShowPermissionModal(false)}
+              onConfirm={handlePermissionConfirm}
+            />
           )}
         </div>
       </div>

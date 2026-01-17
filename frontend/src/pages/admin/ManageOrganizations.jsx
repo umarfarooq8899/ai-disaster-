@@ -3,7 +3,7 @@ import axios from "../../api/axios";
 import { AuthContext } from "../../context/AuthContext";
 import { createPortal } from "react-dom";
 import toast, { Toaster } from "react-hot-toast";
-import { Building2, UserPlus, MapPin, Users } from "lucide-react";
+import { Building2, UserPlus, MapPin, Users, Trash2 } from "lucide-react";
 
 /* ================= MODAL: ADD ORGANIZATION ================= */
 function AddOrgModal({ type, onClose, onConfirm }) {
@@ -133,6 +133,7 @@ export default function ManageOrganizations() {
     // Modals
     const [showAddOrg, setShowAddOrg] = useState(false);
     const [showAddCoord, setShowAddCoord] = useState(null); // stores org object if modal active
+    const [deleteTarget, setDeleteTarget] = useState(null); // stores org to delete
 
     const fetchOrgs = async () => {
         setLoading(true);
@@ -178,6 +179,20 @@ export default function ManageOrganizations() {
             fetchOrgs(); // refresh to see coord count update if we displayed it
         } catch (err) {
             toast.error(err.response?.data?.message || "Failed to add coordinator");
+        }
+    };
+
+    const handleDeleteOrg = async () => {
+        if (!deleteTarget) return;
+        try {
+            await axios.delete(`/organizations/${activeTab}/${deleteTarget._id}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            toast.success("Organization deleted");
+            setDeleteTarget(null);
+            fetchOrgs();
+        } catch (err) {
+            toast.error("Failed to delete organization");
         }
     };
 
@@ -252,13 +267,22 @@ export default function ManageOrganizations() {
                                         </div>
                                     )}
                                 </div>
-                                <div
-                                    className={`p-2 rounded-lg ${activeTab === "rescue"
-                                        ? "bg-red-50 text-red-600"
-                                        : "bg-blue-50 text-blue-600"
-                                        }`}
-                                >
-                                    <Building2 className="w-5 h-5" />
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={() => setDeleteTarget(org)}
+                                        className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition"
+                                        title="Delete Organization"
+                                    >
+                                        <Trash2 className="w-5 h-5" />
+                                    </button>
+                                    <div
+                                        className={`p-2 rounded-lg ${activeTab === "rescue"
+                                            ? "bg-red-50 text-red-600"
+                                            : "bg-blue-50 text-blue-600"
+                                            }`}
+                                    >
+                                        <Building2 className="w-5 h-5" />
+                                    </div>
                                 </div>
                             </div>
 
@@ -320,6 +344,33 @@ export default function ManageOrganizations() {
                     onClose={() => setShowAddCoord(null)}
                     onConfirm={handleCreateCoord}
                 />
+            )}
+
+            {/* DELETE CONFIRMATION MODAL */}
+            {deleteTarget && (
+                <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/50" onClick={() => setDeleteTarget(null)}>
+                    <div className="bg-white p-6 rounded-xl shadow-xl w-full max-w-sm" onClick={e => e.stopPropagation()}>
+                        <h3 className="text-lg font-bold text-gray-800 mb-2">Delete Organization?</h3>
+                        <p className="text-gray-600 mb-6">
+                            Are you sure you want to delete <span className="font-semibold text-gray-900">{deleteTarget.name}</span>?
+                            This action cannot be undone.
+                        </p>
+                        <div className="flex justify-end gap-3">
+                            <button
+                                onClick={() => setDeleteTarget(null)}
+                                className="px-4 py-2 rounded-lg border hover:bg-gray-50 text-gray-700"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleDeleteOrg}
+                                className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700"
+                            >
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );

@@ -10,4 +10,16 @@ router.post("/create", auth, createVolunteer);
 // Get my profile
 router.get("/me", auth, getMyProfile);
 
+// Get assigned tasks
+router.get("/tasks", auth, require("../controllers/volunteerController").getMyTasks);
+
+// Update task status
+router.put("/tasks/:id", auth, require("../controllers/volunteerController").updateTaskStatus);
+
+// Get dashboard stats
+router.get("/stats", auth, require("../controllers/volunteerController").getDashboardStats);
+
+// Admin: Auto-assign volunteers
+router.post("/admin/auto-assign", auth, require("../controllers/volunteerController").autoAssignVolunteers);
+
 module.exports = router;

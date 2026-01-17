@@ -43,19 +43,17 @@ function StatCard({ icon: Icon, label, value, color, trend }) {
    RESCUE DASHBOARD
 ================================ */
 export default function RescueDashboard() {
-  const { user } = useContext(AuthContext);
+  const { user, token } = useContext(AuthContext);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (!user?.token) return;
+    if (!token) return;
 
     const fetchStats = async () => {
       try {
-        const res = await axios.get("/statscard/dashboard", {
-          headers: { Authorization: `Bearer ${user.token}` },
-        });
+        const res = await axios.get("/statscard/dashboard");
         setStats(res.data);
       } catch (err) {
         setError("Failed to load rescue dashboard data");
@@ -65,7 +63,7 @@ export default function RescueDashboard() {
     };
 
     fetchStats();
-  }, [user?.token]);
+  }, [token]);
 
   if (loading)
     return (

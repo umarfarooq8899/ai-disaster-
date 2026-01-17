@@ -8,6 +8,44 @@ const Statistic = require("../models/Statistic");
 const User = require("../models/User");
 const Disaster = require("../models/Disaster");
 const Alert = require("../models/Alert");
+const RescueOrganization = require("../models/RescueOrganization");
+const NgoOrganization = require("../models/NgoOrganization");
+
+/*  PUBLIC STATISTICS (AUTHENTICATED) */
+router.get("/public", auth, async (req, res) => {
+  try {
+    const [
+      totalUsers,
+      totalVolunteers,
+      totalNGOs,
+      totalRescue,
+      totalDisasters,
+      activeDisasters,
+      activeAlerts,
+    ] = await Promise.all([
+      User.countDocuments(),
+      User.countDocuments({ role: "volunteer" }),
+      NgoOrganization.countDocuments(),
+      RescueOrganization.countDocuments(),
+      Disaster.countDocuments({ status: { $in: ["active", "resolved"] } }),
+      Disaster.countDocuments({ status: "active" }),
+      Alert.countDocuments({ status: "active" }),
+    ]);
+
+    res.json({
+      totalUsers,
+      totalVolunteers,
+      totalNGOs,
+      totalRescue,
+      totalDisasters,
+      activeDisasters,
+      activeAlerts,
+    });
+  } catch (err) {
+    console.error("Public Stats Error:", err);
+    res.status(500).json({ message: "Failed to load statistics" });
+  }
+});
 
 /* ==============================
    DASHBOARD STATISTICS (ADMIN)

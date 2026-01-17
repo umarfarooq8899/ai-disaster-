@@ -43,17 +43,17 @@ export default function VolunteerTasks() {
               <p className="text-gray-500 text-xs mt-1">Location: {task.location}</p>
               <p className="text-gray-500 text-xs">Status: {task.status}</p>
               <div className="mt-3 flex gap-2">
-                {task.status !== "In Progress" && (
+                {task.status !== "ongoing" && task.status !== "completed" && (
                   <button
-                    onClick={() => updateStatus(task._id, "In Progress")}
+                    onClick={() => updateStatus(task._id, "ongoing")}
                     className="btn-primary"
                   >
                     Start
                   </button>
                 )}
-                {task.status !== "Completed" && (
+                {task.status !== "completed" && (
                   <button
-                    onClick={() => updateStatus(task._id, "Completed")}
+                    onClick={() => updateStatus(task._id, "completed")}
                     className="btn-outline"
                   >
                     Complete

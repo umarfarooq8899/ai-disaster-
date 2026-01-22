@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { createVolunteer, getMyProfile } = require("../controllers/volunteerController");
+const { createVolunteer, getMyProfile, getMyMissions, completeMission } = require("../controllers/volunteerController");
 const { protect: auth } = require("../middleware/auth");
 
 // Create or update volunteer profile
@@ -9,6 +9,12 @@ router.post("/create", auth, createVolunteer);
 
 // Get my profile
 router.get("/me", auth, getMyProfile);
+
+// Get my assigned missions
+router.get("/my-missions", auth, getMyMissions);
+
+// Complete a mission
+router.post("/missions/:missionId/complete", auth, completeMission);
 
 // Get assigned tasks
 router.get("/tasks", auth, require("../controllers/volunteerController").getMyTasks);

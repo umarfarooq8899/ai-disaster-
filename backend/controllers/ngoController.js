@@ -127,3 +127,29 @@ exports.updateAidStatus = async (req, res) => {
         res.status(500).json({ message: "Failed to update status" });
     }
 };
+
+// Post Status Update (Food, Medical, etc.)
+exports.postStatusUpdate = async (req, res) => {
+    const { assignmentId, updateType, description, metrics, images } = req.body;
+
+    try {
+        const assignment = await AidAssignment.findById(assignmentId);
+        if (!assignment) return res.status(404).json({ message: "Assignment not found" });
+
+        const StatusLog = require("../models/StatusLog");
+        const log = await StatusLog.create({
+            disaster: assignment.disaster,
+            aidAssignment: assignmentId,
+            organization: req.user.organization,
+            organizationType: "NgoOrganization",
+            updateType,
+            description,
+            metrics,
+            images
+        });
+
+        res.status(201).json(log);
+    } catch (err) {
+        res.status(500).json({ message: "Failed to post status update" });
+    }
+};

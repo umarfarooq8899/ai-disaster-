@@ -73,16 +73,21 @@ export default function ManageVolunteers() {
                         {volunteers.map((vol) => (
                             <tr key={vol._id} className="hover:bg-gray-50 transition">
                                 <td className="px-6 py-4">
-                                    <div className="font-medium text-gray-800">{vol.user?.name}</div>
+                                    <div className="font-medium text-gray-800">{vol.user?.name || "Unknown"}</div>
                                     <div className="text-xs text-gray-500">{vol.user?.email}</div>
+                                    {vol.isProfileIncomplete && (
+                                        <span className="text-[10px] text-red-500 font-bold border border-red-200 px-1 rounded ml-1">
+                                            INCOMPLETE
+                                        </span>
+                                    )}
                                 </td>
                                 <td className="px-6 py-4">
                                     <div className="flex flex-wrap gap-1">
-                                        {vol.skills.map((skill) => (
+                                        {vol.skills?.length > 0 ? vol.skills.map((skill) => (
                                             <span key={skill} className="px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full text-[10px] uppercase font-bold">
                                                 {skill}
                                             </span>
-                                        ))}
+                                        )) : <span className="text-xs text-gray-400">No skills listed</span>}
                                     </div>
                                 </td>
                                 <td className="px-6 py-4">
@@ -92,7 +97,7 @@ export default function ManageVolunteers() {
                                         </span>
                                     ) : (
                                         <span className="flex items-center gap-1 text-orange-500 font-medium">
-                                            <AlertTriangle className="w-3 h-3" /> Busy
+                                            <AlertTriangle className="w-3 h-3" /> {vol.isProfileIncomplete ? "Pending Setup" : "Busy"}
                                         </span>
                                     )}
                                 </td>
@@ -107,7 +112,7 @@ export default function ManageVolunteers() {
                                     )}
                                 </td>
                                 <td className="px-6 py-4 text-gray-600">
-                                    {vol.city}, {vol.province}
+                                    {vol.city || "N/A"}, {vol.province || ""}
                                 </td>
                             </tr>
                         ))}

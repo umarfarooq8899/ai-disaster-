@@ -9,7 +9,9 @@ import {
   Trash2,
   MapPin,
   X,
-} from "lucide-react";
+  Ambulance,
+  Package,
+} from "lucide-react"; // Added Ambulance (Rescue) and Package (NGO) icons
 import MapView from "../../components/map/MapView";
 
 export default function ManageDisasters() {
@@ -17,10 +19,29 @@ export default function ManageDisasters() {
 
   const [disasters, setDisasters] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
 
+  // Data for assignments
+  const [rescueOrgs, setRescueOrgs] = useState([]);
+  const [ngoOrgs, setNgoOrgs] = useState([]);
+
+  // Modal States
   const [selectedDisaster, setSelectedDisaster] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [assignModal, setAssignModal] = useState(null); // { type: 'rescue' | 'ngo', disasterId: string }
+  const [assignmentDetails, setAssignmentDetails] = useState({ missions: [], aidAssignments: [] });
+
+  // Form States
+  const [assignForm, setAssignForm] = useState({
+    organizationId: "",
+    title: "", // For Rescue Mission
+    description: "", // For Rescue Mission
+    skills: [], // For Rescue Mission
+    items: [], // For NGO: [{ name, quantity }]
+    notes: "", // For NGO
+  });
+
+  // Dynamic Item State for NGO
+  const [newItem, setNewItem] = useState({ name: "", quantity: 1 });
 
   const fetchDisasters = async () => {
     try {
@@ -36,8 +57,43 @@ export default function ManageDisasters() {
     }
   };
 
+  const fetchOrgs = async () => {
+    try {
+      const [rescueRes, ngoRes] = await Promise.all([
+        axios.get("http://localhost:5000/api/disasters/orgs/rescue", { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get("http://localhost:5000/api/disasters/orgs/ngo", { headers: { Authorization: `Bearer ${token}` } })
+      ]);
+      setRescueOrgs(rescueRes.data);
+      setNgoOrgs(ngoRes.data);
+    } catch (err) {
+      console.error("Failed to fetch orgs", err);
+    }
+  };
 
+  const fetchAssignmentDetails = async (disasterId) => {
+    try {
+      const [missionsRes, aidRes] = await Promise.all([
+        axios.get(`http://localhost:5000/api/admin/missions?disaster=${disasterId}`, { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get(`http://localhost:5000/api/admin/aid-assignments?disaster=${disasterId}`, { headers: { Authorization: `Bearer ${token}` } })
+      ]);
+      setAssignmentDetails({
+        missions: missionsRes.data || [],
+        aidAssignments: aidRes.data || []
+      });
+    } catch (err) {
+      console.error("Failed to fetch assignment details", err);
+      setAssignmentDetails({ missions: [], aidAssignments: [] });
+    }
+  };
 
+  useEffect(() => {
+    if (user?.role === "admin") {
+      fetchDisasters();
+      fetchOrgs();
+    }
+  }, [user]);
+
+  // Actions
   const verifyDisaster = async (id) => {
     try {
       await axios.patch(
@@ -47,6 +103,7 @@ export default function ManageDisasters() {
       );
       toast.success("Disaster verified");
       fetchDisasters();
+      setSelectedDisaster(prev => prev ? { ...prev, status: 'active' } : null);
     } catch {
       toast.error("Failed to verify disaster");
     }
@@ -61,42 +118,77 @@ export default function ManageDisasters() {
       );
       toast.success("Disaster rejected");
       fetchDisasters();
+      setSelectedDisaster(null);
     } catch {
       toast.error("Failed to reject disaster");
     }
   };
 
-  const resolveDisaster = async (id) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleAssignSubmit = async () => {
     try {
-      await axios.patch(
-        `http://localhost:5000/api/disasters/${id}/resolve`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      toast.success("Disaster resolved");
+      setIsSubmitting(true);
+      const endpoint = assignModal.type === 'rescue'
+        ? "http://localhost:5000/api/disasters/assign/rescue"
+        : "http://localhost:5000/api/disasters/assign/aid";
+
+      const payload = {
+        disasterId: assignModal.disasterId,
+        organizationId: assignForm.organizationId,
+        ...assignForm
+      };
+
+      // Clean up payload based on type
+      if (assignModal.type === 'rescue') {
+        delete payload.items;
+        delete payload.notes;
+        payload.skillsRequired = assignForm.skills;
+      } else {
+        delete payload.title;
+        delete payload.description;
+        delete payload.skills;
+        payload.items = assignForm.items;
+      }
+
+      await axios.post(endpoint, payload, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      toast.success(`Assigned to ${assignModal.type === 'rescue' ? 'Rescue Team' : 'NGO'} successfully`);
+
+      // Refresh data
       fetchDisasters();
-    } catch {
-      toast.error("Failed to resolve disaster");
+      fetchAssignmentDetails(assignModal.disasterId);
+
+      // Update current modal view if open
+      if (selectedDisaster && selectedDisaster._id === assignModal.disasterId) {
+        setSelectedDisaster(prev => ({
+          ...prev,
+          rescueMissions: assignModal.type === 'rescue' ? (prev.rescueMissions || 0) + 1 : prev.rescueMissions,
+          ngoAssignments: assignModal.type === 'ngo' ? (prev.ngoAssignments || 0) + 1 : prev.ngoAssignments
+        }));
+      }
+
+      setAssignModal(null);
+      // Reset form
+      setAssignForm({ organizationId: "", title: "", description: "", skills: [], items: [], notes: "" });
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Assignment failed");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const confirmDelete = async () => {
-    try {
-      await axios.delete(
-        `http://localhost:5000/api/disasters/${deleteTarget}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      toast.success("Disaster deleted successfully");
-      setDeleteTarget(null);
-      fetchDisasters();
-    } catch {
-      toast.error("Failed to delete disaster");
-    }
+  // Helper to add item to NGO list
+  const addNgoItem = () => {
+    if (!newItem.name) return;
+    setAssignForm(prev => ({
+      ...prev,
+      items: [...prev.items, { ...newItem }]
+    }));
+    setNewItem({ name: "", quantity: 1 });
   };
-
-  useEffect(() => {
-    if (user?.role === "admin") fetchDisasters();
-  }, [user]);
 
   if (loading) return <SkeletonTable />;
 
@@ -110,26 +202,9 @@ export default function ManageDisasters() {
             Manage Disasters
           </h1>
           <p className="text-sm text-gray-500">
-            Monitor, resolve or remove disaster reports
+            Monitor, verify, and assign relief teams
           </p>
         </div>
-        <button
-          onClick={async () => {
-            try {
-              const res = await axios.post("http://localhost:5000/api/volunteer/admin/auto-assign", {}, {
-                headers: { Authorization: `Bearer ${token}` },
-              });
-              toast.success(res.data.message);
-              fetchDisasters();
-            } catch (err) {
-              toast.error("Auto-assignment failed");
-            }
-          }}
-          className="bg-brand-600 text-white px-4 py-2 rounded-lg hover:bg-brand-700 transition flex items-center gap-2"
-        >
-          <CheckCircle className="w-4 h-4" />
-          Auto-Assign Volunteers
-        </button>
       </header>
 
       {/* TABLE */}
@@ -141,6 +216,7 @@ export default function ManageDisasters() {
               <th className="p-4 text-left">Location</th>
               <th className="p-4 text-center">Severity</th>
               <th className="p-4 text-center">Status</th>
+              <th className="p-4 text-center">Assignments</th>
             </tr>
           </thead>
 
@@ -148,7 +224,12 @@ export default function ManageDisasters() {
             {disasters.map((d) => (
               <tr
                 key={d._id}
-                onClick={() => setSelectedDisaster(d)}
+                onClick={() => {
+                  setSelectedDisaster(d);
+                  if (d.rescueMissions > 0 || d.ngoAssignments > 0) {
+                    fetchAssignmentDetails(d._id);
+                  }
+                }}
                 className="border-t hover:bg-gray-50 cursor-pointer"
               >
                 <td className="p-4 font-medium text-left">{d.title}</td>
@@ -167,6 +248,23 @@ export default function ManageDisasters() {
                           'bg-blue-100 text-blue-700'}`}>
                     {d.status}
                   </span>
+                </td>
+                <td className="p-4 text-center">
+                  <div className="flex gap-2 justify-center items-center">
+                    {d.rescueMissions > 0 && (
+                      <span className="px-2 py-1 rounded text-xs font-semibold bg-blue-100 text-blue-700 flex items-center gap-1">
+                        <Ambulance className="w-3 h-3" /> {d.rescueMissions}
+                      </span>
+                    )}
+                    {d.ngoAssignments > 0 && (
+                      <span className="px-2 py-1 rounded text-xs font-semibold bg-orange-100 text-orange-700 flex items-center gap-1">
+                        <Package className="w-3 h-3" /> {d.ngoAssignments}
+                      </span>
+                    )}
+                    {!d.rescueMissions && !d.ngoAssignments && (
+                      <span className="text-xs text-gray-400">None</span>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}
@@ -209,11 +307,21 @@ export default function ManageDisasters() {
             <div className="flex flex-col h-full">
               <div className="flex-1 space-y-4">
                 {selectedDisaster.image && (
-                  <div className="rounded-lg overflow-hidden border h-48 w-full bg-gray-100">
+                  <div className="rounded-lg overflow-hidden border h-48 w-full bg-gray-100 mb-4">
                     <img
                       src={`http://localhost:5000/${selectedDisaster.image}`}
                       alt="Disaster"
                       className="w-full h-full object-cover"
+                    />
+                  </div>
+                )}
+
+                {selectedDisaster.video && (
+                  <div className="rounded-lg overflow-hidden border w-full bg-black mb-4">
+                    <video
+                      controls
+                      src={`http://localhost:5000/${selectedDisaster.video}`}
+                      className="w-full h-auto max-h-60"
                     />
                   </div>
                 )}
@@ -234,20 +342,82 @@ export default function ManageDisasters() {
                   </div>
 
                   <p className="text-xs text-gray-400 mt-2">
-                    Reported on: {new Date(selectedDisaster.createdAt).toLocaleString()}
+                    Reported by: {selectedDisaster.reportedBy?.name} ({selectedDisaster.reportedBy?.email})
                   </p>
                 </div>
+
+                {/* ASSIGNMENTS SECTION */}
+                {(selectedDisaster.rescueMissions > 0 || selectedDisaster.ngoAssignments > 0) && (
+                  <div className="mt-4">
+                    <h3 className="font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4" /> Assignments
+                    </h3>
+
+                    {assignmentDetails.missions.length > 0 && (
+                      <div className="mb-3">
+                        <p className="text-xs font-medium text-gray-600 mb-2">Rescue Missions ({assignmentDetails.missions.length})</p>
+                        <div className="space-y-2">
+                          {assignmentDetails.missions.map((mission) => (
+                            <div key={mission._id} className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm">
+                              <div className="flex justify-between items-start mb-1">
+                                <p className="font-medium text-gray-800">{mission.title}</p>
+                                <span className={`px-2 py-0.5 rounded text-xs font-semibold ${mission.status === 'completed' ? 'bg-green-100 text-green-700' :
+                                  mission.status === 'ongoing' ? 'bg-blue-100 text-blue-700' :
+                                    mission.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+                                      'bg-gray-100 text-gray-700'
+                                  }`}>
+                                  {mission.status}
+                                </span>
+                              </div>
+                              {mission.assignedVolunteers && mission.assignedVolunteers.length > 0 && (
+                                <p className="text-xs text-gray-600">
+                                  {mission.assignedVolunteers.length} volunteer(s) assigned
+                                </p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {assignmentDetails.aidAssignments.length > 0 && (
+                      <div>
+                        <p className="text-xs font-medium text-gray-600 mb-2">NGO Assignments ({assignmentDetails.aidAssignments.length})</p>
+                        <div className="space-y-2">
+                          {assignmentDetails.aidAssignments.map((assignment) => (
+                            <div key={assignment._id} className="bg-orange-50 border border-orange-200 rounded-lg p-3 text-sm">
+                              <div className="flex justify-between items-start mb-1">
+                                <p className="font-medium text-gray-800">{assignment.ngo?.name || 'NGO'}</p>
+                                <span className={`px-2 py-0.5 rounded text-xs font-semibold ${assignment.status === 'delivered' ? 'bg-green-100 text-green-700' :
+                                  assignment.status === 'in_transit' ? 'bg-blue-100 text-blue-700' :
+                                    'bg-yellow-100 text-yellow-700'
+                                  }`}>
+                                  {assignment.status}
+                                </span>
+                              </div>
+                              {assignment.items && assignment.items.length > 0 && (
+                                <p className="text-xs text-gray-600">
+                                  {assignment.items.length} item(s)
+                                </p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* ACTION BAR */}
-              <div className="mt-6 pt-4 border-t grid grid-cols-2 gap-3">
+              <div className="mt-6 pt-4 border-t space-y-3">
                 {selectedDisaster.status === "pending" && (
-                  <>
+                  <div className="grid grid-cols-2 gap-3">
                     <button
                       onClick={() => verifyDisaster(selectedDisaster._id)}
                       className="flex items-center justify-center gap-2 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition"
                     >
-                      <CheckCircle className="w-4 h-4" /> Approve
+                      <CheckCircle className="w-4 h-4" /> Verify & Activate
                     </button>
                     <button
                       onClick={() => rejectDisaster(selectedDisaster._id)}
@@ -255,26 +425,167 @@ export default function ManageDisasters() {
                     >
                       <X className="w-4 h-4" /> Reject
                     </button>
-                  </>
+                  </div>
                 )}
 
                 {selectedDisaster.status === "active" && (
-                  <button
-                    onClick={() => resolveDisaster(selectedDisaster._id)}
-                    className="col-span-2 flex items-center justify-center gap-2 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition"
-                  >
-                    <CheckCircle className="w-4 h-4" /> Mark as Resolved
-                  </button>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      onClick={() => setAssignModal({ type: 'rescue', disasterId: selectedDisaster._id })}
+                      disabled={selectedDisaster.rescueMissions > 0}
+                      className={`flex items-center justify-center gap-2 py-2 rounded-lg transition
+                        ${selectedDisaster.rescueMissions > 0
+                          ? 'bg-blue-100 text-blue-600 cursor-not-allowed'
+                          : 'bg-blue-600 text-white hover:bg-blue-700'}`}
+                    >
+                      <Ambulance className="w-4 h-4" />
+                      {selectedDisaster.rescueMissions > 0 ? "Rescue Assigned" : "Assign Rescue"}
+                    </button>
+
+                    <button
+                      onClick={() => setAssignModal({ type: 'ngo', disasterId: selectedDisaster._id })}
+                      disabled={selectedDisaster.ngoAssignments > 0}
+                      className={`flex items-center justify-center gap-2 py-2 rounded-lg transition
+                        ${selectedDisaster.ngoAssignments > 0
+                          ? 'bg-orange-100 text-orange-600 cursor-not-allowed'
+                          : 'bg-orange-500 text-white hover:bg-orange-600'}`}
+                    >
+                      <Package className="w-4 h-4" />
+                      {selectedDisaster.ngoAssignments > 0 ? "NGO Assigned" : "Assign NGO"}
+                    </button>
+                  </div>
                 )}
 
+                {/* Delete Button - Always visible */}
                 <button
                   onClick={() => setDeleteTarget(selectedDisaster._id)}
-                  className={`flex items-center justify-center gap-2 border border-red-200 text-red-600 py-2 rounded-lg hover:bg-red-50 transition ${selectedDisaster.status !== 'pending' ? 'col-span-2' : 'col-span-2 mt-2'}`}
+                  className="w-full flex items-center justify-center gap-2 bg-gray-100 text-gray-700 py-2 rounded-lg hover:bg-gray-200 hover:text-red-700 transition"
                 >
-                  <Trash2 className="w-4 h-4" /> Delete Report
+                  <Trash2 className="w-4 h-4" /> Delete Disaster
                 </button>
               </div>
             </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* ASSIGNMENT MODAL */}
+      {assignModal && (
+        <Modal onClose={() => setAssignModal(null)}>
+          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            {assignModal.type === 'rescue' ? <Ambulance className="w-5 h-5 text-blue-600" /> : <Package className="w-5 h-5 text-orange-600" />}
+            Assign {assignModal.type === 'rescue' ? 'Rescue Mission' : 'Relief Operation'}
+          </h2>
+
+          <div className="space-y-4">
+            {/* Common: Select Organization */}
+            <div>
+              <label className="block text-sm font-medium mb-1">Organization</label>
+              <select
+                className="w-full border rounded p-2"
+                value={assignForm.organizationId}
+                onChange={(e) => setAssignForm({ ...assignForm, organizationId: e.target.value })}
+              >
+                <option value="">Select Organization</option>
+                {(assignModal.type === 'rescue' ? rescueOrgs : ngoOrgs).map(org => (
+                  <option key={org._id} value={org._id}>{org.name} ({org.location})</option>
+                ))}
+              </select>
+            </div>
+
+            {assignModal.type === 'rescue' ? (
+              // RESCUE FORM
+              <>
+                <input
+                  placeholder="Mission Title"
+                  className="w-full border rounded p-2"
+                  value={assignForm.title}
+                  onChange={(e) => setAssignForm({ ...assignForm, title: e.target.value })}
+                />
+                <textarea
+                  placeholder="Mission Description"
+                  className="w-full border rounded p-2"
+                  value={assignForm.description}
+                  onChange={(e) => setAssignForm({ ...assignForm, description: e.target.value })}
+                />
+                <div>
+                  <label className="block text-sm font-medium mb-1">Skills Required</label>
+                  <div className="flex flex-wrap gap-2">
+                    {['medical', 'technical', 'rescue', 'logistics'].map(skill => (
+                      <label key={skill} className="flex items-center gap-1 text-sm bg-gray-100 px-2 py-1 rounded">
+                        <input
+                          type="checkbox"
+                          checked={assignForm.skills.includes(skill)}
+                          onChange={(e) => {
+                            const newSkills = e.target.checked
+                              ? [...assignForm.skills, skill]
+                              : assignForm.skills.filter(s => s !== skill);
+                            setAssignForm({ ...assignForm, skills: newSkills });
+                          }}
+                        />
+                        {skill}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </>
+            ) : (
+              // NGO FORM
+              <>
+                <div className="bg-gray-50 p-3 rounded border">
+                  <label className="block text-sm font-medium mb-2">Relief Items</label>
+                  <div className="flex gap-2 mb-2">
+                    <input
+                      placeholder="Item Name"
+                      className="flex-1 border rounded p-1 text-sm"
+                      value={newItem.name}
+                      onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
+                    />
+                    <input
+                      type="number"
+                      placeholder="Qty"
+                      className="w-20 border rounded p-1 text-sm"
+                      value={newItem.quantity}
+                      onChange={(e) => setNewItem({ ...newItem, quantity: parseInt(e.target.value) })}
+                    />
+                    <button onClick={addNgoItem} className="bg-gray-200 px-3 rounded text-sm">+</button>
+                  </div>
+                  <div className="space-y-1">
+                    {assignForm.items.map((item, idx) => (
+                      <div key={idx} className="flex justify-between text-sm bg-white p-1 px-2 rounded border">
+                        <span>{item.name}</span>
+                        <span className="font-mono">x{item.quantity}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <textarea
+                  placeholder="Notes for NGO..."
+                  className="w-full border rounded p-2"
+                  value={assignForm.notes}
+                  onChange={(e) => setAssignForm({ ...assignForm, notes: e.target.value })}
+                />
+              </>
+            )}
+
+            <button
+              onClick={handleAssignSubmit}
+              disabled={
+                !assignForm.organizationId ||
+                (assignModal.type === 'rescue' && !assignForm.title) ||
+                isSubmitting
+              }
+              className="w-full bg-brand-600 text-white py-2 rounded hover:bg-brand-700 disabled:opacity-50 flex justify-center items-center gap-2"
+            >
+              {isSubmitting ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                "Confirm Assignment"
+              )}
+            </button>
           </div>
         </Modal>
       )}
@@ -296,7 +607,18 @@ export default function ManageDisasters() {
               Cancel
             </button>
             <button
-              onClick={confirmDelete}
+              onClick={async () => {
+                /* deletion logic similar to original */
+                try {
+                  await axios.delete(
+                    `http://localhost:5000/api/disasters/${deleteTarget}`,
+                    { headers: { Authorization: `Bearer ${token}` } }
+                  );
+                  toast.success("Deleted");
+                  setDeleteTarget(null);
+                  fetchDisasters();
+                } catch { toast.error("Failed to delete"); }
+              }}
               className="px-4 py-2 bg-red-600 text-white rounded"
             >
               Delete
@@ -315,22 +637,22 @@ function Modal({ children, onClose, ...props }) {
   return (
     <div
       onClick={onClose}
-      className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center"
+      className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center backdrop-blur-sm"
     >
       <div
         onClick={(e) => e.stopPropagation()}
         className={`bg-white rounded-xl p-6 w-full relative
-                   transform transition-all duration-300 scale-95 opacity-0
-                   animate-modal overflow-hidden flex flex-col max-h-[90vh]
+                   transform transition-all duration-300 scale-100 opacity-100 shadow-2xl
+                   overflow-hidden flex flex-col max-h-[90vh]
                    ${props.wide ? 'max-w-4xl' : 'max-w-md'}`}
       >
         <button
           onClick={onClose}
-          className="absolute top-3 right-3 text-gray-500 hover:text-gray-700 z-10 bg-white rounded-full p-1"
+          className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 z-10 bg-gray-100 rounded-full p-1"
         >
           <X className="w-4 h-4" />
         </button>
-        <div className="overflow-y-auto">
+        <div className="overflow-y-auto pr-1">
           {children}
         </div>
       </div>

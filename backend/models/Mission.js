@@ -6,6 +6,7 @@ const missionSchema = new mongoose.Schema(
     description: { type: String },
     location: { type: String, required: true },
     organization: { type: mongoose.Schema.Types.ObjectId, ref: "RescueOrganization", required: true },
+    disaster: { type: mongoose.Schema.Types.ObjectId, ref: "Disaster", required: true },
     assignedVolunteers: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
     assignedResources: [{ type: mongoose.Schema.Types.ObjectId, ref: "Resource" }],
     skillsRequired: [{ type: String, enum: ["medical", "technical", "rescue", "logistics", "communication"] }],

@@ -21,5 +21,6 @@ router.get("/assignments", getAidAssignments);
 router.get("/volunteers", require("../controllers/volunteerController").getOrgVolunteers);
 router.post("/assignments", createAidAssignment);
 router.patch("/assignments/:id/status", updateAidStatus);
+router.post("/updates", require("../controllers/ngoController").postStatusUpdate);
 
 module.exports = router;

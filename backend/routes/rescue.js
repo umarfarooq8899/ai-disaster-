@@ -2,76 +2,41 @@ const express = require("express");
 const router = express.Router();
 const { protect: auth } = require("../middleware/auth");
 
+const {
+  getAssignedMissions,
+  updateMissionStatus,
+  assignVolunteersToMission,
+  changeMissionStatus
+} = require("../controllers/rescueController");
+
+// Use existing volunteer controller for resource/volunteer data if needed, 
+// or implement specific rescue endpoints. For now, we focus on the new requirements.
+
+// Get Assigned Missions
+router.get("/missions", auth, getAssignedMissions);
+
+// Update Mission Status & Log
+router.post("/updates", auth, updateMissionStatus);
+
+// Assign Volunteers to Mission  
+router.post("/missions/:missionId/assign-volunteers", auth, assignVolunteersToMission);
+
+// Update Mission Status (for coordinators)
+router.patch("/missions/:missionId/status", auth, changeMissionStatus);
+
+// Get Organization Volunteers (Coordinator View)
+router.get("/volunteer-management", auth, require("../controllers/volunteerController").getOrgVolunteers);
+
+// Keep existing resource/volunteer routes for now if they are used by frontend
 const Mission = require("../models/Mission");
 const Resource = require("../models/Resource");
 const User = require("../models/User");
-const RescueOrganization = require("../models/RescueOrganization");
 
-// ================= GET ALL MISSIONS FOR COORDINATOR =================
-router.get("/missions", auth, async (req, res) => {
-  try {
-    const orgId = req.user.organization;
-    if (!orgId) return res.status(400).json({ message: "Only organization coordinators can view their missions" });
+// ... (Existing generic routes can stay or be refactored. 
+// Given the prompt "Rescue teams only coordinate handover points", 
+// and "Rescue updates: people rescued, areas cleared", the above 2 routes are key.)
 
-    const missions = await Mission.find({ organization: orgId })
-      .populate("organization", "name")
-      .populate("assignedVolunteers", "name email")
-      .populate("assignedResources", "name type quantity");
-    res.json(missions);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Failed to fetch missions" });
-  }
-});
-
-// ================= CREATE MISSION =================
-router.post("/missions", auth, async (req, res) => {
-  const { title, description, location, skillsRequired } = req.body;
-  const orgId = req.user.organization;
-
-  if (!orgId) return res.status(400).json({ message: "Organization ID is missing for this coordinator" });
-
-  try {
-    const mission = await Mission.create({
-      title,
-      description,
-      location,
-      skillsRequired,
-      organization: orgId,
-    });
-    res.status(201).json(mission);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Failed to create mission" });
-  }
-});
-
-// ================= ASSIGN VOLUNTEERS & RESOURCES =================
-router.patch("/missions/:id/assign", auth, async (req, res) => {
-  const { assignedVolunteers, assignedResources } = req.body;
-
-  try {
-    const mission = await Mission.findById(req.params.id);
-    if (!mission) return res.status(404).json({ message: "Mission not found" });
-
-    mission.assignedVolunteers = assignedVolunteers || mission.assignedVolunteers;
-    mission.assignedResources = assignedResources || mission.assignedResources;
-
-    await mission.save();
-
-    const updatedMission = await Mission.findById(req.params.id)
-      .populate("organization", "name")
-      .populate("assignedVolunteers", "name email")
-      .populate("assignedResources", "name type quantity");
-
-    res.json(updatedMission);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Failed to assign resources/volunteers" });
-  }
-});
-
-// ================= GET RESOURCES =================
+// ================= GET RESOURCES (Legacy/Shared) =================
 router.get("/resources", auth, async (req, res) => {
   try {
     const resources = await Resource.find().populate("organization", "name");
@@ -82,7 +47,7 @@ router.get("/resources", auth, async (req, res) => {
   }
 });
 
-// ================= GET VOLUNTEERS =================
+// ================= GET VOLUNTEERS (Legacy/Shared) =================
 router.get("/volunteers", auth, async (req, res) => {
   try {
     const volunteers = await User.find({ role: "volunteer" }).select("name email status");
@@ -92,8 +57,5 @@ router.get("/volunteers", auth, async (req, res) => {
     res.status(500).json({ message: "Failed to fetch volunteers" });
   }
 });
-
-// ================= VOLUNTEER MANAGEMENT (COORDINATOR) =================
-router.get("/volunteer-management", auth, require("../controllers/volunteerController").getOrgVolunteers);
 
 module.exports = router;

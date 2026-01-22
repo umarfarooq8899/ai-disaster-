@@ -150,16 +150,48 @@ exports.getDashboardStats = async (req, res) => {
 };
 
 // Get volunteers for a specific organization (Coordinator View)
+// Get volunteers for a specific organization (Coordinator View)
 exports.getOrgVolunteers = async (req, res) => {
   try {
     const orgId = req.user.organization;
+    console.log("DEBUG: getOrgVolunteers called by:", req.user._id, "Org:", orgId);
+
     if (!orgId) return res.status(400).json({ message: "Only organization coordinators can manage volunteers" });
 
+    // 1. Get fully registered volunteers
     const volunteers = await Volunteer.find({ organization: orgId })
       .populate("user", "name email status")
-      .populate("currentTask", "title status");
+      .populate("currentTask", "title status")
+      .lean();
 
-    res.json(volunteers);
+    console.log("DEBUG: found full volunteers:", volunteers.length);
+
+    // 2. Get users who signed up but didn't complete profile
+    // Find users with role 'volunteer' and this org, excluding those who are already in the volunteers list
+    // Fixed: Handle case where v.user is null (though unlikely in prod)
+    const registeredUserIds = volunteers.map(v => v.user ? v.user._id.toString() : null).filter(id => id);
+
+    console.log("DEBUG: registered IDs:", registeredUserIds);
+
+    const incompleteUsers = await User.find({
+      organization: orgId,
+      role: "volunteer",
+      _id: { $nin: registeredUserIds }
+    }).select("name email status").lean();
+
+    // 3. Format incomplete users to match volunteer structure
+    const pendingVolunteers = incompleteUsers.map(user => ({
+      _id: "pending_" + user._id, // Temporary ID
+      user: user,
+      phone: "N/A",
+      city: "N/A",
+      skills: [],
+      available: false,
+      currentTask: null,
+      isProfileIncomplete: true
+    }));
+
+    res.json([...volunteers, ...pendingVolunteers]);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Failed to fetch organization volunteers" });
@@ -216,5 +248,45 @@ exports.autoAssignVolunteers = async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Auto-assignment failed" });
+  }
+};
+
+// Get Missions Assigned to Volunteer
+exports.getMyMissions = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const missions = await Mission.find({ assignedVolunteers: userId })
+      .populate("disaster", "title location latitude longitude severity")
+      .populate("organization", "name")
+      .sort({ createdAt: -1 });
+
+    res.json(missions);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Mark Mission as Complete (Volunteer)
+exports.completeMission = async (req, res) => {
+  const { missionId } = req.params;
+  const userId = req.user.id;
+
+  try {
+    const mission = await Mission.findById(missionId);
+    if (!mission) return res.status(404).json({ message: "Mission not found" });
+
+    // Verify volunteer is assigned to this mission
+    if (!mission.assignedVolunteers.includes(userId)) {
+      return res.status(403).json({ message: "Not authorized" });
+    }
+
+    // Mark as completed
+    mission.status = "completed";
+    await mission.save();
+
+    res.json({ message: "Mission marked as complete", mission });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 };

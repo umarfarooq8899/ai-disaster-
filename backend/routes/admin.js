@@ -93,4 +93,43 @@ router.delete("/alerts/:id", auth, adminOnly, async (req, res) => {
   }
 });
 
+// ================== ASSIGNMENT DETAILS ROUTES ==================
+
+// Get missions by disaster ID (admin only)
+router.get("/missions", auth, adminOnly, async (req, res) => {
+  try {
+    const Mission = require("../models/Mission");
+    const { disaster } = req.query;
+
+    const query = disaster ? { disaster } : {};
+    const missions = await Mission.find(query)
+      .populate("organization", "name")
+      .populate("assignedVolunteers", "name email")
+      .sort({ createdAt: -1 });
+
+    res.json(missions);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server Error" });
+  }
+});
+
+// Get aid assignments by disaster ID (admin only)
+router.get("/aid-assignments", auth, adminOnly, async (req, res) => {
+  try {
+    const AidAssignment = require("../models/AidAssignment");
+    const { disaster } = req.query;
+
+    const query = disaster ? { disaster } : {};
+    const assignments = await AidAssignment.find(query)
+      .populate("ngo", "name")
+      .sort({ createdAt: -1 });
+
+    res.json(assignments);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server Error" });
+  }
+});
+
 module.exports = router;

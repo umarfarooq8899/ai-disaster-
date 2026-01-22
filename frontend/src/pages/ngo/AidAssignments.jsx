@@ -1,12 +1,19 @@
 import React, { useState, useEffect } from "react";
 import axios from "../../api/axios";
-import { HeartHandshake, Package, User, CheckCircle, Clock, Plus } from "lucide-react";
-import { Link } from "react-router-dom";
+import { HeartHandshake, Package, User, Plus, Send, Calculator, X } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 
 export default function AidAssignments() {
     const [assignments, setAssignments] = useState([]);
     const [loading, setLoading] = useState(true);
+
+    // Update Modal State
+    const [selectedAssignment, setSelectedAssignment] = useState(null);
+    const [logForm, setLogForm] = useState({
+        updateType: "food",
+        description: "",
+        metricValue: 0
+    });
 
     const fetchAssignments = async () => {
         try {
@@ -23,13 +30,21 @@ export default function AidAssignments() {
         fetchAssignments();
     }, []);
 
-    const handleStatusUpdate = async (id) => {
+    const handleLogSubmit = async () => {
         try {
-            await axios.patch(`/ngo/assignments/${id}/status`);
-            toast.success("Status updated to Distributed");
-            fetchAssignments();
+            const payload = {
+                assignmentId: selectedAssignment._id,
+                updateType: logForm.updateType,
+                description: logForm.description,
+                metrics: logForm.metricValue > 0 ? { count: logForm.metricValue } : {}
+            };
+
+            await axios.post("/ngo/updates", payload);
+            toast.success("Status update posted successfully");
+            setSelectedAssignment(null);
+            setLogForm({ updateType: "food", description: "", metricValue: 0 });
         } catch (err) {
-            toast.error("Failed to update status");
+            toast.error("Failed to post update");
         }
     };
 
@@ -41,13 +56,6 @@ export default function AidAssignments() {
                     <h1 className="text-2xl font-bold text-gray-800">Aid Assignments</h1>
                     <p className="text-gray-500 text-sm">Track relief distribution and ground team deployments</p>
                 </div>
-                <Link
-                    to="/dashboard/ngo/assignments/new"
-                    className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition shadow-sm"
-                >
-                    <Plus className="w-5 h-5" />
-                    New Deployment
-                </Link>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -78,7 +86,7 @@ export default function AidAssignments() {
                                     <ul className="space-y-2">
                                         {ass.items.map((item, idx) => (
                                             <li key={idx} className="text-sm text-gray-700 flex justify-between">
-                                                <span>{item.resource?.name || "Deleted Resource"}</span>
+                                                <span>{item.resource?.name || "Resource"}</span>
                                                 <span className="font-bold">x {item.quantity}</span>
                                             </li>
                                         ))}
@@ -99,20 +107,86 @@ export default function AidAssignments() {
                                 </div>
                             </div>
 
-                            {ass.status === "assigned" && (
-                                <div className="p-4 bg-gray-50 border-t border-gray-100 text-center">
-                                    <button
-                                        onClick={() => handleStatusUpdate(ass._id)}
-                                        className="text-blue-600 font-semibold text-sm hover:underline"
-                                    >
-                                        Mark as All Distributed
-                                    </button>
-                                </div>
-                            )}
+                            <div className="p-4 bg-gray-50 border-t border-gray-100">
+                                <button
+                                    onClick={() => setSelectedAssignment(ass)}
+                                    className="w-full bg-slate-900 text-white py-2 rounded-lg hover:bg-slate-800 transition flex items-center justify-center gap-2"
+                                >
+                                    <Send className="w-4 h-4" /> Post Update
+                                </button>
+                            </div>
                         </div>
                     ))
                 )}
             </div>
+
+            {/* STATUS UPDATE MODAL */}
+            {selectedAssignment && (
+                <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center backdrop-blur-sm">
+                    <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-2xl relative">
+                        <button
+                            onClick={() => setSelectedAssignment(null)}
+                            className="absolute top-3 right-3 text-gray-400 hover:text-gray-600"
+                        >
+                            <X className="w-5 h-5" />
+                        </button>
+
+                        <h2 className="text-xl font-bold mb-4">Post Detailed Update</h2>
+
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium mb-1">Update Type</label>
+                                <select
+                                    className="w-full border rounded p-2"
+                                    value={logForm.updateType}
+                                    onChange={(e) => setLogForm({ ...logForm, updateType: e.target.value })}
+                                >
+                                    <option value="food">Food Distribution</option>
+                                    <option value="medical">Medical Aid</option>
+                                    <option value="shelter">Shelter Setup</option>
+                                    <option value="logistics">Logistics</option>
+                                    <option value="other">General Update</option>
+                                </select>
+                            </div>
+
+                            {['food', 'medical', 'shelter'].includes(logForm.updateType) && (
+                                <div>
+                                    <label className="block text-sm font-medium mb-1 flex items-center gap-2">
+                                        <Calculator className="w-4 h-4" />
+                                        {logForm.updateType === 'food' ? 'Total Meals/Packets' :
+                                            logForm.updateType === 'medical' ? 'Patients Treated' : 'Shelters Built'}
+                                    </label>
+                                    <input
+                                        type="number"
+                                        className="w-full border rounded p-2"
+                                        value={logForm.metricValue}
+                                        onChange={(e) => setLogForm({ ...logForm, metricValue: parseInt(e.target.value) || 0 })}
+                                    />
+                                </div>
+                            )}
+
+                            <div>
+                                <label className="block text-sm font-medium mb-1">Description</label>
+                                <textarea
+                                    className="w-full border rounded p-2"
+                                    rows="3"
+                                    placeholder="Describe the activity..."
+                                    value={logForm.description}
+                                    onChange={(e) => setLogForm({ ...logForm, description: e.target.value })}
+                                />
+                            </div>
+
+                            <button
+                                onClick={handleLogSubmit}
+                                disabled={!logForm.description}
+                                className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                            >
+                                Submit Update
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

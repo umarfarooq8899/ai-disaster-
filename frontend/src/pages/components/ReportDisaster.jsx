@@ -2,7 +2,7 @@ import React, { useContext, useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
 import { createDisaster } from "../../api/disasters";
-import { FaImage } from "react-icons/fa";
+import { FaImage, FaVideo } from "react-icons/fa";
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from "react-leaflet";
 import L from "leaflet";
 import toast, { Toaster } from "react-hot-toast";
@@ -140,6 +140,7 @@ export default function ReportDisaster() {
     description: "",
     severity: "medium",
     image: null,
+    video: null,
   });
 
   const [location, setLocation] = useState(null);
@@ -206,6 +207,7 @@ export default function ReportDisaster() {
       data.append("longitude", location.lng);
       data.append("address", address);
       if (form.image) data.append("image", form.image);
+      if (form.video) data.append("video", form.video);
 
       await createDisaster(data);
 
@@ -217,6 +219,7 @@ export default function ReportDisaster() {
         description: "",
         severity: "medium",
         image: null,
+        video: null,
       });
       setLocation(null);
       setAddress("");
@@ -289,13 +292,24 @@ export default function ReportDisaster() {
           </select>
 
           <label className="flex items-center gap-3 cursor-pointer border rounded-lg px-4 py-2">
-            <FaImage />
-            {form.image ? form.image.name : "Upload image"}
+            <FaImage className="text-gray-500" />
+            <span className="text-gray-600 truncate">{form.image ? form.image.name : "Upload Image"}</span>
             <input
               type="file"
               hidden
               accept="image/*"
               onChange={handleFileChange}
+            />
+          </label>
+
+          <label className="flex items-center gap-3 cursor-pointer border rounded-lg px-4 py-2">
+            <FaVideo className="text-gray-500" />
+            <span className="text-gray-600 truncate">{form.video ? form.video.name : "Upload Video (Optional)"}</span>
+            <input
+              type="file"
+              hidden
+              accept="video/*"
+              onChange={(e) => setForm(s => ({ ...s, video: e.target.files[0] }))}
             />
           </label>
 

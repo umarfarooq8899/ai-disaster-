@@ -1,4 +1,5 @@
-import React, { useContext, useState } from "react";
+import React, { useContext, useState, useEffect } from "react";
+import axiosInstance from "../api/axios";
 import { Outlet } from "react-router-dom";
 import Sidebar from "../components/ui/Sidebar";
 import Navbar from "../components/ui/Navbar";
@@ -9,6 +10,31 @@ export default function DashboardLayout() {
   const { user } = useContext(AuthContext);
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [isAvailable, setIsAvailable] = useState(false);
+
+  useEffect(() => {
+    if (user?.role === "volunteer") {
+      axiosInstance.get("/volunteer/stats")
+        .then(res => setIsAvailable(res.data.isAvailable))
+        .catch(err => console.error("Failed to fetch availability", err));
+    }
+  }, [user]);
+
+  const toggleAvailability = async () => {
+    try {
+      const newStatus = !isAvailable;
+      setIsAvailable(newStatus); // Optimistic
+      const res = await axiosInstance.patch("/volunteer/availability");
+      if (res.data.success) {
+        setIsAvailable(res.data.available);
+      } else {
+        setIsAvailable(!newStatus); // Revert
+      }
+    } catch (err) {
+      setIsAvailable(!isAvailable); // Revert
+      console.error("Failed to toggle availability", err);
+    }
+  };
 
   return (
     <div className="flex min-h-screen bg-blue-white">
@@ -36,11 +62,31 @@ export default function DashboardLayout() {
                 <Menu className="w-5 h-5" />
               </button>
 
-              <div className="text-sm text-slate-600">
-                Logged in as <span className="font-bold text-slate-900">{user?.name || "User"}</span>
-                <span className="ml-2 px-2 py-0.5 rounded-full bg-brand-50 text-brand-700 text-[10px] font-bold uppercase tracking-wider border border-brand-100">
-                  {user?.role?.replace("_", " ")}
-                </span>
+              <div className="text-sm text-slate-600 flex items-center gap-4">
+                <div>
+                  Logged in as <span className="font-bold text-slate-900">{user?.name || "User"}</span>
+                  <span className="ml-2 px-2 py-0.5 rounded-full bg-brand-50 text-brand-700 text-[10px] font-bold uppercase tracking-wider border border-brand-100">
+                    {user?.role?.replace("_", " ")}
+                  </span>
+                </div>
+
+                {user?.role === "volunteer" && (
+                  <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-full border border-gray-200 shadow-sm">
+                    <span className={`text-xs font-bold ${isAvailable ? "text-green-600" : "text-gray-500"}`}>
+                      {isAvailable ? "Active" : "Busy"}
+                    </span>
+                    <button
+                      onClick={toggleAvailability}
+                      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 ${isAvailable ? 'bg-green-500' : 'bg-gray-300'
+                        }`}
+                    >
+                      <span
+                        className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${isAvailable ? 'translate-x-5' : 'translate-x-1'
+                          }`}
+                      />
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
 

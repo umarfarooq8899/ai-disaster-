@@ -11,4 +11,8 @@ const alertSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// Indexes
+alertSchema.index({ status: 1 });
+alertSchema.index({ type: 1 });
+
 module.exports = mongoose.model("Alert", alertSchema);

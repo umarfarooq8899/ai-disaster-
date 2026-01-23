@@ -17,9 +17,17 @@ app.use(
     credentials: true,
   })
 );
+const compression = require("compression");
+app.use(compression()); // Enable gzip compression
+
 app.use(express.json());
 app.use(morgan("dev"));
-app.use("/uploads", express.static("uploads"));
+app.use("/uploads", express.static("uploads", {
+  maxAge: "1d", // Cache static assets for 1 day
+  setHeaders: (res, path) => {
+    res.setHeader("Cache-Control", "public, max-age=86400");
+  }
+}));
 
 // ================= DATABASE =================
 const DB_URI = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/ai-disaster";

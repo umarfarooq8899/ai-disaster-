@@ -5,11 +5,15 @@ const {
   changeRole,
   changeStatus,
   deleteUser,
+  updateMyProfile,
+  updateMyPassword,
 } = require("../controllers/userController");
 const { protect: auth } = require("../middleware/auth");
 const adminOnly = require("../middleware/adminOnly");
 
 // ROUTES
+router.patch("/me", auth, updateMyProfile);
+router.patch("/me/password", auth, updateMyPassword);
 router.get("/", auth, adminOnly, getAllUsers);
 router.patch("/:id/role", auth, adminOnly, changeRole);
 router.patch("/:id/status", auth, adminOnly, changeStatus);

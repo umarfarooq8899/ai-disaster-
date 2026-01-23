@@ -12,7 +12,7 @@ import {
 export default function MyReports() {
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedImage, setSelectedImage] = useState(null);
+  const [selectedReport, setSelectedReport] = useState(null);
 
   useEffect(() => {
     getAllDisasters()
@@ -62,21 +62,33 @@ export default function MyReports() {
             key={r._id || r.id}
             className="group bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-all duration-300 flex flex-col"
           >
-            {/* Image Section */}
+            {/* Media Section */}
             <div
-              className={`relative h-48 bg-gray-100 overflow-hidden ${r.image ? "cursor-pointer" : ""}`}
-              onClick={() => r.image && setSelectedImage(`/${r.image}`)}
+              className={`relative h-48 bg-gray-100 overflow-hidden cursor-pointer`}
+              onClick={() => setSelectedReport(r)}
             >
-              {r.image ? (
+              {r.video ? (
+                <video
+                  src={`http://localhost:5000/${r.video}`}
+                  className="w-full h-full object-cover"
+                  controls={false}
+                  muted
+                  onMouseOver={(e) => e.target.play()}
+                  onMouseOut={(e) => {
+                    e.target.pause();
+                    e.target.currentTime = 0;
+                  }}
+                />
+              ) : r.image ? (
                 <img
-                  src={`/${r.image}`}
+                  src={`http://localhost:5000/${r.image}`}
                   alt={r.title}
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                 />
               ) : (
                 <div className="w-full h-full flex flex-col items-center justify-center text-gray-400 bg-gray-50">
                   <FaImage className="text-4xl mb-2" />
-                  <span className="text-xs">No image provided</span>
+                  <span className="text-xs">No media provided</span>
                 </div>
               )}
 
@@ -148,7 +160,10 @@ export default function MyReports() {
                     })}
                   </div>
 
-                  <button className="text-[11px] font-bold text-blue-600 hover:text-blue-700 transition">
+                  <button
+                    onClick={() => setSelectedReport(r)}
+                    className="text-[11px] font-bold text-blue-600 hover:text-blue-700 transition"
+                  >
                     VIEW DETAILS
                   </button>
                 </div>
@@ -158,27 +173,103 @@ export default function MyReports() {
         ))}
       </div>
 
-      {/* Image Preview Modal */}
-      {selectedImage && (
+      {/* Disaster Detail Modal */}
+      {selectedReport && (
         <div
           className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/90 backdrop-blur-sm p-4 animate-fadeIn"
-          onClick={() => setSelectedImage(null)}
+          onClick={() => setSelectedReport(null)}
         >
           <div
-            className="relative max-w-5xl w-full max-h-[90vh] flex items-center justify-center animate-zoomIn"
+            className="bg-white rounded-3xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col shadow-2xl animate-modal"
             onClick={(e) => e.stopPropagation()}
           >
-            <img
-              src={selectedImage}
-              alt="Full View"
-              className="max-h-[90vh] max-w-full object-contain rounded-lg shadow-2xl"
-            />
-            <button
-              className="absolute -top-12 right-0 md:-right-12 text-white text-2xl hover:text-blue-400 transition-colors p-2"
-              onClick={() => setSelectedImage(null)}
-            >
-              <FaTimes />
-            </button>
+            {/* Modal Media */}
+            <div className="relative h-64 md:h-96 bg-gray-900 flex items-center justify-center">
+              {selectedReport.video ? (
+                <video
+                  src={`http://localhost:5000/${selectedReport.video}`}
+                  className="w-full h-full object-contain"
+                  controls
+                  autoPlay
+                />
+              ) : selectedReport.image ? (
+                <img
+                  src={`http://localhost:5000/${selectedReport.image}`}
+                  alt={selectedReport.title}
+                  className="w-full h-full object-contain"
+                />
+              ) : (
+                <div className="text-gray-500 flex flex-col items-center">
+                  <FaImage className="text-4xl mb-2" />
+                  <span>No media available</span>
+                </div>
+              )}
+              <button
+                className="absolute top-4 right-4 bg-white/20 hover:bg-white/40 backdrop-blur-md text-white p-2 rounded-full transition-colors z-10"
+                onClick={() => setSelectedReport(null)}
+              >
+                <FaTimes />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-8 overflow-y-auto">
+              <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+                <div>
+                  <h2 className="text-3xl font-extrabold text-gray-900 capitalize leading-tight">
+                    {selectedReport.title || "Untitled Report"}
+                  </h2>
+                  <div className="flex items-center gap-4 mt-2">
+                    <div className="flex items-center gap-1.5 text-gray-500 text-sm">
+                      <FaMapMarkerAlt className="text-blue-500" />
+                      {selectedReport.location || "Unknown location"}
+                    </div>
+                    <div className="flex items-center gap-1.5 text-gray-500 text-sm">
+                      <FaClock />
+                      {new Date(selectedReport.createdAt).toLocaleString()}
+                    </div>
+                  </div>
+                </div>
+                <div
+                  className={`px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest shadow-md text-white
+                    ${selectedReport.severity === "high"
+                      ? "bg-red-500"
+                      : selectedReport.severity === "medium"
+                        ? "bg-yellow-500"
+                        : "bg-green-500"
+                    }
+                  `}
+                >
+                  {selectedReport.severity || "low"} Severity
+                </div>
+              </div>
+
+              <div className="prose prose-slate max-w-none">
+                <h4 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-2">Description</h4>
+                <p className="text-gray-700 leading-relaxed text-lg whitespace-pre-wrap">
+                  {selectedReport.description || "No description provided"}
+                </p>
+              </div>
+
+              <div className="mt-8 pt-6 border-t border-gray-100 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 font-bold border border-blue-100">
+                    <FaClipboardList />
+                  </div>
+                  <div>
+                    <p className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Current Status</p>
+                    <p className="text-sm font-extrabold capitalize text-blue-600">{selectedReport.status || "pending"}</p>
+                  </div>
+                </div>
+
+                {selectedReport.latitude && selectedReport.longitude && (
+                  <div className="text-[10px] text-gray-400 font-mono text-right">
+                    <p>LAT: {selectedReport.latitude.toFixed(6)}</p>
+                    <p>LNG: {selectedReport.longitude.toFixed(6)}</p>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       )}

@@ -15,4 +15,9 @@ const missionSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// Indexes
+missionSchema.index({ organization: 1, status: 1 });
+missionSchema.index({ disaster: 1 });
+missionSchema.index({ status: 1 });
+
 module.exports = mongoose.model("Mission", missionSchema);

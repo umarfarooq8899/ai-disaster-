@@ -290,3 +290,18 @@ exports.completeMission = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// Toggle Availability
+exports.toggleAvailability = async (req, res) => {
+  try {
+    const volunteer = await Volunteer.findOne({ user: req.user.id });
+    if (!volunteer) return res.status(404).json({ message: "Volunteer profile not found" });
+
+    volunteer.available = !volunteer.available;
+    await volunteer.save();
+
+    res.json({ success: true, available: volunteer.available, message: `Availability status updated to ${volunteer.available ? 'Active' : 'Busy'}` });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};

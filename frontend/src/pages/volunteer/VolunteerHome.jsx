@@ -48,15 +48,7 @@ export default function VolunteerHome() {
           </Link>
         </div>
 
-        <div className="bg-white p-4 rounded-xl shadow hover:shadow-lg transition">
-          <h3 className="text-lg font-semibold mb-2">Availability Status</h3>
-          <p className={`text-3xl font-bold ${stats.isAvailable ? "text-green-600" : "text-gray-500"}`}>
-            {stats.isAvailable ? "Active" : "Busy"}
-          </p>
-          <Link to="/dashboard/volunteer/profile" className="text-sm text-blue-600 hover:underline mt-2 block">
-            Update Profile
-          </Link>
-        </div>
+        {/* Removed Availability Toggle Card as it's now in the header */}
       </div>
     </div>
   );

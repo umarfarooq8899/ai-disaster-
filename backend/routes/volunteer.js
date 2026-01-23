@@ -28,4 +28,7 @@ router.get("/stats", auth, require("../controllers/volunteerController").getDash
 // Admin: Auto-assign volunteers
 router.post("/admin/auto-assign", auth, require("../controllers/volunteerController").autoAssignVolunteers);
 
+// Toggle Availability
+router.patch("/availability", auth, require("../controllers/volunteerController").toggleAvailability);
+
 module.exports = router;

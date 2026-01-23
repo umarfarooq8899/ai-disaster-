@@ -12,4 +12,8 @@ const volunteerSchema = new mongoose.Schema({
   currentTask: { type: mongoose.Schema.Types.ObjectId, ref: "Mission", default: null },
 });
 
+// Indexes
+volunteerSchema.index({ organization: 1, available: 1 });
+volunteerSchema.index({ user: 1 });
+
 module.exports = mongoose.models.Volunteer || mongoose.model("Volunteer", volunteerSchema);

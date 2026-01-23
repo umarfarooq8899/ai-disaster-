@@ -38,6 +38,44 @@ exports.changeStatus = async (req, res) => {
   }
 };
 
+// Update logged-in user profile
+exports.updateMyProfile = async (req, res) => {
+  try {
+    const { name, email } = req.body;
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    if (name) user.name = name;
+    if (email) user.email = email;
+
+    await user.save();
+    res.json({ message: "Profile updated successfully", user: { id: user._id, name: user.name, email: user.email, role: user.role } });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Update logged-in user password
+exports.updateMyPassword = async (req, res) => {
+  try {
+    const { oldPassword, newPassword } = req.body;
+    const user = await User.findById(req.user.id).select("+password");
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    // Verify old password
+    const isMatch = await user.matchPassword(oldPassword);
+    if (!isMatch) {
+      return res.status(400).json({ message: "Invalid old password" });
+    }
+
+    user.password = newPassword;
+    await user.save();
+    res.json({ message: "Password updated successfully" });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
 // Delete user (admin only)
 exports.deleteUser = async (req, res) => {
   try {

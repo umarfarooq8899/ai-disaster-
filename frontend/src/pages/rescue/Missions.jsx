@@ -26,7 +26,9 @@ export default function Missions() {
   const fetchMissions = async () => {
     try {
       const res = await axios.get("/rescue/missions");
-      setMissions(res.data);
+      // Only show ongoing or pending missions in active dashboard
+      const activeMissions = res.data.filter(m => m.status !== "completed");
+      setMissions(activeMissions);
     } catch (err) {
       console.error("Failed to fetch missions", err);
     } finally {
@@ -64,17 +66,7 @@ export default function Missions() {
     }
   };
 
-  const handleMarkComplete = async (missionId) => {
-    try {
-      await axios.patch(`/rescue/missions/${missionId}/status`, {
-        status: "completed"
-      });
-      toast.success("Mission marked as complete");
-      fetchMissions();
-    } catch (err) {
-      toast.error("Failed to update mission status");
-    }
-  };
+
 
   const handleLogSubmit = async () => {
     try {
@@ -164,14 +156,7 @@ export default function Missions() {
                   </button>
                 )}
 
-                {mission.status === "ongoing" && (
-                  <button
-                    onClick={() => handleMarkComplete(mission._id)}
-                    className="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition flex items-center justify-center gap-2"
-                  >
-                    <CheckCircle className="w-4 h-4" /> Mark Complete
-                  </button>
-                )}
+                {/* REMOVED: Mark Complete button is for volunteers only */}
 
                 <button
                   onClick={() => setSelectedMission(mission)}

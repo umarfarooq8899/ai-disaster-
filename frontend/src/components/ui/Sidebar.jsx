@@ -90,6 +90,7 @@ export default function Sidebar({ role = "general", collapsed, mobileOpen, setMo
               </div>
               <NavItem to="/dashboard/volunteer" exact onClick={() => setMobileOpen(false)}>Overview</NavItem>
               <NavItem to="/dashboard/volunteer/tasks" onClick={() => setMobileOpen(false)}>Tasks</NavItem>
+              <NavItem to="/dashboard/volunteer/history" onClick={() => setMobileOpen(false)}>History</NavItem>
               <NavItem to="/dashboard/volunteer/nearby" onClick={() => setMobileOpen(false)}>Nearby Reports</NavItem>
             </>
           )}
@@ -122,6 +123,7 @@ export default function Sidebar({ role = "general", collapsed, mobileOpen, setMo
               <NavItem to="/dashboard/rescue" exact onClick={() => setMobileOpen(false)}>Home</NavItem>
               <NavItem to="/dashboard/rescue/dashboard" onClick={() => setMobileOpen(false)}>Dashboard</NavItem>
               <NavItem to="/dashboard/rescue/missions" exact onClick={() => setMobileOpen(false)}>Missions</NavItem>
+              <NavItem to="/dashboard/rescue/history" onClick={() => setMobileOpen(false)}>History</NavItem>
               <NavItem to="/dashboard/rescue/missions/new" onClick={() => setMobileOpen(false)}>
                 Create Mission
               </NavItem>

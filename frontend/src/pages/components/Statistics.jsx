@@ -121,11 +121,27 @@ export default function Statistics() {
             color="bg-red-50 text-red-600 border-red-100"
             size="small"
           />
+
+          {/* Mission Statistics Row */}
           <StatCard
-            title="Resolved Cases"
-            value={stats.totalDisasters - stats.activeDisasters}
+            title="Completed Missions"
+            value={stats.totalCompletedMissions || 0}
             icon={<CheckCircle2 className="w-6 h-6" />}
-            color="bg-teal-50 text-teal-600 border-teal-100"
+            color="bg-purple-50 text-purple-600 border-purple-100"
+            size="small"
+          />
+          <StatCard
+            title="Aid Distributed"
+            value={stats.totalDistributedAid || 0}
+            icon={<Activity className="w-6 h-6" />}
+            color="bg-green-50 text-green-600 border-green-100"
+            size="small"
+          />
+          <StatCard
+            title="Total Missions"
+            value={stats.totalMissions || 0}
+            icon={<Activity className="w-6 h-6" />}
+            color="bg-blue-50 text-blue-600 border-blue-100"
             size="small"
           />
 

@@ -15,6 +15,7 @@ router.use(protect);
 router.use(ngoOnly);
 
 router.get("/stats", getDashboardStats);
+router.get("/activity", require("../controllers/ngoController").getRecentActivity);
 router.get("/resources", getResources);
 router.post("/resources", upsertResource);
 router.get("/assignments", getAidAssignments);
@@ -22,5 +23,6 @@ router.get("/volunteers", require("../controllers/volunteerController").getOrgVo
 router.post("/assignments", createAidAssignment);
 router.patch("/assignments/:id/status", updateAidStatus);
 router.post("/updates", require("../controllers/ngoController").postStatusUpdate);
+router.get("/assignment-history", require("../controllers/ngoController").getAidHistory);
 
 module.exports = router;

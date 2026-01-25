@@ -6,6 +6,7 @@ import {
   Popup,
   ZoomControl,
 } from "react-leaflet";
+import { MapPin } from "lucide-react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -95,6 +96,16 @@ export default function MapView({ disasters = [], showPin = false }) {
                       "{d.description}"
                     </p>
                   )}
+                  <div className="pt-2 border-t mt-2">
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${d.latitude},${d.longitude}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:text-blue-800 text-xs font-semibold flex items-center gap-1 no-underline"
+                    >
+                      <MapPin className="w-3 h-3" /> Open in Google Maps
+                    </a>
+                  </div>
                 </div>
               </Popup>
             </Marker>

@@ -66,26 +66,20 @@ export default function Missions() {
     }
   };
 
-
-
-  const handleLogSubmit = async () => {
+  const handleAutoAssign = async () => {
+    const loadingToast = toast.loading("Auto-assigning volunteers...");
     try {
-      const payload = {
-        missionId: selectedMission._id,
-        updateType: logForm.updateType,
-        description: logForm.description,
-        metrics: logForm.metricValue > 0 ? { count: logForm.metricValue } : {},
-        images: logForm.imageUrl ? [logForm.imageUrl] : []
-      };
-
-      await axios.post("/rescue/updates", payload);
-      toast.success("Status update posted successfully");
-      setSelectedMission(null);
-      setLogForm({ updateType: "rescued", description: "", metricValue: 0, imageUrl: "" });
+      const res = await axios.post("/volunteer/admin/auto-assign");
+      toast.success(res.data.message, { id: loadingToast });
+      fetchMissions();
     } catch (err) {
-      toast.error("Failed to post update");
+      toast.error(err.response?.data?.message || "Auto-assignment failed", { id: loadingToast });
     }
   };
+
+
+
+  // REMOVED: handleLogSubmit as it's now for volunteers only
 
   if (loading)
     return (
@@ -101,7 +95,16 @@ export default function Missions() {
 
   return (
     <div className="p-8 bg-gray-50 min-h-screen">
-      <h1 className="text-2xl font-bold mb-6 text-gray-800">Missions</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold text-gray-800">Missions</h1>
+        <button
+          onClick={handleAutoAssign}
+          className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-700 text-white px-4 py-2 rounded-lg hover:from-blue-700 hover:to-indigo-800 transition shadow-md"
+        >
+          <Calculator className="w-5 h-5" />
+          Auto Assign
+        </button>
+      </div>
 
       {missions.length === 0 ? (
         <p className="text-gray-600">No missions found.</p>
@@ -157,84 +160,14 @@ export default function Missions() {
                 )}
 
                 {/* REMOVED: Mark Complete button is for volunteers only */}
-
-                <button
-                  onClick={() => setSelectedMission(mission)}
-                  className="w-full bg-slate-900 text-white py-2 rounded-lg hover:bg-slate-800 transition flex items-center justify-center gap-2"
-                >
-                  <Send className="w-4 h-4" /> Update Status
-                </button>
+                {/* REMOVED: Update Status button is for volunteers only */}
               </div>
             </div>
           ))}
         </div>
       )}
 
-      {/* STATUS UPDATE MODAL */}
-      {selectedMission && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center backdrop-blur-sm">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-2xl relative">
-            <button
-              onClick={() => setSelectedMission(null)}
-              className="absolute top-3 right-3 text-gray-400 hover:text-gray-600"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            <h2 className="text-xl font-bold mb-4">Update Mission Status</h2>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Update Type</label>
-                <select
-                  className="w-full border rounded p-2"
-                  value={logForm.updateType}
-                  onChange={(e) => setLogForm({ ...logForm, updateType: e.target.value })}
-                >
-                  <option value="rescued">People Rescued</option>
-                  <option value="cleared">Area Cleared</option>
-                  <option value="logistics">Logistics Update</option>
-                  <option value="other">General Update</option>
-                </select>
-              </div>
-
-              {['rescued', 'cleared'].includes(logForm.updateType) && (
-                <div>
-                  <label className="block text-sm font-medium mb-1 flex items-center gap-2">
-                    <Calculator className="w-4 h-4" />
-                    {logForm.updateType === 'rescued' ? 'Count (People)' : 'Area Size (sq meters)'}
-                  </label>
-                  <input
-                    type="number"
-                    className="w-full border rounded p-2"
-                    value={logForm.metricValue}
-                    onChange={(e) => setLogForm({ ...logForm, metricValue: parseInt(e.target.value) || 0 })}
-                  />
-                </div>
-              )}
-
-              <div>
-                <label className="block text-sm font-medium mb-1">Description</label>
-                <textarea
-                  className="w-full border rounded p-2"
-                  rows="3"
-                  placeholder="Describe the situation..."
-                  value={logForm.description}
-                  onChange={(e) => setLogForm({ ...logForm, description: e.target.value })}
-                />
-              </div>
-
-              <button
-                onClick={handleLogSubmit}
-                disabled={!logForm.description}
-                className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
-              >
-                Post Update
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* REMOVED: STATUS UPDATE MODAL (Now in Volunteer Tasks) */}
 
       {/* VOLUNTEER ASSIGNMENT MODAL */}
       {assignModal && (

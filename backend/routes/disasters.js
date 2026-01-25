@@ -72,27 +72,40 @@ router.get("/admin/all", auth, adminOnly, async (req, res) => {
       .sort({ createdAt: -1 })
       .lean();
 
-    // Get assignment counts for each disaster
+    // Get assignment details for each disaster
     const disasterIds = disasters.map(d => d._id);
 
-    const missionCounts = await Mission.aggregate([
-      { $match: { disaster: { $in: disasterIds } } },
-      { $group: { _id: "$disaster", count: { $sum: 1 } } }
-    ]);
+    const rescueAssignments = await Mission.find({ disaster: { $in: disasterIds } })
+      .populate("organization", "name")
+      .select("disaster organization")
+      .lean();
 
-    const aidCounts = await AidAssignment.aggregate([
-      { $match: { disaster: { $in: disasterIds } } },
-      { $group: { _id: "$disaster", count: { $sum: 1 } } }
-    ]);
+    const ngoAssignments = await AidAssignment.find({ disaster: { $in: disasterIds } })
+      .populate("ngo", "name")
+      .select("disaster ngo")
+      .lean();
 
-    // Map counts to disasters
-    const missionMap = Object.fromEntries(missionCounts.map(m => [m._id.toString(), m.count]));
-    const aidMap = Object.fromEntries(aidCounts.map(a => [a._id.toString(), a.count]));
+    // Map organization names to disasters
+    const rescueMap = {};
+    rescueAssignments.forEach(m => {
+      const dId = m.disaster.toString();
+      if (!rescueMap[dId]) rescueMap[dId] = [];
+      if (m.organization) rescueMap[dId].push(m.organization.name);
+    });
+
+    const ngoMap = {};
+    ngoAssignments.forEach(a => {
+      const dId = a.disaster.toString();
+      if (!ngoMap[dId]) ngoMap[dId] = [];
+      if (a.ngo) ngoMap[dId].push(a.ngo.name);
+    });
 
     const enrichedDisasters = disasters.map(d => ({
       ...d,
-      rescueMissions: missionMap[d._id.toString()] || 0,
-      ngoAssignments: aidMap[d._id.toString()] || 0
+      rescueMissions: rescueMap[d._id.toString()]?.length || 0,
+      ngoAssignments: ngoMap[d._id.toString()]?.length || 0,
+      assignedRescueOrgs: rescueMap[d._id.toString()] || [],
+      assignedNgoOrgs: ngoMap[d._id.toString()] || []
     }));
 
     res.json(enrichedDisasters);

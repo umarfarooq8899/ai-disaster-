@@ -132,4 +132,43 @@ router.get("/aid-assignments", auth, adminOnly, async (req, res) => {
   }
 });
 
+// ================== MISSION HISTORY ROUTES ==================
+
+// Get all completed rescue missions (admin only)
+router.get("/mission-history", auth, adminOnly, async (req, res) => {
+  try {
+    const Mission = require("../models/Mission");
+
+    const missions = await Mission.find({ status: "completed" })
+      .populate("organization", "name")
+      .populate("disaster", "title location severity")
+      .populate("assignedVolunteers", "name email")
+      .sort({ updatedAt: -1 });
+
+    res.json(missions);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server Error" });
+  }
+});
+
+// Get all distributed aid assignments (admin only)
+router.get("/aid-history", auth, adminOnly, async (req, res) => {
+  try {
+    const AidAssignment = require("../models/AidAssignment");
+
+    const aidHistory = await AidAssignment.find({ status: "distributed" })
+      .populate("ngo", "name")
+      .populate("disaster", "title location severity")
+      .populate("volunteers", "name email")
+      .populate("items.resource", "name category")
+      .sort({ updatedAt: -1 });
+
+    res.json(aidHistory);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server Error" });
+  }
+});
+
 module.exports = router;

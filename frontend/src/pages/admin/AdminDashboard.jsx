@@ -8,6 +8,7 @@ import {
   AlertTriangle,
   Activity,
   Bell,
+  Package,
   TrendingUp,
   TrendingDown,
 } from "lucide-react";
@@ -122,10 +123,15 @@ export default function AdminDashboard() {
           />
           <StatCard
             icon={ShieldCheck}
-            label="Resolved Disasters"
-            value={stats.resolvedDisasters}
+            label="Completed Missions"
+            value={stats.totalCompletedMissions || 0}
             color="teal"
-            trend="up"
+          />
+          <StatCard
+            icon={Package}
+            label="Aid Distributed"
+            value={stats.totalDistributedAid || 0}
+            color="green"
           />
           <StatCard
             icon={Bell}

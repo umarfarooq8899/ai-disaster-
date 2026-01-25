@@ -16,16 +16,41 @@ exports.getDashboardStats = async (req, res) => {
         });
 
         const resources = await Resource.find({ organization: orgId });
-        const totalItems = resources.reduce((acc, curr) => acc + curr.quantity, 0);
+        const totalItemsInStock = resources.reduce((acc, curr) => acc + curr.quantity, 0);
+
+        const totalDistributed = await AidAssignment.countDocuments({
+            ngo: orgId,
+            status: "distributed"
+        });
 
         res.json({
             volunteers: volunteersCount,
             activeMissions,
-            resources: totalItems
+            resources: totalItemsInStock,
+            totalDistributed
         });
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: "Failed to fetch NGO stats" });
+    }
+};
+
+// Get Recent Activity for NGO
+exports.getRecentActivity = async (req, res) => {
+    try {
+        const StatusLog = require("../models/StatusLog");
+        const logs = await StatusLog.find({
+            organization: req.user.organization,
+            organizationType: "NgoOrganization"
+        })
+            .populate("disaster", "title")
+            .populate("aidAssignment", "items")
+            .sort({ createdAt: -1 })
+            .limit(10);
+
+        res.json(logs);
+    } catch (err) {
+        res.status(500).json({ message: "Failed to fetch activity logs" });
     }
 };
 
@@ -153,3 +178,23 @@ exports.postStatusUpdate = async (req, res) => {
         res.status(500).json({ message: "Failed to post status update" });
     }
 };
+
+// Get Aid Assignment History (Distributed only)
+exports.getAidHistory = async (req, res) => {
+    try {
+        const history = await AidAssignment.find({
+            ngo: req.user.organization,
+            status: "distributed"
+        })
+            .populate("disaster", "title location severity")
+            .populate("volunteers", "name email")
+            .populate("items.resource", "name category")
+            .sort({ updatedAt: -1 });
+
+        res.json(history);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Failed to fetch aid history" });
+    }
+};
+

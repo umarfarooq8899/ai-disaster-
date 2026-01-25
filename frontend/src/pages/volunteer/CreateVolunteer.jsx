@@ -50,6 +50,8 @@ export default function CreateVolunteer() {
     organization: "",
     skills: [],
     available: true,
+    latitude: null,
+    longitude: null,
   });
 
   const [error, setError] = useState("");
@@ -145,9 +147,27 @@ export default function CreateVolunteer() {
 
     setLoading(true);
 
+    let lat = form.latitude;
+    let lon = form.longitude;
+
+    // Try to get current location if not already set
+    if (!lat || !lon) {
+      try {
+        const position = await new Promise((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject);
+        });
+        lat = position.coords.latitude;
+        lon = position.coords.longitude;
+      } catch (err) {
+        console.warn("Geolocation denied or failed. Saving without coordinates.");
+      }
+    }
+
     const res = await createVolunteerProfile({
       ...form,
       skills: skills.map((s) => s.value),
+      latitude: lat,
+      longitude: lon,
     });
 
     setLoading(false);

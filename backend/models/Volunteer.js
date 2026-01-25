@@ -10,6 +10,8 @@ const volunteerSchema = new mongoose.Schema({
   skills: [{ type: String, enum: ["medical", "technical", "rescue", "logistics", "communication"], required: true }],
   available: { type: Boolean, default: false },
   currentTask: { type: mongoose.Schema.Types.ObjectId, ref: "Mission", default: null },
+  latitude: { type: Number },
+  longitude: { type: Number },
 });
 
 // Indexes

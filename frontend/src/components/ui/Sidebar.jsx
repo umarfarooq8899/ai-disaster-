@@ -111,6 +111,9 @@ export default function Sidebar({ role = "general", collapsed, mobileOpen, setMo
               <NavItem to="/dashboard/ngo/assignments" onClick={() => setMobileOpen(false)}>
                 Aid Assignments
               </NavItem>
+              <NavItem to="/dashboard/ngo/history" onClick={() => setMobileOpen(false)}>
+                Aid History
+              </NavItem>
             </>
           )}
 
@@ -151,6 +154,9 @@ export default function Sidebar({ role = "general", collapsed, mobileOpen, setMo
               </NavItem>
               <NavItem to="/dashboard/admin/alerts" onClick={() => setMobileOpen(false)}>
                 Manage Alerts
+              </NavItem>
+              <NavItem to="/dashboard/admin/mission-history" onClick={() => setMobileOpen(false)}>
+                Mission History
               </NavItem>
             </>
           )}

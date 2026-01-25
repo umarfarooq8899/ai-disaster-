@@ -96,47 +96,68 @@ export default function ManageResources() {
                 />
             </div>
 
-            {/* Table */}
-            <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-                <table className="w-full text-left">
-                    <thead className="bg-gray-50 border-b border-gray-100">
-                        <tr>
-                            <th className="px-6 py-4 text-sm font-semibold text-gray-600">Resource Name</th>
-                            <th className="px-6 py-4 text-sm font-semibold text-gray-600">Category</th>
-                            <th className="px-6 py-4 text-sm font-semibold text-gray-600 text-center">In Stock</th>
-                            <th className="px-6 py-4 text-sm font-semibold text-gray-600 text-right">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-50">
-                        {loading ? (
-                            <tr><td colSpan="4" className="px-6 py-12 text-center text-gray-400">Loading resources...</td></tr>
-                        ) : filteredResources.length === 0 ? (
-                            <tr><td colSpan="4" className="px-6 py-12 text-center text-gray-400">No resources found.</td></tr>
-                        ) : (
-                            filteredResources.map(res => (
-                                <tr key={res._id} className="hover:bg-gray-50/50 transition">
-                                    <td className="px-6 py-4 font-medium text-gray-800">{res.name}</td>
-                                    <td className="px-6 py-4 text-sm text-gray-500">
-                                        <span className="bg-blue-50 text-blue-600 px-2 py-1 rounded text-xs font-semibold">
-                                            {res.category}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4 text-sm text-center font-bold text-gray-700">
-                                        {res.quantity}
-                                    </td>
-                                    <td className="px-6 py-4 text-right">
+            {/* Inventory Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {loading ? (
+                    [...Array(8)].map((_, i) => (
+                        <div key={i} className="bg-white h-40 rounded-2xl border border-gray-100 animate-pulse" />
+                    ))
+                ) : filteredResources.length === 0 ? (
+                    <div className="col-span-full py-20 bg-white rounded-3xl border-2 border-dashed border-gray-100 flex flex-col items-center justify-center text-gray-400">
+                        <Package className="w-12 h-12 mb-4 opacity-20" />
+                        <p className="font-medium">Inventory is empty</p>
+                        <p className="text-xs">Add resources to start managing your supplies.</p>
+                    </div>
+                ) : (
+                    filteredResources.map(res => (
+                        <div key={res._id} className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden group">
+                            <div className="p-5">
+                                <div className="flex justify-between items-start mb-4">
+                                    <div className={`p-2.5 rounded-xl ${res.category === "Food" ? "bg-orange-50 text-orange-600" :
+                                            res.category === "Medicine" ? "bg-rose-50 text-rose-600" :
+                                                res.category === "Vehicle" ? "bg-blue-50 text-blue-600" :
+                                                    "bg-slate-50 text-slate-600"
+                                        }`}>
+                                        <Package className="w-5 h-5" />
+                                    </div>
+                                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                         <button
                                             onClick={() => handleEdit(res)}
-                                            className="text-gray-400 hover:text-blue-600 transition p-1"
+                                            className="p-1.5 rounded-lg bg-gray-50 text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
                                         >
-                                            <Edit2 className="w-5 h-5" />
+                                            <Edit2 className="w-4 h-4" />
                                         </button>
-                                    </td>
-                                </tr>
-                            ))
-                        )}
-                    </tbody>
-                </table>
+                                    </div>
+                                </div>
+
+                                <h3 className="font-bold text-gray-800 mb-1 truncate">{res.name}</h3>
+                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4">{res.category}</p>
+
+                                <div className="flex items-end justify-between">
+                                    <div className="flex flex-col">
+                                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">In Stock</span>
+                                        <span className={`text-2xl font-black ${res.quantity < 10 ? 'text-rose-600' : 'text-slate-800'}`}>
+                                            {res.quantity}
+                                        </span>
+                                    </div>
+                                    <div className="h-10 w-24 bg-slate-50 rounded-lg overflow-hidden relative border border-slate-100">
+                                        <div
+                                            className={`absolute bottom-0 left-0 w-full transition-all duration-1000 ${res.quantity < 10 ? 'bg-rose-500' : 'bg-emerald-500'
+                                                }`}
+                                            style={{ height: `${Math.min((res.quantity / 100) * 100, 100)}%` }}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {res.description && (
+                                <div className="px-5 py-3 bg-gray-50/50 border-t border-gray-50">
+                                    <p className="text-[10px] text-gray-500 italic line-clamp-1">{res.description}</p>
+                                </div>
+                            )}
+                        </div>
+                    ))
+                )}
             </div>
 
             {/* Modal */}

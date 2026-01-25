@@ -10,10 +10,12 @@ const DashboardLayout = lazy(() => import("../layouts/DashboardLayout"));
 
 // Admin pages
 const AdminDashboard = lazy(() => import("../pages/admin/AdminDashboard"));
+const AdminHome = lazy(() => import("../pages/admin/AdminHome"));
 const ManageUsers = lazy(() => import("../pages/admin/ManageUsers"));
 const ManageDisasters = lazy(() => import("../pages/admin/ManageDisasters"));
 const ManageAlerts = lazy(() => import("../pages/admin/ManageAlerts"));
 const ManageOrganizations = lazy(() => import("../pages/admin/ManageOrganizations"));
+const AdminMissionHistory = lazy(() => import("../pages/admin/MissionHistory"));
 
 // Public pages
 const Home = lazy(() => import("../pages/components/Home"));
@@ -46,6 +48,7 @@ const NGOHome = lazy(() => import("../pages/ngo/NGOHome"));
 const ManageResources = lazy(() => import("../pages/ngo/ManageResources"));
 const AidAssignments = lazy(() => import("../pages/ngo/AidAssignments"));
 const AssignAid = lazy(() => import("../pages/ngo/AssignAid"));
+const AidHistory = lazy(() => import("../pages/ngo/AidHistory"));
 
 // Rescue pages
 const RescueHome = lazy(() => import("../pages/rescue/RescueHome"));
@@ -111,6 +114,7 @@ export default function Router() {
             <Route path="admin/organizations" element={<PageTransition><ManageOrganizations /></PageTransition>} />
             <Route path="admin/alerts" element={<PageTransition><ManageAlerts /></PageTransition>} />
             <Route path="admin/statistics" element={<PageTransition><Statistics /></PageTransition>} />
+            <Route path="admin/mission-history" element={<PageTransition><AdminMissionHistory /></PageTransition>} />
 
             {/* ===== User ===== */}
             <Route path="user" element={<PageTransition><UserHome /></PageTransition>} />
@@ -128,6 +132,7 @@ export default function Router() {
             <Route path="ngo/resources" element={<PageTransition><ManageResources /></PageTransition>} />
             <Route path="ngo/assignments" element={<PageTransition><AidAssignments /></PageTransition>} />
             <Route path="ngo/assignments/new" element={<PageTransition><AssignAid /></PageTransition>} />
+            <Route path="ngo/history" element={<PageTransition><AidHistory /></PageTransition>} />
 
             {/* ===== Rescue ===== */}
             <Route path="rescue" element={<PageTransition><RescueHome /></PageTransition>} />

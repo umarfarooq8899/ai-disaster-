@@ -32,7 +32,7 @@ export default function AssignAid() {
                 setResources(resRes.data);
                 setVolunteers(volRes.data.map(v => ({
                     value: v.user?._id,
-                    label: `${v.user?.name} (${v.skills.join(", ")})`
+                    label: `${v.user?.name} (${(v.skills || []).join(", ")})`
                 })));
             } catch (err) {
                 toast.error("Failed to load required data");

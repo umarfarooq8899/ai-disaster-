@@ -69,6 +69,16 @@ const DisasterMap = () => {
                 <strong className="block mb-1 capitalize">{d.title || d.type || "Disaster"}</strong>
                 <p>Severity: <span className="font-semibold">{d.severity}</span></p>
                 {d.description && <p className="mt-1 text-gray-600 line-clamp-2">{d.description}</p>}
+                <div className="pt-2 border-t mt-2">
+                  <a
+                    href={`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:text-blue-800 text-xs font-semibold no-underline"
+                  >
+                    Open in Google Maps
+                  </a>
+                </div>
               </div>
             </Popup>
           </Marker>

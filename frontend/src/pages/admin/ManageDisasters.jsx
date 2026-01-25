@@ -232,16 +232,28 @@ export default function ManageDisasters() {
                 }}
                 className="border-t hover:bg-gray-50 cursor-pointer"
               >
-                <td className="p-4 font-medium text-left">{d.title}</td>
+                <td className="p-4 align-middle font-medium">{d.title}</td>
 
-                <td className="p-4 flex items-center gap-1 text-left">
-                  <MapPin className="w-4 h-4 text-gray-400" />
-                  {d.location}
+                <td className="p-4 align-middle">
+                  <div className="flex items-start gap-2 max-w-md">
+                    <MapPin className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" />
+                    <span className="text-xs text-gray-600 leading-relaxed line-clamp-2">
+                      {d.location}
+                    </span>
+                  </div>
                 </td>
 
-                <td className="p-4 text-center">{d.severity}</td>
-                <td className="p-4 text-center">
-                  <span className={`px-2 py-1 rounded text-xs font-semibold
+                <td className="p-4 align-middle text-center">
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider
+                    ${d.severity === 'high' ? 'bg-red-100 text-red-700' :
+                      d.severity === 'medium' ? 'bg-orange-100 text-orange-700' :
+                        'bg-green-100 text-green-700'}`}>
+                    {d.severity}
+                  </span>
+                </td>
+
+                <td className="p-4 align-middle text-center">
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider
                     ${d.status === 'active' ? 'bg-green-100 text-green-700' :
                       d.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
                         d.status === 'rejected' ? 'bg-red-100 text-red-700' :
@@ -249,20 +261,23 @@ export default function ManageDisasters() {
                     {d.status}
                   </span>
                 </td>
-                <td className="p-4 text-center">
-                  <div className="flex gap-2 justify-center items-center">
-                    {d.rescueMissions > 0 && (
-                      <span className="px-2 py-1 rounded text-xs font-semibold bg-blue-100 text-blue-700 flex items-center gap-1">
-                        <Ambulance className="w-3 h-3" /> {d.rescueMissions}
+
+                <td className="p-4 align-middle">
+                  <div className="flex flex-col gap-1.5 items-center justify-center min-w-[120px]">
+                    {d.assignedRescueOrgs?.length > 0 && d.assignedRescueOrgs.map((org, i) => (
+                      <span key={i} className="px-2 py-1 rounded-md text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-100 flex items-center gap-1.5 w-full justify-center">
+                        <Ambulance className="w-3 h-3 shrink-0" />
+                        <span className="truncate">{org}</span>
                       </span>
-                    )}
-                    {d.ngoAssignments > 0 && (
-                      <span className="px-2 py-1 rounded text-xs font-semibold bg-orange-100 text-orange-700 flex items-center gap-1">
-                        <Package className="w-3 h-3" /> {d.ngoAssignments}
+                    ))}
+                    {d.assignedNgoOrgs?.length > 0 && d.assignedNgoOrgs.map((org, i) => (
+                      <span key={i} className="px-2 py-1 rounded-md text-[10px] font-semibold bg-orange-50 text-orange-700 border border-orange-100 flex items-center gap-1.5 w-full justify-center">
+                        <Package className="w-3 h-3 shrink-0" />
+                        <span className="truncate">{org}</span>
                       </span>
-                    )}
+                    ))}
                     {!d.rescueMissions && !d.ngoAssignments && (
-                      <span className="text-xs text-gray-400">None</span>
+                      <span className="text-xs text-gray-400 italic">Unassigned</span>
                     )}
                   </div>
                 </td>
@@ -360,7 +375,10 @@ export default function ManageDisasters() {
                           {assignmentDetails.missions.map((mission) => (
                             <div key={mission._id} className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm">
                               <div className="flex justify-between items-start mb-1">
-                                <p className="font-medium text-gray-800">{mission.title}</p>
+                                <div>
+                                  <p className="font-semibold text-blue-800">{mission.organization?.name || 'Rescue'}</p>
+                                  <p className="text-gray-600 text-xs">{mission.title}</p>
+                                </div>
                                 <span className={`px-2 py-0.5 rounded text-xs font-semibold ${mission.status === 'completed' ? 'bg-green-100 text-green-700' :
                                   mission.status === 'ongoing' ? 'bg-blue-100 text-blue-700' :
                                     mission.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
@@ -616,6 +634,7 @@ export default function ManageDisasters() {
                   );
                   toast.success("Deleted");
                   setDeleteTarget(null);
+                  setSelectedDisaster(null); // Close the detail modal too
                   fetchDisasters();
                 } catch { toast.error("Failed to delete"); }
               }}

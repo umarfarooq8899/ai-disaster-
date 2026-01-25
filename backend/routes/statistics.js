@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+const mongoose = require("mongoose");
 const { protect: auth } = require("../middleware/auth");
 const adminOnly = require("../middleware/adminOnly");
 const Statistic = require("../models/Statistic");
@@ -14,6 +15,9 @@ const NgoOrganization = require("../models/NgoOrganization");
 /*  PUBLIC STATISTICS (AUTHENTICATED) */
 router.get("/public", auth, async (req, res) => {
   try {
+    const Mission = mongoose.model("Mission");
+    const AidAssignment = mongoose.model("AidAssignment");
+
     const [
       totalUsers,
       totalVolunteers,
@@ -22,14 +26,20 @@ router.get("/public", auth, async (req, res) => {
       totalDisasters,
       activeDisasters,
       activeAlerts,
+      totalCompletedMissions,
+      totalDistributedAid,
+      totalMissions,
     ] = await Promise.all([
       User.countDocuments(),
       User.countDocuments({ role: "volunteer" }),
       NgoOrganization.countDocuments(),
       RescueOrganization.countDocuments(),
-      Disaster.countDocuments({ status: { $in: ["active", "resolved"] } }),
+      Disaster.countDocuments(),
       Disaster.countDocuments({ status: "active" }),
       Alert.countDocuments({ status: "active" }),
+      Mission.countDocuments({ status: "completed" }),
+      AidAssignment.countDocuments({ status: "distributed" }),
+      Mission.countDocuments(),
     ]);
 
     res.json({
@@ -40,6 +50,9 @@ router.get("/public", auth, async (req, res) => {
       totalDisasters,
       activeDisasters,
       activeAlerts,
+      totalCompletedMissions,
+      totalDistributedAid,
+      totalMissions,
     });
   } catch (err) {
     console.error("Public Stats Error:", err);
@@ -52,22 +65,27 @@ router.get("/public", auth, async (req, res) => {
 ================================ */
 router.get("/dashboard", auth, adminOnly, async (req, res) => {
   try {
+    const Mission = mongoose.model("Mission");
+    const AidAssignment = mongoose.model("AidAssignment");
+
     const [
       totalUsers,
       totalVolunteers,
       totalNGOs,
       totalDisasters,
       activeDisasters,
-      resolvedDisasters,
       activeAlerts,
+      totalCompletedMissions,
+      totalDistributedAid,
     ] = await Promise.all([
       User.countDocuments(),
       User.countDocuments({ role: "volunteer" }),
       User.countDocuments({ role: "ngo" }),
       Disaster.countDocuments(),
       Disaster.countDocuments({ status: "active" }),
-      Disaster.countDocuments({ status: "resolved" }),
       Alert.countDocuments({ status: "active" }),
+      Mission.countDocuments({ status: "completed" }),
+      AidAssignment.countDocuments({ status: "distributed" }),
     ]);
 
     res.json({
@@ -76,8 +94,9 @@ router.get("/dashboard", auth, adminOnly, async (req, res) => {
       totalNGOs,
       totalDisasters,
       activeDisasters,
-      resolvedDisasters,
       activeAlerts,
+      totalCompletedMissions,
+      totalDistributedAid,
     });
   } catch (err) {
     console.error("Dashboard Stats Error:", err);

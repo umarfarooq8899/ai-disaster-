@@ -43,6 +43,7 @@ mongoose
 require("./models/User");
 require("./models/Volunteer");
 require("./models/Mission");
+require("./models/Disaster");
 require("./models/Alert");
 require("./models/RescueOrganization");
 require("./models/NgoOrganization");
@@ -54,6 +55,7 @@ app.use("/api/users", require("./routes/users"));
 app.use("/api/disasters", require("./routes/disasters"));
 app.use("/api/alerts", require("./routes/alerts"));
 app.use("/api/statistics", require("./routes/statistics"));
+app.use("/api/admin", require("./routes/admin"));
 app.use("/api/organizations", require("./routes/organizationRoutes"));
 
 // ================= RESCUE & VOLUNTEER ROUTES =================

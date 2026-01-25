@@ -5,7 +5,7 @@ const Alert = require("../models/Alert");
 
 // Create or update volunteer profile
 exports.createVolunteer = async (req, res) => {
-  const { phone, province, city, skills, organizationType, organization, available } = req.body;
+  const { phone, province, city, skills, organizationType, organization, available, latitude, longitude } = req.body;
   const userId = req.user.id;
 
   try {
@@ -20,6 +20,8 @@ exports.createVolunteer = async (req, res) => {
       volunteer.organizationType = organizationType;
       volunteer.organization = organization;
       volunteer.available = available !== undefined ? available : volunteer.available;
+      volunteer.latitude = latitude !== undefined ? latitude : volunteer.latitude;
+      volunteer.longitude = longitude !== undefined ? longitude : volunteer.longitude;
       await volunteer.save();
     } else {
       // Create new
@@ -31,6 +33,8 @@ exports.createVolunteer = async (req, res) => {
         skills,
         organizationType,
         organization,
+        latitude,
+        longitude,
         available: available !== undefined ? available : true,
       });
       await volunteer.save();
@@ -198,37 +202,79 @@ exports.getOrgVolunteers = async (req, res) => {
   }
 };
 
+// Helper to calculate distance
+const getDistance = (lat1, lon1, lat2, lon2) => {
+  if (!lat1 || !lon1 || !lat2 || !lon2) return Infinity;
+  const R = 6371; // km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+};
+
 // Auto-assignment logic (Rule-based, scoped by organization if called by coordinator)
 exports.autoAssignVolunteers = async (req, res) => {
   try {
     const isCoordinator = req.user.role === "rescue_coordinator" || req.user.role === "ngo_coordinator";
     const orgId = isCoordinator ? req.user.organization : null;
 
-    // 1. Get missions that need volunteers (scoped by org if coordinator)
+    // 1. Get pending missions for this org
     const missionQuery = { status: "pending" };
     if (orgId) missionQuery.organization = orgId;
 
-    const missions = await Mission.find(missionQuery);
+    const missions = await Mission.find(missionQuery).populate("disaster");
 
-    let assignments = 0;
+    let totalAssignments = 0;
 
     for (const mission of missions) {
-      // 2. Find available volunteers in the same city/province with matching skills
-      // If coordinator, limit to their own volunteers
+      if (!mission.disaster) continue;
+
+      const { latitude: dLat, longitude: dLon, location } = mission.disaster;
+
+      // 2. Find ALL available volunteers for this org
       const volunteerQuery = {
         available: true,
-        city: { $regex: mission.location.split(",")[0].trim(), $options: "i" },
-        skills: { $in: mission.skillsRequired || [] },
+        organization: mission.organization,
       };
 
-      if (orgId) {
-        volunteerQuery.organization = orgId;
+      const candidates = await Volunteer.find(volunteerQuery);
+
+      if (candidates.length === 0) continue;
+
+      // 3. Score and Sort candidates
+      // Scoring: 
+      // - Distance (lower is better)
+      // - Skill Match (bonus points)
+      const scoredVolunteers = candidates.map(v => {
+        const distance = getDistance(dLat, dLon, v.latitude, v.longitude);
+        const skillMatchCount = (v.skills || []).filter(s => (mission.skillsRequired || []).includes(s)).length;
+
+        // Final score: prioritize skill match, then distance
+        // Simplified: filter by at least one skill match if skills required, then sort by distance
+        return {
+          volunteer: v,
+          distance,
+          skillMatchCount
+        };
+      });
+
+      // Filter by skill match if mission has requirements
+      let eligible = scoredVolunteers;
+      if (mission.skillsRequired && mission.skillsRequired.length > 0) {
+        eligible = scoredVolunteers.filter(ev => ev.skillMatchCount > 0);
       }
 
-      const volunteers = await Volunteer.find(volunteerQuery).limit(5);
+      // Sort by distance
+      eligible.sort((a, b) => a.distance - b.distance);
 
-      if (volunteers.length > 0) {
-        const volunteerUserIds = volunteers.map(v => v.user);
+      // Take top 3 closest (or specify a limit)
+      const toAssign = eligible.slice(0, 3).map(e => e.volunteer);
+
+      if (toAssign.length > 0) {
+        const volunteerUserIds = toAssign.map(v => v.user);
 
         mission.assignedVolunteers = [...new Set([...mission.assignedVolunteers, ...volunteerUserIds])];
         mission.status = "ongoing";
@@ -240,13 +286,16 @@ exports.autoAssignVolunteers = async (req, res) => {
           { available: false, currentTask: mission._id }
         );
 
-        assignments += volunteers.length;
+        totalAssignments += toAssign.length;
       }
     }
 
-    res.json({ success: true, message: `Auto-assigned ${assignments} volunteers to pending missions.` });
+    res.json({
+      success: true,
+      message: `Auto-assigned ${totalAssignments} volunteers to ${missions.length} missions based on proximity and skills.`
+    });
   } catch (err) {
-    console.error(err);
+    console.error("Auto-assignment Error:", err);
     res.status(500).json({ message: "Auto-assignment failed" });
   }
 };

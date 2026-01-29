@@ -94,8 +94,16 @@ export default function Navbar() {
                   hover:bg-brand-100 transition
                 "
               >
-                <div className="h-7 w-7 rounded-full bg-brand-600 text-white flex items-center justify-center text-xs font-bold shadow-soft">
-                  {user.name?.[0]?.toUpperCase() || "U"}
+                <div className="h-7 w-7 rounded-full bg-brand-600 text-white flex items-center justify-center text-xs font-bold shadow-soft overflow-hidden">
+                  {user.profilePicture ? (
+                    <img
+                      src={`http://localhost:5000/${user.profilePicture}`}
+                      alt="Profile"
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    user.name?.[0]?.toUpperCase() || "U"
+                  )}
                 </div>
                 <span className="text-sm font-bold text-brand-900 hidden sm:inline">
                   {user.name?.split(' ')[0]}

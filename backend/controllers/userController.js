@@ -48,8 +48,22 @@ exports.updateMyProfile = async (req, res) => {
     if (name) user.name = name;
     if (email) user.email = email;
 
+    // Handle profile picture upload
+    if (req.file) {
+      user.profilePicture = req.file.path.replace(/\\/g, "/");
+    }
+
     await user.save();
-    res.json({ message: "Profile updated successfully", user: { id: user._id, name: user.name, email: user.email, role: user.role } });
+    res.json({
+      message: "Profile updated successfully",
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        profilePicture: user.profilePicture
+      }
+    });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

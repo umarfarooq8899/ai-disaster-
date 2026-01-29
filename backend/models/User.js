@@ -15,6 +15,7 @@ const userSchema = new mongoose.Schema(
     profileCompleted: { type: Boolean, default: function () { return this.role !== "volunteer"; } },
     organizationType: { type: String, enum: ["NgoOrganization", "RescueOrganization", null], default: null },
     organization: { type: mongoose.Schema.Types.ObjectId, refPath: "organizationType", default: null },
+    profilePicture: { type: String, default: null },
   },
   { timestamps: true }
 );

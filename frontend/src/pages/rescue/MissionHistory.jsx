@@ -72,7 +72,7 @@ export default function MissionHistory() {
                                         </div>
                                     )}
                                     {mission.metrics && mission.metrics.count > 0 && (
-                                        <div className="flex items-center gap-1 font-medium text-blue-600">
+                                        <div className="flex items-center gap-1 font-medium text-brand-600">
                                             <span>Saved: {mission.metrics.count}</span>
                                         </div>
                                     )}

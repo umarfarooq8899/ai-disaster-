@@ -124,8 +124,8 @@ export default function RescueHome() {
 ================================ */
 function getColor(color) {
   const colors = {
-    blue: { bg: "bg-blue-50 text-blue-600", text: "text-blue-600", accent: "bg-blue-600" },
-    green: { bg: "bg-green-50 text-green-600", text: "text-green-600", accent: "bg-green-600" },
+    blue: { bg: "bg-brand-50 text-brand-600", text: "text-brand-600", accent: "bg-brand-600" },
+    green: { bg: "bg-emerald-50 text-emerald-600", text: "text-emerald-600", accent: "bg-emerald-600" },
     orange: { bg: "bg-orange-50 text-orange-600", text: "text-orange-600", accent: "bg-orange-600" },
   };
   return colors[color] || colors.blue;

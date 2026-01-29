@@ -10,6 +10,7 @@ exports.getAssignedMissions = async (req, res) => {
             .sort({ createdAt: -1 });
         res.json(missions);
     } catch (error) {
+        console.error("DEBUG: Error in getAssignedMissions:", error);
         res.status(500).json({ message: error.message });
     }
 };
@@ -24,8 +25,7 @@ exports.updateMissionStatus = async (req, res) => {
 
         // Update mission status if provided
         if (status) {
-            mission.status = status;
-            await mission.save();
+            await Mission.findByIdAndUpdate(missionId, { status });
         }
 
         // Create Status Log
@@ -42,6 +42,7 @@ exports.updateMissionStatus = async (req, res) => {
 
         res.json({ message: "Status updated successfully", log });
     } catch (error) {
+        console.error("DEBUG: Error in updateMissionStatus:", error);
         res.status(500).json({ message: error.message });
     }
 };
@@ -52,20 +53,29 @@ exports.assignVolunteersToMission = async (req, res) => {
     const { volunteerIds } = req.body;
 
     try {
+        console.log(`DEBUG: assignVolunteersToMission called for mission: ${missionId}`);
         const mission = await Mission.findById(missionId);
-        if (!mission) return res.status(404).json({ message: "Mission not found" });
+        if (!mission) {
+            console.log(`DEBUG: Mission ${missionId} not found`);
+            return res.status(404).json({ message: "Mission not found" });
+        }
+
+        console.log(`DEBUG: Mission org: ${mission.organization}, User org: ${req.user.organization}`);
 
         // Verify mission belongs to coordinator's organization
-        if (mission.organization.toString() !== req.user.organization.toString()) {
+        if (!mission.organization || !req.user.organization || mission.organization.toString() !== req.user.organization.toString()) {
+            console.log("DEBUG: Authorization failed");
             return res.status(403).json({ message: "Not authorized" });
         }
 
-        mission.assignedVolunteers = volunteerIds;
-        mission.status = "ongoing";
-        await mission.save();
+        await Mission.findByIdAndUpdate(missionId, {
+            assignedVolunteers: volunteerIds,
+            status: "ongoing"
+        });
 
         res.json({ message: "Volunteers assigned successfully", mission });
     } catch (error) {
+        console.error("DEBUG: Error in assignVolunteersToMission:", error);
         res.status(500).json({ message: error.message });
     }
 };
@@ -76,19 +86,26 @@ exports.changeMissionStatus = async (req, res) => {
     const { status } = req.body;
 
     try {
+        console.log(`DEBUG: changeMissionStatus called for mission: ${missionId} by user: ${req.user._id}`);
         const mission = await Mission.findById(missionId);
-        if (!mission) return res.status(404).json({ message: "Mission not found" });
+        if (!mission) {
+            console.log(`DEBUG: Mission ${missionId} not found`);
+            return res.status(404).json({ message: "Mission not found" });
+        }
+
+        console.log(`DEBUG: Mission org: ${mission.organization}, User org: ${req.user.organization}`);
 
         // Verify mission belongs to coordinator's organization
-        if (mission.organization.toString() !== req.user.organization.toString()) {
+        if (!mission.organization || !req.user.organization || mission.organization.toString() !== req.user.organization.toString()) {
+            console.log("DEBUG: Authorization failed");
             return res.status(403).json({ message: "Not authorized" });
         }
 
-        mission.status = status;
-        await mission.save();
+        await Mission.findByIdAndUpdate(missionId, { status });
 
         res.json({ message: "Mission status updated", mission });
     } catch (error) {
+        console.error("DEBUG: Error in changeMissionStatus:", error);
         res.status(500).json({ message: error.message });
     }
 };

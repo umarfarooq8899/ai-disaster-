@@ -1,7 +1,7 @@
 import { useEffect, useState, useContext } from "react";
 import axios from "../../api/axios";
 import { AuthContext } from "../../context/AuthContext";
-import { Users, Shield, Building2, AlertTriangle, CheckCircle2, Siren, Activity } from "lucide-react";
+import { Users, Shield, Building2, AlertTriangle, CheckCircle2, Siren, Activity, BarChart3 } from "lucide-react";
 
 export default function Statistics() {
   const { user } = useContext(AuthContext);
@@ -147,8 +147,8 @@ export default function Statistics() {
 
           {/* Info Box */}
           <div className="md:col-span-3 p-6 bg-gradient-to-br from-brand-600 to-brand-800 rounded-3xl text-white shadow-lg overflow-hidden relative">
-            <div className="absolute top-0 right-0 p-8 opacity-10">
-              <Shield className="w-32 h-32 rotate-12" />
+            <div className="p-3 bg-brand-50 rounded-lg">
+              <BarChart3 className="w-6 h-6 text-brand-600" />
             </div>
             <div className="relative z-10">
               <h3 className="text-xl font-bold mb-2">Safety First Architecture</h3>

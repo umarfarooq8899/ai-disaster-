@@ -84,7 +84,7 @@ export default function ManageVolunteers() {
                                 <td className="px-6 py-4">
                                     <div className="flex flex-wrap gap-1">
                                         {vol.skills?.length > 0 ? vol.skills.map((skill) => (
-                                            <span key={skill} className="px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full text-[10px] uppercase font-bold">
+                                            <span key={skill} className="px-2 py-0.5 bg-brand-50 text-brand-600 rounded-full text-[10px] uppercase font-bold">
                                                 {skill}
                                             </span>
                                         )) : <span className="text-xs text-gray-400">No skills listed</span>}

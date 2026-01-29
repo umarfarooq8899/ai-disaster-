@@ -3,6 +3,8 @@ import { AuthContext } from "../../context/AuthContext";
 import axios from "axios";
 import toast from "react-hot-toast";
 import { User, Mail, Shield, Phone, MapPin, Star, Lock, Edit3, Save, X, Key } from "lucide-react";
+import Select from "react-select";
+import { pakistanData } from "../../data/pakistan_cities";
 
 export default function Profile() {
   const { user, token, logout, updateUser } = useContext(AuthContext);
@@ -15,10 +17,35 @@ export default function Profile() {
     name: user?.name || "",
     email: user?.email || "",
     phone: "",
-    city: "",
-    province: "",
+    province: null,
+    city: null,
+    organizationType: "",
+    organization: "",
     skills: [],
   });
+
+  const [orgs, setOrgs] = useState([]);
+
+  // Fetch organizations when type changes
+  useEffect(() => {
+    if (!formData.organizationType) {
+      setOrgs([]);
+      return;
+    }
+
+    async function fetchOrgs() {
+      try {
+        const type = formData.organizationType === "RescueOrganization" ? "rescue" : "ngo";
+        const res = await axios.get(`http://localhost:5000/api/organizations/${type}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setOrgs(res.data.map(o => ({ value: o._id, label: o.name })));
+      } catch (err) {
+        console.error("Failed to fetch organizations", err);
+      }
+    }
+    fetchOrgs();
+  }, [formData.organizationType]);
 
   const [pwdData, setPwdData] = useState({
     oldPassword: "",
@@ -45,8 +72,22 @@ export default function Profile() {
           phone: v.phone || "",
           city: v.city || "",
           province: v.province || "",
+
           skills: v.skills || [],
+          organizationType: v.organizationType || "",
+          organization: v.organization?._id || "",
         }));
+
+        // Trigger org fetch if existing
+        if (v.organizationType) {
+          // The useEffect will handle fetching orgs, 
+          // but we might want to manually set the org label if we want to show it immediately 
+          // without waiting for the list. 
+          // However, react-select usually needs the options list to match values to labels 
+          // unless we pass {value, label} object.
+          // For simplicity in the 'view' mode, we use text. 
+          // In 'edit' mode, we wait for options.
+        }
       }
     } catch (err) {
       console.error("Failed to fetch volunteer profile", err);
@@ -73,8 +114,9 @@ export default function Profile() {
       if (user.role === "volunteer") {
         await axios.post("http://localhost:5000/api/volunteer/create", {
           ...formData,
-          organizationType: volunteerData?.organizationType,
-          organization: volunteerData?.organization?._id,
+          ...formData,
+          organizationType: formData.organizationType,
+          organization: formData.organization,
         }, {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -208,25 +250,71 @@ export default function Profile() {
                   )}
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-semibold text-gray-500 ml-1">Location (Province, City)</label>
+                  <label className="text-sm font-semibold text-gray-500 ml-1">Organization</label>
                   {isEditing ? (
-                    <div className="flex gap-2">
-                      <input
-                        placeholder="Province"
-                        className="w-1/2 px-4 py-3 rounded-2xl bg-gray-50 border-transparent focus:bg-white focus:border-brand-500 outline-none"
-                        value={formData.province}
-                        onChange={(e) => setFormData({ ...formData, province: e.target.value })}
-                      />
-                      <input
-                        placeholder="City"
-                        className="w-1/2 px-4 py-3 rounded-2xl bg-gray-50 border-transparent focus:bg-white focus:border-brand-500 outline-none"
-                        value={formData.city}
-                        onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                      />
+                    <div className="space-y-3">
+                      <select
+                        className="w-full px-4 py-3 rounded-2xl bg-gray-50 border-transparent focus:bg-white focus:border-brand-500 outline-none"
+                        value={formData.organizationType}
+                        onChange={(e) => setFormData({ ...formData, organizationType: e.target.value, organization: "" })}
+                      >
+                        <option value="">Select Type</option>
+                        <option value="RescueOrganization">Rescue</option>
+                        <option value="NgoOrganization">NGO</option>
+                      </select>
+
+                      {formData.organizationType && (
+                        <Select
+                          options={orgs}
+                          placeholder="Select Organization"
+                          value={orgs.find(o => o.value === formData.organization) || null}
+                          onChange={(opt) => setFormData({ ...formData, organization: opt.value })}
+                          className="text-sm"
+                        />
+                      )}
                     </div>
                   ) : (
                     <p className="px-4 py-3 text-lg font-medium text-gray-800 bg-gray-50 rounded-2xl flex items-center gap-2">
-                      <MapPin className="w-4 h-4 text-gray-400" /> {formData.province}, {formData.city}
+                      <Shield className="w-4 h-4 text-gray-400" />
+                      {volunteerData?.organization?.name || "No Organization"}
+                      <span className="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded-full">
+                        {volunteerData?.organizationType === "RescueOrganization" ? "Rescue" : "NGO"}
+                      </span>
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold text-gray-500 ml-1">Location (Province, City)</label>
+                  {isEditing ? (
+                    <div className="flex gap-2">
+                      <div className="w-1/2">
+                        <Select
+                          options={Object.keys(pakistanData).map(p => ({ value: p, label: p }))}
+                          placeholder="Select Province"
+                          value={formData.province ? { value: formData.province, label: formData.province } : null}
+                          onChange={(option) => setFormData({ ...formData, province: option.value, city: null })}
+                          className="text-sm"
+                        />
+                      </div>
+                      <div className="w-1/2">
+                        <Select
+                          options={
+                            formData.province && pakistanData[formData.province]
+                              ? pakistanData[formData.province].map(c => ({ value: c, label: c }))
+                              : []
+                          }
+                          placeholder="Select City"
+                          isDisabled={!formData.province}
+                          value={formData.city ? { value: formData.city, label: formData.city } : null}
+                          onChange={(option) => setFormData({ ...formData, city: option.value })}
+                          className="text-sm"
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="px-4 py-3 text-lg font-medium text-gray-800 bg-gray-50 rounded-2xl flex items-center gap-2">
+                      <MapPin className="w-4 h-4 text-gray-400" /> {formData.province || 'Unknown'}, {formData.city || 'Unknown'}
                     </p>
                   )}
                 </div>

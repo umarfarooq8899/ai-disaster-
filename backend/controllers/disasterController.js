@@ -102,3 +102,21 @@ exports.rejectDisaster = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// Admin: resolve disaster
+exports.resolveDisaster = async (req, res) => {
+  try {
+    const disaster = await Disaster.findById(req.params.id);
+
+    if (!disaster) {
+      return res.status(404).json({ message: "Disaster not found" });
+    }
+
+    disaster.status = "resolved";
+    await disaster.save();
+
+    res.json({ message: "Disaster marked as resolved", disaster });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};

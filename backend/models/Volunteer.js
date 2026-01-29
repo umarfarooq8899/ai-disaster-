@@ -9,7 +9,8 @@ const volunteerSchema = new mongoose.Schema({
   organization: { type: mongoose.Schema.Types.ObjectId, refPath: "organizationType", required: true },
   skills: [{ type: String, enum: ["medical", "technical", "rescue", "logistics", "communication"], required: true }],
   available: { type: Boolean, default: false },
-  currentTask: { type: mongoose.Schema.Types.ObjectId, ref: "Mission", default: null },
+  currentTaskType: { type: String, enum: ["Mission", "AidAssignment", null], default: null },
+  currentTask: { type: mongoose.Schema.Types.ObjectId, refPath: "currentTaskType", default: null },
   latitude: { type: Number },
   longitude: { type: Number },
 });

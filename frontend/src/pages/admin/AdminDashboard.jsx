@@ -197,10 +197,10 @@ function SkeletonCard() {
   return (
     <div className="bg-white border border-gray-200 rounded-xl p-6 animate-pulse">
       <div className="flex items-center gap-3">
-        <div className="w-9 h-9 bg-gray-200 rounded-lg" />
-        <div className="h-4 w-24 bg-gray-200 rounded" />
+        <div className="w-9 h-9 bg-slate-200 rounded-lg" />
+        <div className="h-4 w-24 bg-slate-200 rounded" />
       </div>
-      <div className="mt-6 h-8 w-20 bg-gray-200 rounded" />
+      <div className="mt-6 h-8 w-20 bg-slate-200 rounded" />
     </div>
   );
 }

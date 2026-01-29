@@ -257,7 +257,8 @@ export default function ManageDisasters() {
                     ${d.status === 'active' ? 'bg-green-100 text-green-700' :
                       d.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
                         d.status === 'rejected' ? 'bg-red-100 text-red-700' :
-                          'bg-blue-100 text-blue-700'}`}>
+                          d.status === 'resolved' ? 'bg-purple-100 text-purple-700' :
+                            'bg-brand-100 text-brand-700'}`}>
                     {d.status}
                   </span>
                 </td>
@@ -265,7 +266,7 @@ export default function ManageDisasters() {
                 <td className="p-4 align-middle">
                   <div className="flex flex-col gap-1.5 items-center justify-center min-w-[120px]">
                     {d.assignedRescueOrgs?.length > 0 && d.assignedRescueOrgs.map((org, i) => (
-                      <span key={i} className="px-2 py-1 rounded-md text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-100 flex items-center gap-1.5 w-full justify-center">
+                      <span key={i} className="px-2 py-1 rounded-md text-[10px] font-semibold bg-brand-50 text-brand-700 border border-brand-100 flex items-center gap-1.5 w-full justify-center">
                         <Ambulance className="w-3 h-3 shrink-0" />
                         <span className="truncate">{org}</span>
                       </span>
@@ -380,7 +381,7 @@ export default function ManageDisasters() {
                                   <p className="text-gray-600 text-xs">{mission.title}</p>
                                 </div>
                                 <span className={`px-2 py-0.5 rounded text-xs font-semibold ${mission.status === 'completed' ? 'bg-green-100 text-green-700' :
-                                  mission.status === 'ongoing' ? 'bg-blue-100 text-blue-700' :
+                                  mission.status === "ongoing" ? "bg-brand-100 text-brand-700" :
                                     mission.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
                                       'bg-gray-100 text-gray-700'
                                   }`}>
@@ -407,7 +408,7 @@ export default function ManageDisasters() {
                               <div className="flex justify-between items-start mb-1">
                                 <p className="font-medium text-gray-800">{assignment.ngo?.name || 'NGO'}</p>
                                 <span className={`px-2 py-0.5 rounded text-xs font-semibold ${assignment.status === 'delivered' ? 'bg-green-100 text-green-700' :
-                                  assignment.status === 'in_transit' ? 'bg-blue-100 text-blue-700' :
+                                  assignment.status === "in_transit" ? "bg-brand-100 text-brand-700" :
                                     'bg-yellow-100 text-yellow-700'
                                   }`}>
                                   {assignment.status}
@@ -453,8 +454,8 @@ export default function ManageDisasters() {
                       disabled={selectedDisaster.rescueMissions > 0}
                       className={`flex items-center justify-center gap-2 py-2 rounded-lg transition
                         ${selectedDisaster.rescueMissions > 0
-                          ? 'bg-blue-100 text-blue-600 cursor-not-allowed'
-                          : 'bg-blue-600 text-white hover:bg-blue-700'}`}
+                          ? "bg-brand-100 text-brand-600 cursor-not-allowed"
+                          : "bg-brand-600 text-white hover:bg-brand-700"}`}
                     >
                       <Ambulance className="w-4 h-4" />
                       {selectedDisaster.rescueMissions > 0 ? "Rescue Assigned" : "Assign Rescue"}
@@ -470,6 +471,24 @@ export default function ManageDisasters() {
                     >
                       <Package className="w-4 h-4" />
                       {selectedDisaster.ngoAssignments > 0 ? "NGO Assigned" : "Assign NGO"}
+                    </button>
+
+                    <button
+                      onClick={async () => {
+                        try {
+                          await axios.patch(`http://localhost:5000/api/disasters/${selectedDisaster._id}/resolve`, {}, {
+                            headers: { Authorization: `Bearer ${token}` }
+                          });
+                          toast.success("Disaster resolved");
+                          fetchDisasters();
+                          setSelectedDisaster(prev => ({ ...prev, status: 'resolved' }));
+                        } catch {
+                          toast.error("Failed to resolve");
+                        }
+                      }}
+                      className="col-span-2 flex items-center justify-center gap-2 bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700 transition"
+                    >
+                      <CheckCircle className="w-4 h-4" /> Mark as Resolved
                     </button>
                   </div>
                 )}
@@ -491,7 +510,7 @@ export default function ManageDisasters() {
       {assignModal && (
         <Modal onClose={() => setAssignModal(null)}>
           <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            {assignModal.type === 'rescue' ? <Ambulance className="w-5 h-5 text-blue-600" /> : <Package className="w-5 h-5 text-orange-600" />}
+            {assignModal.type === 'rescue' ? <Ambulance className="w-5 h-5 text-brand-600" /> : <Package className="w-5 h-5 text-orange-600" />}
             Assign {assignModal.type === 'rescue' ? 'Rescue Mission' : 'Relief Operation'}
           </h2>
 

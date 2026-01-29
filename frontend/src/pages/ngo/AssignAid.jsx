@@ -110,7 +110,7 @@ export default function AssignAid() {
                         <label className="block text-sm font-semibold text-gray-700 mb-2">Select Active Disaster</label>
                         <select
                             required
-                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none"
                             value={form.disasterId}
                             onChange={(e) => setForm({ ...form, disasterId: e.target.value })}
                         >
@@ -181,7 +181,7 @@ export default function AssignAid() {
                     <div>
                         <label className="block text-sm font-semibold text-gray-700 mb-1">Internal Notes</label>
                         <textarea
-                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none"
                             rows="3"
                             placeholder="Instructions for the ground team..."
                             value={form.notes}
@@ -193,7 +193,7 @@ export default function AssignAid() {
                 <button
                     type="submit"
                     disabled={loading}
-                    className="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl hover:bg-blue-700 transition shadow-lg flex items-center justify-center gap-2"
+                    className="w-full bg-brand-600 text-white font-bold py-4 rounded-2xl hover:bg-brand-700 transition shadow-lg flex items-center justify-center gap-2"
                 >
                     {loading ? "Processing..." : <><Send className="w-5 h-5" /> Confirm Deployment</>}
                 </button>

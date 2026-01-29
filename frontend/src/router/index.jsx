@@ -81,75 +81,72 @@ export default function Router() {
 
   return (
     <Suspense fallback={<LoadingPage />}>
-      <AnimatePresence mode="wait">
-        <Routes location={location} key={location.pathname}>
-          {/* ================= PUBLIC ROUTES ================= */}
-          <Route path="/" element={<PublicLayout />}>
-            <Route index element={<PageTransition><Home /></PageTransition>} />
-            <Route path="login" element={<PageTransition><Login /></PageTransition>} />
-            <Route path="signup" element={<PageTransition><Signup /></PageTransition>} />
-            <Route path="report" element={<PageTransition><ReportDisaster /></PageTransition>} />
-            <Route path="alerts" element={<PageTransition><Alerts /></PageTransition>} />
-            <Route path="statistics" element={<PageTransition><Statistics /></PageTransition>} />
-            <Route path="ai-predictions" element={<PageTransition><AIPredictions /></PageTransition>} />
-            <Route path="coordination" element={<PageTransition><Coordination /></PageTransition>} />
-            <Route path="forgot-password" element={<PageTransition><ForgotPassword /></PageTransition>} />
-            <Route path="reset-password/:token" element={<PageTransition><ResetPassword /></PageTransition>} />
-            <Route path="profile" element={<PageTransition><Profile /></PageTransition>} />
-          </Route>
+      <Routes location={location}>
+        {/* ================= PUBLIC ROUTES ================= */}
+        <Route path="/" element={<PublicLayout />}>
+          <Route index element={<PageTransition><Home /></PageTransition>} />
+          <Route path="login" element={<PageTransition><Login /></PageTransition>} />
+          <Route path="signup" element={<PageTransition><Signup /></PageTransition>} />
+          <Route path="report" element={<PageTransition><ReportDisaster /></PageTransition>} />
+          <Route path="alerts" element={<PageTransition><Alerts /></PageTransition>} />
+          <Route path="statistics" element={<PageTransition><Statistics /></PageTransition>} />
+          <Route path="ai-predictions" element={<PageTransition><AIPredictions /></PageTransition>} />
+          <Route path="coordination" element={<PageTransition><Coordination /></PageTransition>} />
+          <Route path="forgot-password" element={<PageTransition><ForgotPassword /></PageTransition>} />
+          <Route path="reset-password/:token" element={<PageTransition><ResetPassword /></PageTransition>} />
+          <Route path="profile" element={<PageTransition><Profile /></PageTransition>} />
+        </Route>
 
-          {/* ================= DASHBOARD ROUTES ================= */}
-          <Route
-            path="/dashboard/*"
-            element={
-              <PrivateRoute>
-                <DashboardLayout />
-              </PrivateRoute>
-            }
-          >
-            {/* ===== Admin ===== */}
-            <Route path="admin" element={<PageTransition><AdminDashboard /></PageTransition>} />
-            <Route path="admin/users" element={<PageTransition><ManageUsers /></PageTransition>} />
-            <Route path="admin/disasters" element={<PageTransition><ManageDisasters /></PageTransition>} />
-            <Route path="admin/organizations" element={<PageTransition><ManageOrganizations /></PageTransition>} />
-            <Route path="admin/alerts" element={<PageTransition><ManageAlerts /></PageTransition>} />
-            <Route path="admin/statistics" element={<PageTransition><Statistics /></PageTransition>} />
-            <Route path="admin/mission-history" element={<PageTransition><AdminMissionHistory /></PageTransition>} />
+        {/* ================= DASHBOARD ROUTES ================= */}
+        <Route
+          path="/dashboard/*"
+          element={
+            <PrivateRoute>
+              <DashboardLayout />
+            </PrivateRoute>
+          }
+        >
+          {/* ===== Admin ===== */}
+          <Route path="admin" element={<PageTransition><AdminDashboard /></PageTransition>} />
+          <Route path="admin/users" element={<PageTransition><ManageUsers /></PageTransition>} />
+          <Route path="admin/disasters" element={<PageTransition><ManageDisasters /></PageTransition>} />
+          <Route path="admin/organizations" element={<PageTransition><ManageOrganizations /></PageTransition>} />
+          <Route path="admin/alerts" element={<PageTransition><ManageAlerts /></PageTransition>} />
+          <Route path="admin/statistics" element={<PageTransition><Statistics /></PageTransition>} />
+          <Route path="admin/mission-history" element={<PageTransition><AdminMissionHistory /></PageTransition>} />
 
-            {/* ===== User ===== */}
-            <Route path="user" element={<PageTransition><UserHome /></PageTransition>} />
-            <Route path="user/reports" element={<PageTransition><MyReports /></PageTransition>} />
-            <Route path="user/safe-zones" element={<PageTransition><SafeZones /></PageTransition>} />
+          {/* ===== User ===== */}
+          <Route path="user" element={<PageTransition><UserHome /></PageTransition>} />
+          <Route path="user/reports" element={<PageTransition><MyReports /></PageTransition>} />
+          <Route path="user/safe-zones" element={<PageTransition><SafeZones /></PageTransition>} />
 
-            <Route path="volunteer" element={<PageTransition><VolunteerHome /></PageTransition>} />
-            <Route path="volunteer/create" element={<PageTransition><CreateVolunteer /></PageTransition>} />
-            <Route path="volunteer/tasks" element={<PageTransition><Tasks /></PageTransition>} />
-            <Route path="volunteer/history" element={<PageTransition><VolunteerHistory /></PageTransition>} />
-            <Route path="volunteer/nearby" element={<PageTransition><NearbyReports /></PageTransition>} />
-            {/* ===== NGO ===== */}
-            <Route path="ngo" element={<PageTransition><NGOHome /></PageTransition>} />
-            <Route path="ngo/volunteers" element={<PageTransition><ManageVolunteers /></PageTransition>} />
-            <Route path="ngo/resources" element={<PageTransition><ManageResources /></PageTransition>} />
-            <Route path="ngo/assignments" element={<PageTransition><AidAssignments /></PageTransition>} />
-            <Route path="ngo/assignments/new" element={<PageTransition><AssignAid /></PageTransition>} />
-            <Route path="ngo/history" element={<PageTransition><AidHistory /></PageTransition>} />
+          <Route path="volunteer" element={<PageTransition><VolunteerHome /></PageTransition>} />
+          <Route path="volunteer/create" element={<PageTransition><CreateVolunteer /></PageTransition>} />
+          <Route path="volunteer/tasks" element={<PageTransition><Tasks /></PageTransition>} />
+          <Route path="volunteer/history" element={<PageTransition><VolunteerHistory /></PageTransition>} />
+          <Route path="volunteer/nearby" element={<PageTransition><NearbyReports /></PageTransition>} />
+          {/* ===== NGO ===== */}
+          <Route path="ngo" element={<PageTransition><NGOHome /></PageTransition>} />
+          <Route path="ngo/volunteers" element={<PageTransition><ManageVolunteers /></PageTransition>} />
+          <Route path="ngo/resources" element={<PageTransition><ManageResources /></PageTransition>} />
+          <Route path="ngo/assignments" element={<PageTransition><AidAssignments /></PageTransition>} />
+          <Route path="ngo/assignments/new" element={<PageTransition><AssignAid /></PageTransition>} />
+          <Route path="ngo/history" element={<PageTransition><AidHistory /></PageTransition>} />
 
-            {/* ===== Rescue ===== */}
-            <Route path="rescue" element={<PageTransition><RescueHome /></PageTransition>} />
-            <Route path="rescue/dashboard" element={<PageTransition><RescueDashboard /></PageTransition>} />
-            <Route path="rescue/missions" element={<PageTransition><Missions /></PageTransition>} />
-            <Route path="rescue/history" element={<PageTransition><MissionHistory /></PageTransition>} />
-            <Route path="rescue/missions/new" element={<PageTransition><MissionForm /></PageTransition>} />
-            <Route path="rescue/volunteers" element={<PageTransition><ManageVolunteers /></PageTransition>} />
+          {/* ===== Rescue ===== */}
+          <Route path="rescue" element={<PageTransition><RescueHome /></PageTransition>} />
+          <Route path="rescue/dashboard" element={<PageTransition><RescueDashboard /></PageTransition>} />
+          <Route path="rescue/missions" element={<PageTransition><Missions /></PageTransition>} />
+          <Route path="rescue/history" element={<PageTransition><MissionHistory /></PageTransition>} />
+          <Route path="rescue/missions/new" element={<PageTransition><MissionForm /></PageTransition>} />
+          <Route path="rescue/volunteers" element={<PageTransition><ManageVolunteers /></PageTransition>} />
 
-            {/* Catch-all inside dashboard */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Route>
-
-          {/* ================= PUBLIC CATCH-ALL ================= */}
+          {/* Catch-all inside dashboard */}
           <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </AnimatePresence>
+        </Route>
+
+        {/* ================= PUBLIC CATCH-ALL ================= */}
+      </Routes>
     </Suspense>
   );
 }

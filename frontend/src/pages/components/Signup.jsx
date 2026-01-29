@@ -4,16 +4,7 @@ import Select from "react-select";
 import { AuthContext } from "../../context/AuthContext";
 import axiosInstance from "../../api/axios";
 
-// Provinces & Cities
-const pakistanData = {
-  Punjab: ["Lahore", "Rawalpindi", "Islamabad", "Faisalabad"],
-  Sindh: ["Karachi", "Hyderabad", "Sukkur"],
-  KPK: ["Peshawar", "Mardan", "Abbottabad"],
-  Balochistan: ["Quetta", "Gwadar", "Turbat"],
-  Islamabad: ["Islamabad"],
-  "Gilgit-Baltistan": ["Gilgit", "Skardu"],
-  AJK: ["Muzaffarabad", "Mirpur"],
-};
+import { pakistanData } from "../../data/pakistan_cities";
 
 // Skills
 const skillsOptions = [

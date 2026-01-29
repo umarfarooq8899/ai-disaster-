@@ -1,16 +1,19 @@
 import React, { useContext, useState, useEffect } from "react";
 import axiosInstance from "../api/axios";
-import { Outlet } from "react-router-dom";
+import { useLocation, useOutlet } from "react-router-dom"; // Added useOutlet
 import Sidebar from "../components/ui/Sidebar";
 import Navbar from "../components/ui/Navbar";
 import { AuthContext } from "../context/AuthContext";
 import { Menu, ChevronLeft, ChevronRight } from "lucide-react";
+import { AnimatePresence } from "framer-motion"; // Added AnimatePresence
 
 export default function DashboardLayout() {
   const { user } = useContext(AuthContext);
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isAvailable, setIsAvailable] = useState(false);
+  const location = useLocation();
+  const element = useOutlet(); // Get the current child route element
 
   useEffect(() => {
     if (user?.role === "volunteer") {
@@ -100,8 +103,10 @@ export default function DashboardLayout() {
             </button>
           </div>
 
-          <div className="card p-4 md:p-6 min-h-[calc(100vh-12rem)]">
-            <Outlet />
+          <div className="card p-4 md:p-6 min-h-[calc(100vh-12rem)] relative overflow-hidden">
+            <AnimatePresence mode="wait">
+              {element && React.cloneElement(element, { key: location.pathname })}
+            </AnimatePresence>
           </div>
         </div>
       </div>

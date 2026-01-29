@@ -12,7 +12,7 @@ export default function MissionCard({ mission, token, onUpdated }) {
       <p className="mt-1 text-sm text-gray-400">Status: {mission.status}</p>
 
       <button
-        className="mt-3 bg-blue-500 text-white px-3 py-1 rounded"
+        className="mt-3 btn-primary px-3 py-1.5"
         onClick={() => setShowAssign(true)}
       >
         Assign

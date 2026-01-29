@@ -53,7 +53,7 @@ export default function AidAssignments() {
                 </div>
                 <button
                     onClick={handleAutoAssign}
-                    className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-700 text-white px-4 py-2 rounded-lg hover:from-emerald-700 hover:to-teal-800 transition shadow-md"
+                    className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition shadow-md font-medium"
                 >
                     <Calculator className="w-5 h-5" />
                     Auto Assign
@@ -80,14 +80,16 @@ export default function AidAssignments() {
                                 </div>
 
                                 <div className="relative z-10 min-w-0">
-                                    <h3 className="font-bold text-lg text-gray-800 truncate group-hover:text-emerald-700 transition-colors uppercase tracking-tight">{ass.disaster?.title}</h3>
+                                    <h3 className="font-bold text-lg text-gray-800 truncate group-hover:text-emerald-700 transition-colors uppercase tracking-tight">
+                                        {ass.disaster?.title || "Pending Disaster Data"}
+                                    </h3>
                                     <p className="text-xs text-gray-400 font-medium flex items-center gap-1 mt-1 uppercase">
-                                        <MapPin className="w-3 h-3 text-emerald-500" /> {ass.disaster?.location}
+                                        <MapPin className="w-3 h-3 text-emerald-500" /> {ass.disaster?.location || "Location TBD"}
                                     </p>
                                 </div>
                                 <span className={`relative z-10 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${ass.status === "distributed"
                                     ? "bg-emerald-50 text-emerald-700 border border-emerald-100"
-                                    : "bg-blue-50 text-blue-700 border border-blue-100"
+                                    : "bg-brand-50 text-brand-700 border border-brand-100"
                                     }`}>
                                     {ass.status}
                                 </span>
@@ -109,24 +111,48 @@ export default function AidAssignments() {
                                     </div>
                                 </div>
 
-                                <div className="pt-4 border-t border-dashed border-gray-100">
-                                    <div className="flex items-center gap-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">
-                                        <User className="w-3 h-3 text-blue-500" />
-                                        Deployment Team
+                                {ass.volunteers && ass.volunteers.length > 0 && (
+                                    <div className="pt-4 border-t border-dashed border-gray-100">
+                                        <div className="flex items-center gap-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">
+                                            <User className="w-3 h-3 text-brand-500" />
+                                            Deployment Team
+                                        </div>
+                                        <div className="flex flex-wrap gap-1.5">
+                                            {(ass.volunteers).map(vol => vol && (
+                                                <span key={vol._id} className="text-[10px] font-bold bg-brand-50 text-brand-600 px-2.5 py-1 rounded-lg border border-brand-100">
+                                                    {vol.name}
+                                                </span>
+                                            ))}
+                                        </div>
                                     </div>
-                                    <div className="flex flex-wrap gap-1.5">
-                                        {(ass.volunteers || []).map(vol => vol && (
-                                            <span key={vol._id} className="text-[10px] font-bold bg-blue-50 text-blue-600 px-2.5 py-1 rounded-lg border border-blue-100">
-                                                {vol.name}
-                                            </span>
-                                        ))}
-                                    </div>
-                                </div>
+                                )}
                             </div>
 
-                            <div className="p-4 bg-slate-900 border-t border-slate-800 text-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Team currently on site</span>
-                            </div>
+                            {ass.volunteers && ass.volunteers.length > 0 && (
+                                <div className="p-4 bg-slate-900 border-t border-slate-800 text-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Team currently on site</span>
+                                </div>
+                            )}
+
+                            {ass.status !== 'distributed' && (
+                                <div className="p-4 border-t bg-gray-50 flex justify-center">
+                                    <button
+                                        onClick={async (e) => {
+                                            e.stopPropagation(); // Prevent card click
+                                            try {
+                                                await axios.patch(`/ngo/assignments/${ass._id}/status`);
+                                                toast.success("Marked as Distributed");
+                                                fetchAssignments();
+                                            } catch (err) {
+                                                toast.error("Failed to update status");
+                                            }
+                                        }}
+                                        className="w-full bg-emerald-600 text-white py-2 rounded-lg hover:bg-emerald-700 transition flex items-center justify-center gap-2 text-sm font-semibold"
+                                    >
+                                        <CheckCircle className="w-4 h-4" /> Mark as Distributed
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     ))
                 )}

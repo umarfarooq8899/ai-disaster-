@@ -48,7 +48,7 @@ export default function ManageNgoVolunteers() {
             placeholder="Search team members..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-3 pr-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none shadow-sm text-sm"
+            className="w-full pl-3 pr-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-brand-500 outline-none shadow-sm text-sm"
           />
         </div>
       </div>
@@ -69,7 +69,7 @@ export default function ManageNgoVolunteers() {
             <div key={v._id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden group hover:shadow-md transition duration-200">
               <div className="p-6">
                 <div className="flex justify-between items-start mb-4">
-                  <div className="h-12 w-12 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 font-bold text-xl uppercase">
+                  <div className="h-12 w-12 rounded-xl bg-brand-50 flex items-center justify-center text-brand-600 font-bold text-xl uppercase">
                     {v.user?.name?.charAt(0)}
                   </div>
                   <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${v.available ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-orange-50 text-orange-600 border border-orange-100'
@@ -78,7 +78,7 @@ export default function ManageNgoVolunteers() {
                   </span>
                 </div>
 
-                <h3 className="font-bold text-gray-800 text-lg mb-1 group-hover:text-blue-600 transition truncate">{v.user?.name}</h3>
+                <h3 className="font-bold text-gray-800 text-lg mb-1 group-hover:text-brand-600 transition truncate">{v.user?.name}</h3>
                 <p className="text-xs text-gray-400 font-medium uppercase tracking-tight flex items-center gap-1 mb-4">
                   <Mail className="w-3 h-3" /> {v.user?.email}
                 </p>
@@ -105,11 +105,11 @@ export default function ManageNgoVolunteers() {
               </div>
 
               <div className="px-6 py-4 bg-gray-50/50 border-t border-gray-50 flex justify-between items-center group-hover:bg-gray-50 transition">
-                <button className="text-xs font-bold text-gray-400 hover:text-blue-600 transition flex items-center gap-1">
+                <button className="text-xs font-bold text-gray-400 hover:text-brand-600 transition flex items-center gap-1">
                   View History
                 </button>
                 {v.currentTask && (
-                  <span className="text-[10px] text-blue-600 font-bold bg-blue-50 px-2 py-0.5 rounded">
+                  <span className="text-[10px] text-brand-600 font-bold bg-brand-50 px-2 py-0.5 rounded">
                     Active Task
                   </span>
                 )}

@@ -106,9 +106,9 @@ export default function VolunteerTasks() {
                 <h3 className="font-semibold text-lg text-gray-800">{mission.title}</h3>
                 <span
                   className={`px-2 py-1 rounded text-xs font-semibold ${mission.status === "completed"
-                    ? "bg-green-100 text-green-700"
+                    ? "bg-emerald-100 text-emerald-700"
                     : mission.status === "ongoing"
-                      ? "bg-blue-100 text-blue-700"
+                      ? "bg-brand-100 text-brand-700"
                       : "bg-yellow-100 text-yellow-700"
                     }`}
                 >
@@ -231,7 +231,7 @@ export default function VolunteerTasks() {
               <button
                 onClick={handleLogSubmit}
                 disabled={!logForm.description}
-                className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                className="w-full bg-brand-600 text-white py-2 rounded-lg hover:bg-brand-700 disabled:opacity-50"
               >
                 Post Update
               </button>

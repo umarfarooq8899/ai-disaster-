@@ -224,7 +224,7 @@ export default function ManageOrganizations() {
                 <button
                     onClick={() => setActiveTab("ngo")}
                     className={`pb-3 px-4 text-sm font-medium transition ${activeTab === "ngo"
-                        ? "text-blue-600 border-b-2 border-blue-600"
+                        ? "text-brand-600 border-b-2 border-brand-600"
                         : "text-gray-500 hover:text-gray-700"
                         }`}
                 >
@@ -278,7 +278,7 @@ export default function ManageOrganizations() {
                                     <div
                                         className={`p-2 rounded-lg ${activeTab === "rescue"
                                             ? "bg-red-50 text-red-600"
-                                            : "bg-blue-50 text-blue-600"
+                                            : "bg-brand-50 text-brand-600"
                                             }`}
                                     >
                                         <Building2 className="w-5 h-5" />
@@ -318,7 +318,7 @@ export default function ManageOrganizations() {
 
                                 <button
                                     onClick={() => setShowAddCoord(org)}
-                                    className="mt-4 w-full py-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg flex items-center justify-center gap-2 transition"
+                                    className="mt-4 w-full py-2 text-sm font-medium text-brand-600 bg-brand-50 hover:bg-brand-100 rounded-lg flex items-center justify-center gap-2 transition"
                                 >
                                     <UserPlus className="w-4 h-4" />
                                     Add Coordinator

@@ -27,8 +27,8 @@ const aidAssignmentSchema = new mongoose.Schema(
         ],
         status: {
             type: String,
-            enum: ["assigned", "distributed"],
-            default: "assigned"
+            enum: ["pending", "assigned", "distributed"],
+            default: "pending"
         },
         notes: String,
     },

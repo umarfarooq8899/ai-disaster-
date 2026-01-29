@@ -212,7 +212,7 @@ export default function ManageUsers() {
                       ${u.role === "admin"
                         ? "bg-purple-100 text-purple-700"
                         : u.role === "volunteer"
-                          ? "bg-blue-100 text-blue-700"
+                          ? "bg-brand-100 text-brand-700"
                           : "bg-gray-100 text-gray-700"
                       }`}
                   >

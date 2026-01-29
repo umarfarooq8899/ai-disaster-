@@ -7,8 +7,8 @@ import { Users, Activity, HeartHandshake, Package } from "lucide-react";
 /* ================= STAT CARD ================= */
 function StatCard({ icon: Icon, label, value, color }) {
   const colors = {
-    blue: "bg-blue-50 text-blue-600",
-    green: "bg-green-50 text-green-600",
+    blue: "bg-brand-50 text-brand-600",
+    green: "bg-emerald-50 text-emerald-600",
     purple: "bg-purple-50 text-purple-600",
     orange: "bg-orange-50 text-orange-600",
   };
@@ -106,7 +106,7 @@ export default function NGOHome() {
             ) : (
               activities.map((log) => (
                 <div key={log._id} className="flex gap-4 p-3 rounded-lg hover:bg-gray-50 transition border border-transparent hover:border-gray-100">
-                  <div className={`mt-1 p-2 rounded-full h-fit flex-shrink-0 ${log.updateType === 'food' ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'}`}>
+                  <div className={`mt-1 p-2 rounded-full h-fit flex-shrink-0 ${log.updateType === 'food' ? 'bg-orange-100 text-orange-600' : 'bg-brand-100 text-brand-600'}`}>
                     {log.updateType === 'food' ? <Package className="w-4 h-4" /> : <Activity className="w-4 h-4" />}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -130,16 +130,16 @@ export default function NGOHome() {
         <div className="bg-white p-6 rounded-xl shadow-sm border">
           <h3 className="font-semibold text-lg mb-4">Quick Links</h3>
           <div className="space-y-3">
-            <Link to="/dashboard/ngo/volunteers" className="block w-full text-left p-3 rounded-lg bg-gray-50 hover:bg-gray-100 text-blue-600 font-medium transition">
+            <Link to="/dashboard/ngo/volunteers" className="block w-full text-left p-3 rounded-lg bg-gray-50 hover:bg-gray-100 text-brand-600 font-medium transition">
               View All Volunteers
             </Link>
-            <Link to="/dashboard/ngo/resources" className="block w-full text-left p-3 rounded-lg bg-gray-50 hover:bg-gray-100 text-blue-600 font-medium transition">
+            <Link to="/dashboard/ngo/resources" className="block w-full text-left p-3 rounded-lg bg-gray-50 hover:bg-gray-100 text-brand-600 font-medium transition">
               Manage Resources
             </Link>
-            <Link to="/dashboard/ngo/assignments/new" className="block w-full text-left p-3 rounded-lg bg-gray-50 hover:bg-gray-100 text-blue-600 font-medium transition">
+            <Link to="/dashboard/ngo/assignments/new" className="block w-full text-left p-3 rounded-lg bg-gray-50 hover:bg-gray-100 text-brand-600 font-medium transition">
               Create New Assignment
             </Link>
-            <Link to="/dashboard/ngo/history" className="block w-full text-left p-3 rounded-lg bg-gray-50 hover:bg-gray-100 text-blue-600 font-medium transition">
+            <Link to="/dashboard/ngo/history" className="block w-full text-left p-3 rounded-lg bg-gray-50 hover:bg-gray-100 text-brand-600 font-medium transition">
               Aid Distribution History
             </Link>
           </div>

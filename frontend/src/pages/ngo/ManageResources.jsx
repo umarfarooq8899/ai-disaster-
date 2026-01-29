@@ -77,7 +77,7 @@ export default function ManageResources() {
                 </div>
                 <button
                     onClick={() => { resetForm(); setModalOpen(true); }}
-                    className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition shadow-sm"
+                    className="flex items-center gap-2 bg-brand-600 text-white px-4 py-2 rounded-lg hover:bg-brand-700 transition shadow-sm"
                 >
                     <Plus className="w-5 h-5" />
                     Add Resource
@@ -114,16 +114,16 @@ export default function ManageResources() {
                             <div className="p-5">
                                 <div className="flex justify-between items-start mb-4">
                                     <div className={`p-2.5 rounded-xl ${res.category === "Food" ? "bg-orange-50 text-orange-600" :
-                                            res.category === "Medicine" ? "bg-rose-50 text-rose-600" :
-                                                res.category === "Vehicle" ? "bg-blue-50 text-blue-600" :
-                                                    "bg-slate-50 text-slate-600"
+                                        res.category === "Medicine" ? "bg-rose-50 text-rose-600" :
+                                            res.category === "Vehicle" ? "bg-brand-50 text-brand-600" :
+                                                "bg-slate-50 text-slate-600"
                                         }`}>
                                         <Package className="w-5 h-5" />
                                     </div>
                                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                         <button
                                             onClick={() => handleEdit(res)}
-                                            className="p-1.5 rounded-lg bg-gray-50 text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                                            className="p-1.5 rounded-lg bg-gray-50 text-gray-400 hover:text-brand-600 hover:bg-brand-50 transition-colors"
                                         >
                                             <Edit2 className="w-4 h-4" />
                                         </button>
@@ -178,7 +178,7 @@ export default function ManageResources() {
                                 <input
                                     type="text"
                                     required
-                                    className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                    className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none"
                                     value={formData.name}
                                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                 />
@@ -187,7 +187,7 @@ export default function ManageResources() {
                                 <div>
                                     <label className="block text-sm font-semibold text-gray-700 mb-1">Category</label>
                                     <select
-                                        className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                        className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none"
                                         value={formData.category}
                                         onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                                     >
@@ -200,7 +200,7 @@ export default function ManageResources() {
                                         type="number"
                                         required
                                         min="0"
-                                        className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                        className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none"
                                         value={formData.quantity}
                                         onChange={(e) => setFormData({ ...formData, quantity: parseInt(e.target.value) })}
                                     />
@@ -209,7 +209,7 @@ export default function ManageResources() {
                             <div>
                                 <label className="block text-sm font-semibold text-gray-700 mb-1">Description (Optional)</label>
                                 <textarea
-                                    className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                    className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none"
                                     rows="3"
                                     value={formData.description}
                                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -217,7 +217,7 @@ export default function ManageResources() {
                             </div>
                             <button
                                 type="submit"
-                                className="w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700 transition"
+                                className="w-full bg-brand-600 text-white font-bold py-3 rounded-lg hover:bg-brand-700 transition"
                             >
                                 {formData.id ? "Save Changes" : "Create Resource"}
                             </button>

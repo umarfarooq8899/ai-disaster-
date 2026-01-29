@@ -12,7 +12,7 @@ exports.getDashboardStats = async (req, res) => {
         const volunteersCount = await Volunteer.countDocuments({ organization: orgId });
         const activeMissions = await AidAssignment.countDocuments({
             ngo: orgId,
-            status: "assigned"
+            status: { $in: ["pending", "assigned"] }
         });
 
         const resources = await Resource.find({ organization: orgId });
@@ -101,7 +101,10 @@ exports.getAidAssignments = async (req, res) => {
             .populate("disaster", "title location")
             .populate("volunteers", "name email")
             .populate("items.resource", "name category");
-        res.json(assignments);
+
+        // Filter out assignments whose disaster no longer exists (orphans)
+        const validAssignments = assignments.filter(a => a.disaster);
+        res.json(validAssignments);
     } catch (err) {
         res.status(500).json({ message: "Failed to fetch assignments" });
     }
@@ -145,8 +148,7 @@ exports.updateAidStatus = async (req, res) => {
         const assignment = await AidAssignment.findById(req.params.id);
         if (!assignment) return res.status(404).json({ message: "Assignment not found" });
 
-        assignment.status = "distributed";
-        await assignment.save();
+        await AidAssignment.findByIdAndUpdate(req.params.id, { status: "distributed" });
         res.json(assignment);
     } catch (err) {
         res.status(500).json({ message: "Failed to update status" });

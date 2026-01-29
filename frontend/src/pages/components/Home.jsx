@@ -36,11 +36,11 @@ export default function Home() {
 
           {/* LEFT */}
           <div>
-            <h1 className="text-4xl font-extrabold">
+            <h1 className="text-4xl font-extrabold tracking-tight text-slate-900">
               AI Disaster Relief System
             </h1>
 
-            <p className="mt-2 text-slate-600 max-w-lg">
+            <p className="mt-4 text-slate-600 max-w-lg text-lg leading-relaxed">
               Monitor disasters, view alerts, analyze statistics,
               and coordinate response efforts efficiently.
             </p>
@@ -87,7 +87,7 @@ export default function Home() {
                   <span>Active Disaster</span>
                 </div>
                 <div className="flex items-center gap-2 mt-1">
-                  <Users className="text-blue-600" />
+                  <Users className="text-brand-600" />
                   <span>Volunteer</span>
                 </div>
               </div>

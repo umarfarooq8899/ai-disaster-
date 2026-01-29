@@ -2,6 +2,7 @@ const Volunteer = require("../models/Volunteer"); // Fixed case
 const User = require("../models/User");
 const Mission = require("../models/Mission");
 const Alert = require("../models/Alert");
+const AidAssignment = require("../models/AidAssignment");
 
 // Create or update volunteer profile
 exports.createVolunteer = async (req, res) => {
@@ -109,8 +110,7 @@ exports.updateTaskStatus = async (req, res) => {
       return res.status(403).json({ message: "Not authorized to update this task" });
     }
 
-    mission.status = status;
-    await mission.save();
+    await Mission.findByIdAndUpdate(req.params.id, { status });
 
     // If completed, update volunteer availability
     if (status === "completed") {
@@ -218,42 +218,63 @@ const getDistance = (lat1, lon1, lat2, lon2) => {
 // Auto-assignment logic (Rule-based, scoped by organization if called by coordinator)
 exports.autoAssignVolunteers = async (req, res) => {
   try {
-    const isCoordinator = req.user.role === "rescue_coordinator" || req.user.role === "ngo_coordinator";
-    const orgId = isCoordinator ? req.user.organization : null;
+    const isRescueCoordinator = req.user.role === "rescue_coordinator";
+    const isNgoCoordinator = req.user.role === "ngo_coordinator";
+    const orgId = (isRescueCoordinator || isNgoCoordinator) ? req.user.organization : null;
 
-    // 1. Get pending missions for this org
-    const missionQuery = { status: "pending" };
-    if (orgId) missionQuery.organization = orgId;
-
-    const missions = await Mission.find(missionQuery).populate("disaster");
+    console.log(`DEBUG: autoAssignVolunteers triggered by ${req.user.role} (${req.user._id}) for org ${orgId}`);
 
     let totalAssignments = 0;
+    let tasksToProcess = [];
 
-    for (const mission of missions) {
-      if (!mission.disaster) continue;
+    // 1. Get pending tasks for this org
+    if (isRescueCoordinator || !isNgoCoordinator) {
+      const missionQuery = { status: "pending" };
+      if (orgId) missionQuery.organization = orgId;
+      const missions = await Mission.find(missionQuery).populate("disaster");
+      console.log(`DEBUG: Found ${missions.length} pending Rescue missions`);
+      tasksToProcess.push(...missions.map(m => ({ task: m, type: "Mission" })));
+    }
 
-      const { latitude: dLat, longitude: dLon, location } = mission.disaster;
+    if (isNgoCoordinator || !isRescueCoordinator) {
+      const aidQuery = { status: "pending" };
+      if (orgId) aidQuery.ngo = orgId;
+      const AidAssignment = require("../models/AidAssignment");
+      const assignments = await AidAssignment.find(aidQuery).populate("disaster");
+      console.log(`DEBUG: Found ${assignments.length} pending NGO AidAssignments`);
+      tasksToProcess.push(...assignments.map(a => ({ task: a, type: "AidAssignment" })));
+    }
+
+    if (tasksToProcess.length === 0) {
+      console.log("DEBUG: No tasks to process (tasksToProcess is empty)");
+    }
+
+    for (const { task, type } of tasksToProcess) {
+      if (!task.disaster) {
+        console.log(`DEBUG: Task ${task._id} (${type}) has no associated disaster. skipping.`);
+        continue;
+      }
+
+      const { latitude: dLat, longitude: dLon } = task.disaster;
+      console.log(`DEBUG: Processing task ${task._id} (${type}) at [${dLat}, ${dLon}]`);
 
       // 2. Find ALL available volunteers for this org
       const volunteerQuery = {
         available: true,
-        organization: mission.organization,
+        organization: type === "Mission" ? task.organization : task.ngo,
       };
 
       const candidates = await Volunteer.find(volunteerQuery);
+      console.log(`DEBUG: Found ${candidates.length} available volunteers for org ${volunteerQuery.organization}`);
 
       if (candidates.length === 0) continue;
 
       // 3. Score and Sort candidates
-      // Scoring: 
-      // - Distance (lower is better)
-      // - Skill Match (bonus points)
       const scoredVolunteers = candidates.map(v => {
         const distance = getDistance(dLat, dLon, v.latitude, v.longitude);
-        const skillMatchCount = (v.skills || []).filter(s => (mission.skillsRequired || []).includes(s)).length;
+        const skillsRequired = type === "Mission" ? (task.skillsRequired || []) : [];
+        const skillMatchCount = (v.skills || []).filter(s => skillsRequired.includes(s)).length;
 
-        // Final score: prioritize skill match, then distance
-        // Simplified: filter by at least one skill match if skills required, then sort by distance
         return {
           volunteer: v,
           distance,
@@ -261,38 +282,55 @@ exports.autoAssignVolunteers = async (req, res) => {
         };
       });
 
-      // Filter by skill match if mission has requirements
+      // Filter by skill match if required
       let eligible = scoredVolunteers;
-      if (mission.skillsRequired && mission.skillsRequired.length > 0) {
+      const skillsRequired = type === "Mission" ? (task.skillsRequired || []) : [];
+      if (skillsRequired.length > 0) {
         eligible = scoredVolunteers.filter(ev => ev.skillMatchCount > 0);
+        console.log(`DEBUG: Filtered to ${eligible.length} volunteers based on skill requirements`);
       }
 
       // Sort by distance
       eligible.sort((a, b) => a.distance - b.distance);
 
-      // Take top 3 closest (or specify a limit)
+      // Take top 3 closest
       const toAssign = eligible.slice(0, 3).map(e => e.volunteer);
 
       if (toAssign.length > 0) {
+        console.log(`DEBUG: Assigning ${toAssign.length} volunteers to task ${task._id}`);
         const volunteerUserIds = toAssign.map(v => v.user);
 
-        mission.assignedVolunteers = [...new Set([...mission.assignedVolunteers, ...volunteerUserIds])];
-        mission.status = "ongoing";
-        await mission.save();
+        if (type === "Mission") {
+          await Mission.findByIdAndUpdate(task._id, {
+            assignedVolunteers: [...new Set([...(task.assignedVolunteers || []), ...volunteerUserIds])],
+            status: "ongoing"
+          });
+        } else {
+          await AidAssignment.findByIdAndUpdate(task._id, {
+            volunteers: [...new Set([...(task.volunteers || []), ...volunteerUserIds])],
+            status: "assigned"
+          });
+        }
 
         // Update volunteer status
         await Volunteer.updateMany(
           { user: { $in: volunteerUserIds } },
-          { available: false, currentTask: mission._id }
+          {
+            available: false,
+            currentTask: task._id,
+            currentTaskType: type
+          }
         );
 
         totalAssignments += toAssign.length;
+      } else {
+        console.log(`DEBUG: No eligible volunteers to assign to task ${task._id}`);
       }
     }
 
     res.json({
       success: true,
-      message: `Auto-assigned ${totalAssignments} volunteers to ${missions.length} missions based on proximity and skills.`
+      message: `Auto-assigned ${totalAssignments} volunteers to ${tasksToProcess.length} tasks based on proximity and skills.`
     });
   } catch (err) {
     console.error("Auto-assignment Error:", err);
@@ -301,41 +339,104 @@ exports.autoAssignVolunteers = async (req, res) => {
 };
 
 // Get Missions Assigned to Volunteer
+// Get Missions Assigned to Volunteer
 exports.getMyMissions = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    const missions = await Mission.find({ assignedVolunteers: userId })
+    // 1. Fetch Missions
+    const missions = await Mission.find({
+      assignedVolunteers: userId,
+      status: { $in: ["ongoing", "pending"] }
+    })
       .populate("disaster", "title location latitude longitude severity")
       .populate("organization", "name")
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
 
-    res.json(missions);
+    // 2. Fetch Aid Assignments
+    const aidAssignments = await AidAssignment.find({
+      volunteers: userId,
+      status: { $in: ["assigned", "pending"] }
+    })
+      .populate("disaster", "title location latitude longitude severity")
+      .populate("ngo", "name")
+      .sort({ createdAt: -1 })
+      .lean();
+
+    // 3. Normalize Aid Assignments to look like Missions for the frontend
+    const normalizedAid = aidAssignments.map(a => ({
+      _id: a._id,
+      title: `Aid Delivery: ${a.disaster?.title || "Disaster Relief"}`,
+      description: `Deliver items: ${a.items?.map(i => `${i.quantity} ${i.name}`).join(", ")}. Notes: ${a.notes || ""}`,
+      status: a.status === "assigned" ? "ongoing" : a.status, // Map 'assigned' to 'ongoing'
+      disaster: a.disaster,
+      location: a.disaster?.location,
+      organization: a.ngo, // Use NGO as organization
+      type: "AidAssignment", // Flag to distinguish if needed
+      createdAt: a.createdAt
+    }));
+
+    // 4. Merge and Sort
+    const allTasks = [...missions, ...normalizedAid].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    res.json(allTasks);
   } catch (error) {
+    console.error("Fetch missions error:", error);
     res.status(500).json({ message: error.message });
   }
 };
 
 // Mark Mission as Complete (Volunteer)
+// Mark Mission/Task as Complete (Volunteer)
 exports.completeMission = async (req, res) => {
   const { missionId } = req.params;
   const userId = req.user.id;
 
   try {
-    const mission = await Mission.findById(missionId);
-    if (!mission) return res.status(404).json({ message: "Mission not found" });
+    // Try to find Mission first
+    let mission = await Mission.findById(missionId);
+    if (mission) {
+      // Verify volunteer assignment
+      if (!mission.assignedVolunteers.includes(userId)) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+      await Mission.findByIdAndUpdate(missionId, { status: "completed" });
 
-    // Verify volunteer is assigned to this mission
-    if (!mission.assignedVolunteers.includes(userId)) {
-      return res.status(403).json({ message: "Not authorized" });
+      // Update volunteer availability
+      await Volunteer.findOneAndUpdate(
+        { user: userId },
+        { currentTask: null, available: true }
+      );
+
+      return res.json({ message: "Mission marked as complete", mission });
     }
 
-    // Mark as completed
-    mission.status = "completed";
-    await mission.save();
+    // Try AidAssignment
+    const aidAssignment = await AidAssignment.findById(missionId);
+    if (aidAssignment) {
+      // Verify volunteer assignment
+      // AidAssignment uses 'volunteers' array of ObjectIds
+      const isAssigned = aidAssignment.volunteers.some(id => id.toString() === userId);
+      if (!isAssigned) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
 
-    res.json({ message: "Mission marked as complete", mission });
+      await AidAssignment.findByIdAndUpdate(missionId, { status: "distributed" });
+
+      // Update volunteer availability
+      await Volunteer.findOneAndUpdate(
+        { user: userId },
+        { currentTask: null, available: true }
+      );
+
+      return res.json({ message: "Aid assignment marked as complete", mission: aidAssignment });
+    }
+
+    return res.status(404).json({ message: "Task not found" });
+
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: error.message });
   }
 };

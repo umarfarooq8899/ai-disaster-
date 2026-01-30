@@ -1,13 +1,17 @@
 import React, { useEffect, useState } from "react";
 import { getAllDisasters } from "../../api/disasters";
+import MapView from "../../components/map/MapView";
 import {
-  FaExclamationTriangle,
-  FaMapMarkerAlt,
-  FaClipboardList,
-  FaImage,
-  FaClock,
-  FaTimes,
-} from "react-icons/fa";
+  ClipboardList,
+  MapPin,
+  Clock,
+  Image as ImageIcon,
+  X,
+  ChevronRight,
+  AlertCircle,
+  ShieldCheck,
+  AlertTriangle
+} from "lucide-react";
 
 export default function MyReports() {
   const [reports, setReports] = useState([]);
@@ -23,17 +27,14 @@ export default function MyReports() {
   /* ---------- Skeleton Loader ---------- */
   if (loading) {
     return (
-      <div className="p-6">
-        <h2 className="text-xl font-semibold mb-4">Reports</h2>
-        <div className="space-y-3">
-          {[1, 2, 3].map((i) => (
-            <div
-              key={i}
-              className="animate-pulse bg-gray-100 p-4 rounded-lg shadow"
-            >
-              <div className="h-4 bg-gray-300 rounded w-1/3 mb-2"></div>
-              <div className="h-3 bg-gray-300 rounded w-2/3"></div>
-            </div>
+      <div className="p-10 max-w-7xl mx-auto">
+        <div className="flex items-center gap-4 mb-10 animate-pulse">
+          <div className="w-12 h-12 bg-gray-100 rounded-xl"></div>
+          <div className="h-6 bg-gray-100 rounded w-48"></div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="bg-gray-50 h-72 rounded-3xl animate-pulse"></div>
           ))}
         </div>
       </div>
@@ -41,233 +42,206 @@ export default function MyReports() {
   }
 
   return (
-    <div className="p-6">
-      {/* Header */}
-      <div className="flex items-center gap-2 mb-5">
-        <FaClipboardList className="text-blue-600 text-xl" />
-        <h2 className="text-xl font-semibold">Reports</h2>
-      </div>
-
-      {/* Empty State */}
-      {reports.length === 0 && (
-        <div className="bg-blue-50 text-blue-700 p-4 rounded-lg">
-          No reports submitted yet.
+    <div className="p-6 md:p-10 min-h-screen bg-white">
+      <div className="max-w-7xl mx-auto">
+        <div className="flex items-center gap-4 mb-12">
+          <div className="p-3 bg-blue-50 rounded-xl">
+            <ClipboardList className="text-blue-600 w-6 h-6" />
+          </div>
+          <div>
+            <h2 className="text-3xl font-bold text-gray-900">My Reports</h2>
+            <p className="text-sm text-gray-500 font-medium">Manage and track your submitted incident reports.</p>
+          </div>
         </div>
-      )}
 
-      {/* Reports List */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {reports.map((r) => (
-          <div
-            key={r._id || r.id}
-            className="group bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-all duration-300 flex flex-col"
-          >
-            {/* Media Section */}
+        {/* Empty State */}
+        {reports.length === 0 && (
+          <div className="text-center py-20 bg-gray-50 rounded-3xl border border-dashed border-gray-200">
+            <p className="text-gray-500 font-medium">No reports found.</p>
+          </div>
+        )}
+
+        {/* Reports Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {reports.map((r) => (
             <div
-              className={`relative h-48 bg-gray-100 overflow-hidden cursor-pointer`}
-              onClick={() => setSelectedReport(r)}
+              key={r._id || r.id}
+              className="bg-white rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition-all flex flex-col overflow-hidden group"
             >
-              {r.video ? (
-                <video
-                  src={`http://localhost:5000/${r.video}`}
-                  className="w-full h-full object-cover"
-                  controls={false}
-                  muted
-                  onMouseOver={(e) => e.target.play()}
-                  onMouseOut={(e) => {
-                    e.target.pause();
-                    e.target.currentTime = 0;
-                  }}
-                />
-              ) : r.image ? (
-                <img
-                  src={`http://localhost:5000/${r.image}`}
-                  alt={r.title}
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                />
-              ) : (
-                <div className="w-full h-full flex flex-col items-center justify-center text-gray-400 bg-gray-50">
-                  <FaImage className="text-4xl mb-2" />
-                  <span className="text-xs">No media provided</span>
-                </div>
-              )}
-
-              {/* Floating Severity Badge */}
-              <div className="absolute top-3 right-3">
-                <span
-                  className={`text-xs px-2.5 py-1 rounded-full font-bold shadow-sm backdrop-blur-md
-                    ${r.severity === "high"
-                      ? "bg-red-500/90 text-white"
-                      : r.severity === "medium"
-                        ? "bg-yellow-500/90 text-white"
-                        : "bg-green-500/90 text-white"
-                    }
-                  `}
-                >
-                  {(r.severity || "low").toUpperCase()}
-                </span>
-              </div>
-            </div>
-
-            {/* Content Section */}
-            <div className="p-5 flex-1 flex flex-col">
-              <div className="flex items-start justify-between mb-2">
-                <h3 className="font-bold text-gray-900 leading-tight">
-                  {r.title || "Untitled Report"}
-                </h3>
-                <span
-                  className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded border font-bold
-                    ${r.status === "resolved"
-                      ? "bg-green-50 border-green-200 text-green-700"
-                      : r.status === "active"
-                        ? "bg-blue-50 border-blue-200 text-blue-700"
-                        : r.status === "rejected"
-                          ? "bg-red-50 border-red-200 text-red-700"
-                          : "bg-yellow-50 border-yellow-200 text-yellow-700"
-                    }
-                  `}
-                >
-                  {r.status || "pending"}
-                </span>
-              </div>
-
-              <p className="text-sm text-gray-600 line-clamp-3 mb-4 flex-1">
-                {r.description || "No description provided"}
-              </p>
-
-              <div className="space-y-2 mt-auto">
-                {/* Location */}
-                <div className="flex items-start gap-2 text-xs text-gray-500">
-                  <FaMapMarkerAlt className="mt-0.5 text-blue-500 flex-shrink-0" />
-                  <span className="line-clamp-2">{r.location || "Unknown location"}</span>
-                </div>
-
-                {/* Coordinates */}
-                {r.latitude && r.longitude && (
-                  <div className="flex items-center gap-2 text-[10px] text-gray-400 font-mono pl-5">
-                    <span>Lat: {r.latitude.toFixed(4)}</span>
-                    <span>Long: {r.longitude.toFixed(4)}</span>
+              <div
+                className="relative aspect-video bg-gray-50 overflow-hidden cursor-pointer"
+                onClick={() => setSelectedReport(r)}
+              >
+                {r.video ? (
+                  <video
+                    src={`http://localhost:5000/${r.video}`}
+                    className="w-full h-full object-cover"
+                    controls={false}
+                    muted
+                  />
+                ) : r.image ? (
+                  <img
+                    src={`http://localhost:5000/${r.image}`}
+                    alt={r.title}
+                    className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-gray-300">
+                    <ImageIcon size={32} />
                   </div>
                 )}
 
-                <div className="pt-3 border-t border-gray-50 flex items-center justify-between">
-                  <div className="flex items-center gap-1 text-[11px] text-gray-400">
-                    <FaClock />
-                    {new Date(r.createdAt).toLocaleDateString(undefined, {
-                      year: 'numeric',
-                      month: 'short',
-                      day: 'numeric'
-                    })}
-                  </div>
+                <div className="absolute top-4 left-4">
+                  <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider text-white shadow-sm
+                    ${r.severity === 'high' ? 'bg-red-500' : r.severity === 'medium' ? 'bg-orange-500' : 'bg-blue-500'}`}>
+                    {r.severity}
+                  </span>
+                </div>
+              </div>
 
+              <div className="p-6 flex-1 flex flex-col">
+                <h3 className="text-lg font-bold text-gray-900 mb-2 truncate">{r.title || "Untitled Report"}</h3>
+                <p className="text-sm text-gray-500 line-clamp-2 mb-6 flex-1">{r.description || "No description provided."}</p>
+
+                <div className="flex items-center justify-between pt-4 border-t border-gray-50">
+                  <div className="flex items-center gap-2 text-xs text-gray-400 font-medium">
+                    <Clock size={14} />
+                    {new Date(r.createdAt).toLocaleDateString()}
+                  </div>
                   <button
                     onClick={() => setSelectedReport(r)}
-                    className="text-[11px] font-bold text-blue-600 hover:text-blue-700 transition"
+                    className="text-blue-600 font-bold text-xs uppercase hover:underline"
                   >
-                    VIEW DETAILS
+                    Details
                   </button>
                 </div>
               </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
 
-      {/* Disaster Detail Modal */}
+      {/* Simplified Clean Modal */}
       {selectedReport && (
         <div
-          className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/90 backdrop-blur-sm p-4 animate-fadeIn"
+          className="fixed inset-0 z-[2000] flex items-center justify-center bg-gray-900/40 backdrop-blur-sm p-4 md:p-10 transition-all"
           onClick={() => setSelectedReport(null)}
         >
           <div
-            className="bg-white rounded-3xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col shadow-2xl animate-modal"
+            className="bg-white rounded-[2rem] max-w-6xl w-full h-full max-h-[85vh] overflow-hidden flex flex-col md:flex-row shadow-2xl animate-fadeIn relative"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Modal Media */}
-            <div className="relative h-64 md:h-96 bg-gray-900 flex items-center justify-center">
-              {selectedReport.video ? (
-                <video
-                  src={`http://localhost:5000/${selectedReport.video}`}
-                  className="w-full h-full object-contain"
-                  controls
-                  autoPlay
-                />
-              ) : selectedReport.image ? (
-                <img
-                  src={`http://localhost:5000/${selectedReport.image}`}
-                  alt={selectedReport.title}
-                  className="w-full h-full object-contain"
-                />
-              ) : (
-                <div className="text-gray-500 flex flex-col items-center">
-                  <FaImage className="text-4xl mb-2" />
-                  <span>No media available</span>
-                </div>
-              )}
-              <button
-                className="absolute top-4 right-4 bg-white/20 hover:bg-white/40 backdrop-blur-md text-white p-2 rounded-full transition-colors z-10"
-                onClick={() => setSelectedReport(null)}
-              >
-                <FaTimes />
-              </button>
-            </div>
+            {/* Close Button Top Right */}
+            <button
+              className="absolute top-6 right-6 z-30 bg-gray-50 hover:bg-gray-100 text-gray-500 p-2 rounded-full transition-all shadow-sm"
+              onClick={() => setSelectedReport(null)}
+            >
+              <X size={20} />
+            </button>
 
-            {/* Modal Content */}
-            <div className="p-8 overflow-y-auto">
-              <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-                <div>
-                  <h2 className="text-3xl font-extrabold text-gray-900 capitalize leading-tight">
-                    {selectedReport.title || "Untitled Report"}
-                  </h2>
-                  <div className="flex items-center gap-4 mt-2">
-                    <div className="flex items-center gap-1.5 text-gray-500 text-sm">
-                      <FaMapMarkerAlt className="text-blue-500" />
-                      {selectedReport.location || "Unknown location"}
-                    </div>
-                    <div className="flex items-center gap-1.5 text-gray-500 text-sm">
-                      <FaClock />
-                      {new Date(selectedReport.createdAt).toLocaleString()}
-                    </div>
-                  </div>
-                </div>
-                <div
-                  className={`px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest shadow-md text-white
-                    ${selectedReport.severity === "high"
-                      ? "bg-red-500"
-                      : selectedReport.severity === "medium"
-                        ? "bg-yellow-500"
-                        : "bg-green-500"
-                    }
-                  `}
-                >
-                  {selectedReport.severity || "low"} Severity
-                </div>
-              </div>
-
-              <div className="prose prose-slate max-w-none">
-                <h4 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-2">Description</h4>
-                <p className="text-gray-700 leading-relaxed text-lg whitespace-pre-wrap">
-                  {selectedReport.description || "No description provided"}
-                </p>
-              </div>
-
-              <div className="mt-8 pt-6 border-t border-gray-100 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 font-bold border border-blue-100">
-                    <FaClipboardList />
-                  </div>
-                  <div>
-                    <p className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">Current Status</p>
-                    <p className="text-sm font-extrabold capitalize text-blue-600">{selectedReport.status || "pending"}</p>
-                  </div>
-                </div>
-
-                {selectedReport.latitude && selectedReport.longitude && (
-                  <div className="text-[10px] text-gray-400 font-mono text-right">
-                    <p>LAT: {selectedReport.latitude.toFixed(6)}</p>
-                    <p>LNG: {selectedReport.longitude.toFixed(6)}</p>
+            {/* Left Section: Visuals */}
+            <div className="w-full md:w-[60%] flex flex-col bg-gray-50 border-r border-gray-100">
+              {/* Media Container */}
+              <div className="h-1/2 bg-black flex items-center justify-center">
+                {selectedReport.video ? (
+                  <video
+                    src={`http://localhost:5000/${selectedReport.video}`}
+                    className="w-full h-full object-contain"
+                    controls
+                    autoPlay
+                  />
+                ) : selectedReport.image ? (
+                  <img
+                    src={`http://localhost:5000/${selectedReport.image}`}
+                    alt={selectedReport.title}
+                    className="w-full h-full object-contain"
+                  />
+                ) : (
+                  <div className="text-gray-600 flex flex-col items-center">
+                    <ImageIcon size={48} className="mb-2 opacity-20" />
+                    <span className="text-xs font-medium opacity-30 uppercase tracking-widest text-white">No Visuals</span>
                   </div>
                 )}
+              </div>
+
+              {/* Map Container */}
+              <div className="h-1/2 relative border-t border-gray-200">
+                <MapView
+                  disasters={[selectedReport]}
+                  showPin={true}
+                  center={selectedReport.latitude ? [selectedReport.latitude, selectedReport.longitude] : null}
+                />
+                <div className="absolute top-4 left-4 z-10 bg-white px-3 py-1.5 rounded-lg border border-gray-200 shadow-sm text-[10px] font-bold text-gray-500 uppercase flex items-center gap-2 pointer-events-none">
+                  <MapPin size={12} className="text-blue-500" />
+                  Location
+                </div>
+              </div>
+            </div>
+
+            {/* Right Section: Details */}
+            <div className="w-full md:w-[40%] p-10 flex flex-col bg-white overflow-y-auto">
+              <div className="mb-8">
+                <div className="flex items-center gap-3 mb-4">
+                  <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider text-white
+                          ${selectedReport.severity === 'high' ? 'bg-red-500' : selectedReport.severity === 'medium' ? 'bg-orange-500' : 'bg-blue-500'}`}>
+                    {selectedReport.severity} Severity
+                  </span>
+                  <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-gray-100 text-gray-600`}>
+                    {selectedReport.status || 'Active'}
+                  </span>
+                </div>
+                <h2 className="text-3xl font-extrabold text-gray-900 leading-tight mb-2">
+                  {selectedReport.title || "Incident Report"}
+                </h2>
+                <p className="text-sm text-gray-400 font-medium">Reported on {new Date(selectedReport.createdAt).toLocaleDateString()}</p>
+              </div>
+
+              <div className="space-y-8 flex-1">
+                {/* Location Info */}
+                <div className="space-y-3">
+                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Incident Location</h4>
+                  <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                    <MapPin size={18} className="text-blue-600 mt-1 shrink-0" />
+                    <div>
+                      <p className="text-sm font-bold text-gray-800 leading-snug">{selectedReport.location || "Coordinates Pinpointed"}</p>
+                      {selectedReport.latitude && (
+                        <p className="text-[10px] text-gray-400 font-mono mt-1">
+                          {selectedReport.latitude.toFixed(6)}, {selectedReport.longitude.toFixed(6)}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Description */}
+                <div className="space-y-3">
+                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Description</h4>
+                  <p className="text-gray-600 text-base leading-relaxed bg-blue-50/20 p-5 rounded-2xl border border-blue-50">
+                    {selectedReport.description || "No further details provided for this entry."}
+                  </p>
+                </div>
+
+                {/* Status Indicator */}
+                <div className="flex items-center gap-4 py-4 px-5 bg-gray-50 rounded-2xl border border-gray-100 border-dashed">
+                  <div className={`p-3 rounded-xl ${selectedReport.status === 'resolved' ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'}`}>
+                    {selectedReport.status === 'resolved' ? <ShieldCheck size={20} /> : <AlertCircle size={20} />}
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Application Status</p>
+                    <p className="text-sm font-bold text-gray-800 uppercase tracking-widest leading-none">
+                      {selectedReport.status || 'Processing'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-12 pt-8 border-t border-gray-100">
+                <button
+                  onClick={() => setSelectedReport(null)}
+                  className="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold uppercase tracking-widest text-xs hover:bg-blue-700 transition-all shadow-md active:scale-[0.98]"
+                >
+                  Ok, Understood
+                </button>
               </div>
             </div>
           </div>

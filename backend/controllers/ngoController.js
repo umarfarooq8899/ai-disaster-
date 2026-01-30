@@ -100,10 +100,33 @@ exports.getAidAssignments = async (req, res) => {
         const assignments = await AidAssignment.find({ ngo: req.user.organization })
             .populate("disaster", "title location")
             .populate("volunteers", "name email")
-            .populate("items.resource", "name category");
+            .populate("items.resource", "name category")
+            .lean();
+
+        // Attach phone numbers from Volunteer model
+        for (let ass of assignments) {
+            if (ass.volunteers && ass.volunteers.length > 0) {
+                const userIds = ass.volunteers.map(v => v._id);
+                const volunteerProfiles = await Volunteer.find({ user: { $in: userIds } }).select("phone user");
+
+                ass.volunteers = ass.volunteers.map(user => {
+                    const profile = volunteerProfiles.find(p => p.user.toString() === user._id.toString());
+                    return {
+                        ...user,
+                        phone: profile ? profile.phone : "N/A"
+                    };
+                });
+            }
+        }
 
         // Filter out assignments whose disaster no longer exists (orphans)
-        const validAssignments = assignments.filter(a => a.disaster);
+        const validAssignments = assignments.filter(a => a.disaster).map(ass => {
+            // Self-healing: If status is assigned but no volunteers, treat as pending
+            if (ass.status === "assigned" && (!ass.volunteers || ass.volunteers.length === 0)) {
+                return { ...ass, status: "pending" };
+            }
+            return ass;
+        });
         res.json(validAssignments);
     } catch (err) {
         res.status(500).json({ message: "Failed to fetch assignments" });
@@ -125,6 +148,7 @@ exports.createAidAssignment = async (req, res) => {
             ngo: req.user.organization,
             items,
             volunteers: volunteerIds,
+            status: (volunteerIds && volunteerIds.length > 0) ? "assigned" : "pending",
             notes
         });
 
@@ -133,6 +157,18 @@ exports.createAidAssignment = async (req, res) => {
             await Resource.findByIdAndUpdate(item.resource, {
                 $inc: { quantity: -item.quantity }
             });
+        }
+
+        // Update volunteer status if assigned
+        if (volunteerIds && volunteerIds.length > 0) {
+            await Volunteer.updateMany(
+                { user: { $in: volunteerIds } },
+                {
+                    available: false,
+                    currentTask: assignment._id,
+                    currentTaskType: "AidAssignment"
+                }
+            );
         }
 
         res.status(201).json(assignment);
@@ -149,9 +185,72 @@ exports.updateAidStatus = async (req, res) => {
         if (!assignment) return res.status(404).json({ message: "Assignment not found" });
 
         await AidAssignment.findByIdAndUpdate(req.params.id, { status: "distributed" });
+
+        // Release volunteers
+        if (assignment.volunteers && assignment.volunteers.length > 0) {
+            await Volunteer.updateMany(
+                { user: { $in: assignment.volunteers } },
+                {
+                    available: true,
+                    currentTask: null,
+                    currentTaskType: null
+                }
+            );
+        }
+
         res.json(assignment);
     } catch (err) {
         res.status(500).json({ message: "Failed to update status" });
+    }
+};
+
+// Assign Volunteers to Aid Assignment
+exports.assignVolunteers = async (req, res) => {
+    const { volunteerIds } = req.body;
+    try {
+        const assignment = await AidAssignment.findById(req.params.id);
+        if (!assignment) return res.status(404).json({ message: "Assignment not found" });
+
+        // Update assignment with volunteers and set status to assigned if it was pending and volunteers are provided
+        const updateData = { volunteers: volunteerIds };
+        if (assignment.status === "pending" && volunteerIds && volunteerIds.length > 0) {
+            updateData.status = "assigned";
+        }
+
+        const updatedAssignment = await AidAssignment.findByIdAndUpdate(
+            req.params.id,
+            updateData,
+            { new: true }
+        ).populate("volunteers", "name email").lean();
+
+        // Attach phone numbers from Volunteer model
+        if (updatedAssignment.volunteers && updatedAssignment.volunteers.length > 0) {
+            const userIds = updatedAssignment.volunteers.map(v => v._id);
+            const volunteerProfiles = await Volunteer.find({ user: { $in: userIds } }).select("phone user");
+
+            updatedAssignment.volunteers = updatedAssignment.volunteers.map(user => {
+                const profile = volunteerProfiles.find(p => p.user.toString() === user._id.toString());
+                return {
+                    ...user,
+                    phone: profile ? profile.phone : "N/A"
+                };
+            });
+        }
+
+        // Update volunteers availability
+        await Volunteer.updateMany(
+            { user: { $in: volunteerIds } },
+            {
+                available: false,
+                currentTask: assignment._id,
+                currentTaskType: "AidAssignment"
+            }
+        );
+
+        res.json(updatedAssignment);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Failed to assign volunteers" });
     }
 };
 

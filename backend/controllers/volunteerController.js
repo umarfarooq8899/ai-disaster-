@@ -130,10 +130,17 @@ exports.updateTaskStatus = async (req, res) => {
 // Get stats for volunteer dashboard
 exports.getDashboardStats = async (req, res) => {
   try {
-    const assignedTasksCount = await Mission.countDocuments({
+    const assignedMissionsCount = await Mission.countDocuments({
       assignedVolunteers: req.user.id,
       status: { $in: ["ongoing", "pending"] },
     });
+
+    const assignedAidCount = await AidAssignment.countDocuments({
+      volunteers: req.user.id,
+      status: { $in: ["assigned", "pending"] },
+    });
+
+    const assignedTasksCount = assignedMissionsCount + assignedAidCount;
 
     const volunteer = await Volunteer.findOne({ user: req.user.id });
     const nearbyAlertsCount = await Alert.countDocuments({
@@ -218,8 +225,9 @@ const getDistance = (lat1, lon1, lat2, lon2) => {
 // Auto-assignment logic (Rule-based, scoped by organization if called by coordinator)
 exports.autoAssignVolunteers = async (req, res) => {
   try {
-    const isRescueCoordinator = req.user.role === "rescue_coordinator";
-    const isNgoCoordinator = req.user.role === "ngo_coordinator";
+    const isRescueCoordinator = ["rescue", "rescue_coordinator"].includes(req.user.role);
+    const isNgoCoordinator = ["ngo", "ngo_coordinator"].includes(req.user.role);
+    const isAdmin = req.user.role === "admin";
     const orgId = (isRescueCoordinator || isNgoCoordinator) ? req.user.organization : null;
 
     console.log(`DEBUG: autoAssignVolunteers triggered by ${req.user.role} (${req.user._id}) for org ${orgId}`);
@@ -258,14 +266,12 @@ exports.autoAssignVolunteers = async (req, res) => {
       const { latitude: dLat, longitude: dLon } = task.disaster;
       console.log(`DEBUG: Processing task ${task._id} (${type}) at [${dLat}, ${dLon}]`);
 
-      // 2. Find ALL available volunteers for this org
       const volunteerQuery = {
         available: true,
-        organization: type === "Mission" ? task.organization : task.ngo,
+        organization: (type === "Mission" ? task.organization : task.ngo)?.toString(),
       };
 
       const candidates = await Volunteer.find(volunteerQuery);
-      console.log(`DEBUG: Found ${candidates.length} available volunteers for org ${volunteerQuery.organization}`);
 
       if (candidates.length === 0) continue;
 
@@ -330,7 +336,10 @@ exports.autoAssignVolunteers = async (req, res) => {
 
     res.json({
       success: true,
-      message: `Auto-assigned ${totalAssignments} volunteers to ${tasksToProcess.length} tasks based on proximity and skills.`
+      totalAssignments,
+      message: totalAssignments > 0
+        ? `Successfully auto-assigned ${totalAssignments} volunteers based on proximity.`
+        : "No available volunteers found for the pending tasks."
     });
   } catch (err) {
     console.error("Auto-assignment Error:", err);
@@ -346,8 +355,7 @@ exports.getMyMissions = async (req, res) => {
 
     // 1. Fetch Missions
     const missions = await Mission.find({
-      assignedVolunteers: userId,
-      status: { $in: ["ongoing", "pending"] }
+      assignedVolunteers: userId
     })
       .populate("disaster", "title location latitude longitude severity")
       .populate("organization", "name")
@@ -356,8 +364,7 @@ exports.getMyMissions = async (req, res) => {
 
     // 2. Fetch Aid Assignments
     const aidAssignments = await AidAssignment.find({
-      volunteers: userId,
-      status: { $in: ["assigned", "pending"] }
+      volunteers: userId
     })
       .populate("disaster", "title location latitude longitude severity")
       .populate("ngo", "name")
@@ -369,7 +376,7 @@ exports.getMyMissions = async (req, res) => {
       _id: a._id,
       title: `Aid Delivery: ${a.disaster?.title || "Disaster Relief"}`,
       description: `Deliver items: ${a.items?.map(i => `${i.quantity} ${i.name}`).join(", ")}. Notes: ${a.notes || ""}`,
-      status: a.status === "assigned" ? "ongoing" : a.status, // Map 'assigned' to 'ongoing'
+      status: (a.status === "assigned" || a.status === "distributed") ? (a.status === "distributed" ? "completed" : "ongoing") : a.status, // Map 'assigned' to 'ongoing', 'distributed' to 'completed'
       disaster: a.disaster,
       location: a.disaster?.location,
       organization: a.ngo, // Use NGO as organization

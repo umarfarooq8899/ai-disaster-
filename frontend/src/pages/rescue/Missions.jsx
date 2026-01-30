@@ -140,9 +140,18 @@ export default function Missions() {
                 <p className="text-sm text-gray-600 mt-2">{mission.description}</p>
 
                 {mission.assignedVolunteers && mission.assignedVolunteers.length > 0 && (
-                  <p className="text-xs text-gray-500 mt-2">
-                    {mission.assignedVolunteers.length} volunteer(s) assigned
-                  </p>
+                  <div className="mt-2">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                      Assigned Team:
+                    </p>
+                    <div className="flex flex-wrap gap-1">
+                      {mission.assignedVolunteers.map((v, idx) => (
+                        <span key={idx} className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full text-[10px] font-medium border border-gray-200">
+                          {v.name || "Unknown"}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
                 )}
               </div>
 

@@ -42,6 +42,7 @@ exports.loginUser = async (req, res) => {
         role: user.role,
         status: user.status,
         organization: user.organization || null,
+        profilePicture: user.profilePicture,
       },
     });
   } catch (error) {
@@ -116,6 +117,7 @@ exports.registerUser = async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        profilePicture: user.profilePicture,
       },
     });
   } catch (error) {

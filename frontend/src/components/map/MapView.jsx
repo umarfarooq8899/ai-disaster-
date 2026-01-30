@@ -1,12 +1,13 @@
-import React from "react";
+import React, { useEffect } from "react";
 import {
   MapContainer,
   TileLayer,
   Marker,
   Popup,
   ZoomControl,
+  useMap,
 } from "react-leaflet";
-import { MapPin } from "lucide-react";
+import { MapPin, Navigation } from "lucide-react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -41,7 +42,18 @@ const getSeverityIcon = (severity) => {
   });
 };
 
-export default function MapView({ disasters = [], showPin = false }) {
+// Helper to change map view
+function ChangeView({ center, zoom }) {
+  const map = useMap();
+  useEffect(() => {
+    if (center) {
+      map.setView(center, zoom || map.getZoom());
+    }
+  }, [center, zoom, map]);
+  return null;
+}
+
+export default function MapView({ disasters = [], showPin = false, center = null, userLocation = null }) {
   // 🔒 HARD SAFETY
   const safeDisasters = Array.isArray(disasters) ? disasters : [];
 
@@ -55,12 +67,13 @@ export default function MapView({ disasters = [], showPin = false }) {
   return (
     <div className="relative w-full h-[300px] sm:h-[400px] md:h-[500px] rounded-2xl overflow-hidden shadow-lg">
       <MapContainer
-        center={[30, 70]}
-        zoom={5}
+        center={center || [30, 70]}
+        zoom={center ? 12 : 5}
         scrollWheelZoom
         zoomControl={false}
         className="h-full w-full"
       >
+        {center && <ChangeView center={center} zoom={12} />}
         <ZoomControl position="bottomright" />
 
         <TileLayer
@@ -111,6 +124,36 @@ export default function MapView({ disasters = [], showPin = false }) {
             </Marker>
           );
         })}
+
+        {userLocation && (
+          <Marker
+            position={[userLocation.latitude, userLocation.longitude]}
+            icon={L.divIcon({
+              className: "user-marker",
+              html: `<div style="
+                background: #3B82F6;
+                width: 18px;
+                height: 18px;
+                border: 3px solid white;
+                border-radius: 50%;
+                box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+              ">
+                <div style="width: 6px; height: 6px; background: white; border-radius: 50%;"></div>
+              </div>`,
+              iconSize: [18, 18],
+              iconAnchor: [9, 9],
+            })}
+          >
+            <Popup>
+              <div className="text-center font-semibold text-blue-600">
+                You are here
+              </div>
+            </Popup>
+          </Marker>
+        )}
       </MapContainer>
 
       {/* Legend */}

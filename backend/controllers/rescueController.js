@@ -7,6 +7,7 @@ exports.getAssignedMissions = async (req, res) => {
     try {
         const missions = await Mission.find({ organization: req.user.organization })
             .populate("disaster")
+            .populate("assignedVolunteers", "name email")
             .sort({ createdAt: -1 });
         res.json(missions);
     } catch (error) {

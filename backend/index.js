@@ -43,12 +43,15 @@ mongoose
 require("./models/User");
 require("./models/Volunteer");
 require("./models/Mission");
-require("./models/Disaster");
 require("./models/Alert");
+require("./models/Disaster");
+require("./models/AidAssignment");
+require("./models/Resource");
+require("./models/Statistic");
+require("./models/StatusLog");
 require("./models/RescueOrganization");
 require("./models/NgoOrganization");
-// require("./models/NgoCoordinator"); // Optional, if needed
-// require("./models/RescueCoordinator"); // Optional, if needed
+require("./models/Admin");
 // ================= ROUTES =================
 app.use("/api/auth", require("./routes/auth")); // <-- register & login
 app.use("/api/users", require("./routes/users"));

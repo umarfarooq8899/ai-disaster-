@@ -11,6 +11,8 @@ const Disaster = require("../models/Disaster");
 const Alert = require("../models/Alert");
 const RescueOrganization = require("../models/RescueOrganization");
 const NgoOrganization = require("../models/NgoOrganization");
+const Mission = require("../models/Mission");
+const AidAssignment = require("../models/AidAssignment");
 
 /*  PUBLIC STATISTICS (AUTHENTICATED) */
 router.get("/public", auth, async (req, res) => {

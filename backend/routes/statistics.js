@@ -82,7 +82,7 @@ router.get("/dashboard", auth, adminOnly, async (req, res) => {
     ] = await Promise.all([
       User.countDocuments(),
       User.countDocuments({ role: "volunteer" }),
-      User.countDocuments({ role: "ngo" }),
+      NgoOrganization.countDocuments(),
       Disaster.countDocuments(),
       Disaster.countDocuments({ status: "active" }),
       Alert.countDocuments({ status: "active" }),

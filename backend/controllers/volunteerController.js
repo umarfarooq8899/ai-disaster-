@@ -234,6 +234,7 @@ exports.autoAssignVolunteers = async (req, res) => {
 
     let totalAssignments = 0;
     let tasksToProcess = [];
+    let feedbackMessages = [];
 
     // 1. Get pending tasks for this org
     if (isRescueCoordinator || (!isNgoCoordinator && isAdmin)) {
@@ -245,11 +246,16 @@ exports.autoAssignVolunteers = async (req, res) => {
     }
 
     if (isNgoCoordinator || (!isRescueCoordinator && isAdmin)) {
-      const aidQuery = { status: "pending" };
+      const aidQuery = {
+        $or: [
+          { status: "pending" },
+          { status: "assigned", volunteers: { $size: 0 } }
+        ]
+      };
       if (orgId) aidQuery.ngo = orgId;
       const AidAssignment = require("../models/AidAssignment");
       const assignments = await AidAssignment.find(aidQuery).populate("disaster");
-      console.log(`DEBUG: Found ${assignments.length} pending NGO AidAssignments`);
+      console.log(`DEBUG: Found ${assignments.length} pending/empty-assigned NGO AidAssignments`);
       tasksToProcess.push(...assignments.map(a => ({ task: a, type: "AidAssignment" })));
     }
 
@@ -263,14 +269,19 @@ exports.autoAssignVolunteers = async (req, res) => {
 
     for (const { task, type } of tasksToProcess) {
       if (!task.disaster) {
-        console.log(`DEBUG: Task ${task._id} (${type}) has no associated disaster. skipping.`);
+        const msg = `Task ${task.title} skipped: No linked disaster found.`;
+        console.log(`DEBUG: ${msg}`);
+        feedbackMessages.push(msg);
         continue;
       }
 
       const { latitude: dLat, longitude: dLon } = task.disaster;
-      // Fix: Check if location exists
+
+      // Validation: Check if disaster has location
       if (dLat === undefined || dLon === undefined) {
-        console.log(`DEBUG: Task ${task._id} disaster has no coordinates (Lat: ${dLat}, Lon: ${dLon}). Skipping.`);
+        const msg = `Task ${task.title} skipped: Disaster location missing.`;
+        console.log(`DEBUG: ${msg}`);
+        feedbackMessages.push(msg);
         continue;
       }
 
@@ -282,35 +293,55 @@ exports.autoAssignVolunteers = async (req, res) => {
       };
 
       // If task has no org linked (edge case), skip
-      if (!volunteerQuery.organization) continue;
+      if (!volunteerQuery.organization) {
+        feedbackMessages.push(`Task ${task.title} skipped: No organization linked.`);
+        continue;
+      }
 
       const candidates = await Volunteer.find(volunteerQuery);
 
-      if (candidates.length === 0) continue;
+      if (candidates.length === 0) {
+        feedbackMessages.push(`Task ${task.title}: No available volunteers found in organization.`);
+        continue;
+      }
 
       // 3. Score and Sort candidates
       const scoredVolunteers = candidates.map(v => {
-        const distance = getDistance(dLat, dLon, v.latitude, v.longitude);
+        // Handle missing volunteer coordinates gracefully (Infinity distance)
+        const hasCoords = v.latitude !== undefined && v.longitude !== undefined;
+        const distance = hasCoords ? getDistance(dLat, dLon, v.latitude, v.longitude) : Infinity;
+
         const skillsRequired = type === "Mission" ? (task.skillsRequired || []) : [];
         const skillMatchCount = (v.skills || []).filter(s => skillsRequired.includes(s)).length;
 
         return {
           volunteer: v,
           distance,
-          skillMatchCount
+          skillMatchCount,
+          hasCoords
         };
       });
 
-      // Filter by skill match if required
+      // Filter by skill match if required (Strict for Missions)
       let eligible = scoredVolunteers;
       const skillsRequired = type === "Mission" ? (task.skillsRequired || []) : [];
+
       if (skillsRequired.length > 0) {
         eligible = scoredVolunteers.filter(ev => ev.skillMatchCount > 0);
-        console.log(`DEBUG: Filtered to ${eligible.length} volunteers based on skill requirements`);
+        const dropped = scoredVolunteers.length - eligible.length;
+        if (dropped > 0) {
+          console.log(`DEBUG: Dropped ${dropped} volunteers due to skill mismatch for ${task.title}`);
+        }
       }
 
-      // Sort by distance
-      eligible.sort((a, b) => a.distance - b.distance);
+      // Sort by distance (primary) and skill match (secondary - more matches is better)
+      eligible.sort((a, b) => {
+        // If both have infinite distance (missing coords), sort by skill match
+        if (a.distance === Infinity && b.distance === Infinity) {
+          return b.skillMatchCount - a.skillMatchCount;
+        }
+        return a.distance - b.distance;
+      });
 
       // Take top 3 closest
       const toAssign = eligible.slice(0, 3).map(e => e.volunteer);
@@ -342,7 +373,10 @@ exports.autoAssignVolunteers = async (req, res) => {
         );
 
         totalAssignments += toAssign.length;
+        feedbackMessages.push(`Assigned ${toAssign.length} volunteers to ${task.title}.`);
       } else {
+        const reason = skillsRequired.length > 0 ? "skill mismatch" : "unknown reasons";
+        feedbackMessages.push(`Task ${task.title}: Found ${candidates.length} volunteers, but 0 matched ${reason}.`);
         console.log(`DEBUG: No eligible volunteers to assign to task ${task._id}`);
       }
     }
@@ -351,12 +385,12 @@ exports.autoAssignVolunteers = async (req, res) => {
       success: true,
       totalAssignments,
       message: totalAssignments > 0
-        ? `Successfully auto-assigned ${totalAssignments} volunteers based on proximity.`
-        : "No available volunteers found matching criteria for pending tasks."
+        ? `Successfully auto-assigned ${totalAssignments} volunteers. details: ${feedbackMessages.join(" ")}`
+        : `Auto-assignment completed but no assignments made. Reasons: ${feedbackMessages.join(" ")}`
     });
   } catch (err) {
     console.error("Auto-assignment Error:", err);
-    res.status(500).json({ message: "Auto-assignment failed" });
+    res.status(500).json({ message: "Auto-assignment failed", error: err.message });
   }
 };
 

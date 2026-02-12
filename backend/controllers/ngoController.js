@@ -3,6 +3,7 @@ const AidAssignment = require("../models/AidAssignment");
 const Volunteer = require("../models/Volunteer");
 const Disaster = require("../models/Disaster");
 const User = require("../models/User");
+const mongoose = require("mongoose");
 
 // Get NGO Dashboard Stats
 exports.getDashboardStats = async (req, res) => {
@@ -10,10 +11,34 @@ exports.getDashboardStats = async (req, res) => {
         const orgId = req.user.organization;
 
         const volunteersCount = await Volunteer.countDocuments({ organization: orgId });
-        const activeMissions = await AidAssignment.countDocuments({
-            ngo: orgId,
-            status: { $in: ["pending", "assigned"] }
-        });
+
+        // Count active missions while ensuring disaster still exists (avoiding orphans)
+        const activeMissionsResult = await AidAssignment.aggregate([
+            {
+                $match: {
+                    ngo: new mongoose.Types.ObjectId(orgId),
+                    status: { $in: ["pending", "assigned"] }
+                }
+            },
+            {
+                $lookup: {
+                    from: "disasters", // Collection name in MongoDB
+                    localField: "disaster",
+                    foreignField: "_id",
+                    as: "disasterData"
+                }
+            },
+            {
+                $match: {
+                    "disasterData.0": { $exists: true }
+                }
+            },
+            {
+                $count: "count"
+            }
+        ]);
+
+        const activeMissions = activeMissionsResult.length > 0 ? activeMissionsResult[0].count : 0;
 
         const resources = await Resource.find({ organization: orgId });
         const totalItemsInStock = resources.reduce((acc, curr) => acc + curr.quantity, 0);

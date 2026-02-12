@@ -97,7 +97,10 @@ exports.upsertResource = async (req, res) => {
 // Get Aid Assignments
 exports.getAidAssignments = async (req, res) => {
     try {
-        const assignments = await AidAssignment.find({ ngo: req.user.organization })
+        const assignments = await AidAssignment.find({
+            ngo: req.user.organization,
+            status: { $ne: "distributed" }
+        })
             .populate("disaster", "title location")
             .populate("volunteers", "name email")
             .populate("items.resource", "name category")
@@ -211,9 +214,17 @@ exports.assignVolunteers = async (req, res) => {
         const assignment = await AidAssignment.findById(req.params.id);
         if (!assignment) return res.status(404).json({ message: "Assignment not found" });
 
-        // Update assignment with volunteers and set status to assigned if it was pending and volunteers are provided
-        const updateData = { volunteers: volunteerIds };
-        if (assignment.status === "pending" && volunteerIds && volunteerIds.length > 0) {
+        // Update assignment with volunteers (APPENDING new ones, ensuring uniqueness)
+        // If volunteerIds is null/empty, we don't change anything unless explicit removal is intended (not covered here)
+        let updatedVolunteerList = assignment.volunteers.map(v => v.toString());
+        if (volunteerIds && volunteerIds.length > 0) {
+            updatedVolunteerList = [...new Set([...updatedVolunteerList, ...volunteerIds])];
+        }
+
+        const updateData = { volunteers: updatedVolunteerList };
+
+        // Update status to 'assigned' only if it's currently 'pending' and we have volunteers
+        if (assignment.status === "pending" && updatedVolunteerList.length > 0) {
             updateData.status = "assigned";
         }
 
@@ -238,14 +249,16 @@ exports.assignVolunteers = async (req, res) => {
         }
 
         // Update volunteers availability
-        await Volunteer.updateMany(
-            { user: { $in: volunteerIds } },
-            {
-                available: false,
-                currentTask: assignment._id,
-                currentTaskType: "AidAssignment"
-            }
-        );
+        if (volunteerIds && volunteerIds.length > 0) {
+            await Volunteer.updateMany(
+                { user: { $in: volunteerIds } },
+                {
+                    available: false,
+                    currentTask: assignment._id,
+                    currentTaskType: "AidAssignment"
+                }
+            );
+        }
 
         res.json(updatedAssignment);
     } catch (err) {

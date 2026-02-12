@@ -161,7 +161,7 @@ export default function Missions() {
                     <button
                       onClick={() => {
                         setAssignModal(mission);
-                        setSelectedVolunteers(mission.assignedVolunteers || []);
+                        setSelectedVolunteers((mission.assignedVolunteers || []).map(v => v._id || v));
                       }}
                       className="w-full bg-brand-600 text-white py-2 rounded-lg hover:bg-brand-700 transition"
                     >

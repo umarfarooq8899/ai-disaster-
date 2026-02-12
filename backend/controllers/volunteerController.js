@@ -228,7 +228,7 @@ exports.autoAssignVolunteers = async (req, res) => {
     const isRescueCoordinator = ["rescue", "rescue_coordinator"].includes(req.user.role);
     const isNgoCoordinator = ["ngo", "ngo_coordinator"].includes(req.user.role);
     const isAdmin = req.user.role === "admin";
-    const orgId = (isRescueCoordinator || isNgoCoordinator) ? req.user.organization : null;
+    const orgId = ["rescue", "rescue_coordinator", "ngo", "ngo_coordinator"].includes(req.user.role) ? req.user.organization : null;
 
     console.log(`DEBUG: autoAssignVolunteers triggered by ${req.user.role} (${req.user._id}) for org ${orgId}`);
 
@@ -236,7 +236,7 @@ exports.autoAssignVolunteers = async (req, res) => {
     let tasksToProcess = [];
 
     // 1. Get pending tasks for this org
-    if (isRescueCoordinator || !isNgoCoordinator) {
+    if (isRescueCoordinator || (!isNgoCoordinator && isAdmin)) {
       const missionQuery = { status: "pending" };
       if (orgId) missionQuery.organization = orgId;
       const missions = await Mission.find(missionQuery).populate("disaster");
@@ -244,7 +244,7 @@ exports.autoAssignVolunteers = async (req, res) => {
       tasksToProcess.push(...missions.map(m => ({ task: m, type: "Mission" })));
     }
 
-    if (isNgoCoordinator || !isRescueCoordinator) {
+    if (isNgoCoordinator || (!isRescueCoordinator && isAdmin)) {
       const aidQuery = { status: "pending" };
       if (orgId) aidQuery.ngo = orgId;
       const AidAssignment = require("../models/AidAssignment");
@@ -254,7 +254,11 @@ exports.autoAssignVolunteers = async (req, res) => {
     }
 
     if (tasksToProcess.length === 0) {
-      console.log("DEBUG: No tasks to process (tasksToProcess is empty)");
+      return res.json({
+        success: true,
+        totalAssignments: 0,
+        message: "No pending tasks found to assign."
+      });
     }
 
     for (const { task, type } of tasksToProcess) {
@@ -264,12 +268,21 @@ exports.autoAssignVolunteers = async (req, res) => {
       }
 
       const { latitude: dLat, longitude: dLon } = task.disaster;
+      // Fix: Check if location exists
+      if (dLat === undefined || dLon === undefined) {
+        console.log(`DEBUG: Task ${task._id} disaster has no coordinates (Lat: ${dLat}, Lon: ${dLon}). Skipping.`);
+        continue;
+      }
+
       console.log(`DEBUG: Processing task ${task._id} (${type}) at [${dLat}, ${dLon}]`);
 
       const volunteerQuery = {
         available: true,
         organization: (type === "Mission" ? task.organization : task.ngo)?.toString(),
       };
+
+      // If task has no org linked (edge case), skip
+      if (!volunteerQuery.organization) continue;
 
       const candidates = await Volunteer.find(volunteerQuery);
 
@@ -339,7 +352,7 @@ exports.autoAssignVolunteers = async (req, res) => {
       totalAssignments,
       message: totalAssignments > 0
         ? `Successfully auto-assigned ${totalAssignments} volunteers based on proximity.`
-        : "No available volunteers found for the pending tasks."
+        : "No available volunteers found matching criteria for pending tasks."
     });
   } catch (err) {
     console.error("Auto-assignment Error:", err);

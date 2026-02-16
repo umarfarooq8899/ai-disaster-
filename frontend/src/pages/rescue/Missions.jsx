@@ -1,7 +1,7 @@
 import React, { useContext, useEffect, useState } from "react";
 import { AuthContext } from "../../context/AuthContext";
 import axios from "../../api/axios"; // Use axios instance
-import { MapPin, CheckCircle, AlertCircle, Send, Calculator, Image as ImageIcon, X } from "lucide-react";
+import { MapPin, CheckCircle, AlertCircle, Send, Calculator, Image as ImageIcon, X, Users, Activity } from "lucide-react";
 import toast from "react-hot-toast";
 
 export default function Missions() {
@@ -113,143 +113,154 @@ export default function Missions() {
           {missions.map((mission) => (
             <div
               key={mission._id}
-              className="relative bg-white border border-gray-200 rounded-xl p-6 shadow-sm flex flex-col justify-between"
+              className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-col group"
             >
-              {/* Status Indicator */}
-              <div
-                className={`absolute top-4 right-4 px-2 py-1 rounded text-xs font-semibold ${mission.status === "ongoing"
-                  ? "bg-emerald-100 text-emerald-700"
-                  : mission.status === "completed"
-                    ? "bg-brand-100 text-brand-700"
-                    : mission.status === "pending"
-                      ? "bg-yellow-100 text-yellow-700"
-                      : "bg-red-100 text-red-700"
-                  }`}
-              >
-                {mission.status}
+              {/* Card Header */}
+              <div className="p-6 border-b border-gray-50 flex justify-between items-start relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:rotate-12 transition-transform duration-500">
+                  <Activity className="w-24 h-24" />
+                </div>
+
+                <div className="relative z-10 min-w-0">
+                  <h3 className="font-bold text-lg text-gray-800 truncate group-hover:text-brand-600 transition-colors uppercase tracking-tight">
+                    {mission.title}
+                  </h3>
+                  <p className="text-xs text-gray-400 font-medium flex items-center gap-1 mt-1 uppercase">
+                    <MapPin className="w-3 h-3 text-emerald-500" /> {mission.location}
+                  </p>
+                </div>
+                <span className={`relative z-10 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${mission.status === "completed"
+                  ? "bg-emerald-50 text-emerald-700 border border-emerald-100"
+                  : mission.status === "pending"
+                    ? "bg-amber-50 text-amber-700 border border-amber-100"
+                    : mission.status === "ongoing"
+                      ? "bg-brand-50 text-brand-700 border border-brand-100"
+                      : "bg-red-50 text-red-700 border border-red-100"
+                  }`}>
+                  {mission.status}
+                </span>
               </div>
 
-              <div>
-                <h2 className="text-lg font-semibold text-gray-800 capitalize">
-                  {mission.title}
-                </h2>
-                <div className="mt-2 flex items-center gap-2 text-gray-500 text-sm">
-                  <MapPin className="w-4 h-4" />
-                  <span>{mission.location}</span>
+              {/* Card Body */}
+              <div className="p-6 space-y-6 flex-grow">
+                <div>
+                  <p className="text-sm text-gray-600 line-clamp-3">{mission.description}</p>
                 </div>
-                <p className="text-sm text-gray-600 mt-2">{mission.description}</p>
 
-                {mission.assignedVolunteers && mission.assignedVolunteers.length > 0 && (
-                  <div className="mt-2">
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
-                      Assigned Team:
-                    </p>
-                    <div className="flex flex-wrap gap-1">
-                      {mission.assignedVolunteers.map((v, idx) => (
-                        <span key={idx} className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full text-[10px] font-medium border border-gray-200">
+                {/* Team Section */}
+                <div className="pt-4 border-t border-dashed border-gray-100">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                      <Users className="w-3 h-3 text-brand-500" />
+                      Rescue Team
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {mission.assignedVolunteers && mission.assignedVolunteers.length > 0 ? (
+                      mission.assignedVolunteers.map((v, idx) => (
+                        <span key={idx} className="text-[10px] font-bold bg-brand-50 text-brand-600 px-2.5 py-1 rounded-lg border border-brand-100">
                           {v.name || "Unknown"}
                         </span>
-                      ))}
-                    </div>
+                      ))
+                    ) : (
+                      <span className="text-[10px] italic text-gray-400">No volunteers assigned</span>
+                    )}
                   </div>
-                )}
+                </div>
               </div>
 
-              <div className="mt-4 pt-4 border-t space-y-2">
-                {mission.status !== "completed" && (
-                  <div className="flex flex-col gap-2 mt-2">
-                    <button
-                      onClick={() => {
-                        setAssignModal(mission);
-                        setSelectedVolunteers((mission.assignedVolunteers || []).map(v => v._id || v));
-                      }}
-                      className="w-full bg-brand-600 text-white py-2 rounded-lg hover:bg-brand-700 transition"
-                    >
-                      Assign Volunteers
-                    </button>
-                    <button
-                      onClick={async () => {
-                        try {
-                          await axios.patch(`/rescue/missions/${mission._id}/status`, { status: 'completed' });
-                          toast.success("Mission completed");
-                          fetchMissions();
-                        } catch (err) {
-                          toast.error("Failed to update status");
-                        }
-                      }}
-                      className="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition flex items-center justify-center gap-2"
-                    >
-                      <CheckCircle className="w-4 h-4" /> Mark as Complete
-                    </button>
-                  </div>
-                )}
-
-                {/* REMOVED: STATUS UPDATE MODAL (Now in Volunteer Tasks) */}
-
-                {/* VOLUNTEER ASSIGNMENT MODAL */}
-                {assignModal && (
-                  <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center backdrop-blur-sm">
-                    <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-2xl relative">
-                      <button
-                        onClick={() => {
-                          setAssignModal(null);
-                          setSelectedVolunteers([]);
-                        }}
-                        className="absolute top-3 right-3 text-gray-400 hover:text-gray-600"
-                      >
-                        <X className="w-5 h-5" />
-                      </button>
-
-                      <h2 className="text-xl font-bold mb-4">Assign Volunteers</h2>
-                      <p className="text-sm text-gray-600 mb-4">Mission: {assignModal.title}</p>
-
-                      <div className="space-y-4">
-                        <div>
-                          <label className="block text-sm font-medium mb-2">Select Volunteers</label>
-                          <div className="border rounded-lg p-3 max-h-60 overflow-y-auto space-y-2">
-                            {volunteers.filter(v => !v.isProfileIncomplete).map((volunteer) => (
-                              <label
-                                key={volunteer._id}
-                                className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer"
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={selectedVolunteers.includes(volunteer.user?._id || volunteer._id)}
-                                  onChange={(e) => {
-                                    const volunteerId = volunteer.user?._id || volunteer._id;
-                                    if (e.target.checked) {
-                                      setSelectedVolunteers([...selectedVolunteers, volunteerId]);
-                                    } else {
-                                      setSelectedVolunteers(selectedVolunteers.filter(id => id !== volunteerId));
-                                    }
-                                  }}
-                                  className="rounded"
-                                />
-                                <span className="text-sm">
-                                  {volunteer.user?.name || volunteer.name || "Unknown"}
-                                </span>
-                              </label>
-                            ))}
-                            {volunteers.filter(v => !v.isProfileIncomplete).length === 0 && (
-                              <p className="text-sm text-gray-500">No volunteers available</p>
-                            )}
-                          </div>
-                        </div>
-
-                        <button
-                          onClick={handleAssignVolunteers}
-                          disabled={selectedVolunteers.length === 0}
-                          className="w-full bg-brand-600 text-white py-2 rounded-lg hover:bg-brand-700 disabled:opacity-50"
-                        >
-                          Assign {selectedVolunteers.length} Volunteer(s)
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
+              {/* Card Footer / Actions */}
+              {mission.status !== "completed" && (
+                <div className="p-4 border-t bg-gray-50 flex flex-col gap-2">
+                  <button
+                    onClick={() => {
+                      setAssignModal(mission);
+                      setSelectedVolunteers((mission.assignedVolunteers || []).map(v => v._id || v));
+                    }}
+                    className="w-full bg-brand-600 text-white py-2 rounded-lg hover:bg-brand-700 transition flex items-center justify-center gap-2 text-sm font-semibold shadow-sm"
+                  >
+                    <Users className="w-4 h-4" /> Assign Volunteers
+                  </button>
+                  <button
+                    onClick={async () => {
+                      try {
+                        await axios.patch(`/rescue/missions/${mission._id}/status`, { status: "completed" });
+                        toast.success("Mission completed");
+                        fetchMissions();
+                      } catch (err) {
+                        toast.error("Failed to update status");
+                      }
+                    }}
+                    className="w-full bg-emerald-600 text-white py-2 rounded-lg hover:bg-emerald-700 transition flex items-center justify-center gap-2 text-sm font-semibold shadow-sm"
+                  >
+                    <CheckCircle className="w-4 h-4" /> Mark as Complete
+                  </button>
+                </div>
+              )}
             </div>
           ))}
+        </div>
+      )}
+
+      {/* VOLUNTEER ASSIGNMENT MODAL */}
+      {assignModal && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center backdrop-blur-sm">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-2xl relative">
+            <button
+              onClick={() => {
+                setAssignModal(null);
+                setSelectedVolunteers([]);
+              }}
+              className="absolute top-3 right-3 text-gray-400 hover:text-gray-600"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <h2 className="text-xl font-bold mb-4">Assign Volunteers</h2>
+            <p className="text-sm text-gray-600 mb-4">Mission: {assignModal.title}</p>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">Select Volunteers</label>
+                <div className="border rounded-lg p-3 max-h-60 overflow-y-auto space-y-2">
+                  {volunteers.filter(v => !v.isProfileIncomplete).map((volunteer) => (
+                    <label
+                      key={volunteer._id}
+                      className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedVolunteers.includes(volunteer.user?._id || volunteer._id)}
+                        onChange={(e) => {
+                          const volunteerId = volunteer.user?._id || volunteer._id;
+                          if (e.target.checked) {
+                            setSelectedVolunteers([...selectedVolunteers, volunteerId]);
+                          } else {
+                            setSelectedVolunteers(selectedVolunteers.filter(id => id !== volunteerId));
+                          }
+                        }}
+                        className="rounded"
+                      />
+                      <span className="text-sm">
+                        {volunteer.user?.name || volunteer.name || "Unknown"}
+                      </span>
+                    </label>
+                  ))}
+                  {volunteers.filter(v => !v.isProfileIncomplete).length === 0 && (
+                    <p className="text-sm text-gray-500">No volunteers available</p>
+                  )}
+                </div>
+              </div>
+
+              <button
+                onClick={handleAssignVolunteers}
+                disabled={selectedVolunteers.length === 0}
+                className="w-full bg-brand-600 text-white py-2 rounded-lg hover:bg-brand-700 disabled:opacity-50"
+              >
+                Assign {selectedVolunteers.length} Volunteer(s)
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

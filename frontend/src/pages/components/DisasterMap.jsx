@@ -74,7 +74,7 @@ const DisasterMap = () => {
                     href={`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-blue-600 hover:text-blue-800 text-xs font-semibold no-underline"
+                    className="text-brand-600 hover:text-brand-800 text-xs font-semibold no-underline"
                   >
                     Open in Google Maps
                   </a>

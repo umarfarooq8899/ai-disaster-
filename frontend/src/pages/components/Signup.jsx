@@ -265,7 +265,7 @@ export default function Signup() {
 
           <p className="mt-4 text-sm text-center">
             Already have an account?{" "}
-            <Link to="/login" className="text-blue-600 font-semibold">
+            <Link to="/login" className="text-brand-600 font-semibold">
               Login
             </Link>
           </p>

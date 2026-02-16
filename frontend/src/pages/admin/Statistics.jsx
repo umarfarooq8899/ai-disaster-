@@ -16,7 +16,7 @@ export default function Statistics() {
     setLoading(true);
     setError("");
     try {
-      const res = await axios.get("http://localhost:5000/api/statistics", {
+      const res = await axios.get("/api/statistics", {
         headers: { Authorization: `Bearer ${token}` },
       });
       setStatistics(res.data);

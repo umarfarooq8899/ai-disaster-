@@ -1,6 +1,6 @@
 // src/pages/admin/ManageDisasters.jsx
 import React, { useEffect, useState, useContext } from "react";
-import axios from "axios";
+import api from "../../api/axios";
 import toast from "react-hot-toast";
 import { AuthContext } from "../../context/AuthContext";
 import {
@@ -46,7 +46,7 @@ export default function ManageDisasters() {
   const fetchDisasters = async () => {
     try {
       setLoading(true);
-      const res = await axios.get("http://localhost:5000/api/disasters/admin/all", {
+      const res = await api.get("/disasters/admin/all", {
         headers: { Authorization: `Bearer ${token}` },
       });
       setDisasters(res.data);
@@ -60,8 +60,8 @@ export default function ManageDisasters() {
   const fetchOrgs = async () => {
     try {
       const [rescueRes, ngoRes] = await Promise.all([
-        axios.get("http://localhost:5000/api/disasters/orgs/rescue", { headers: { Authorization: `Bearer ${token}` } }),
-        axios.get("http://localhost:5000/api/disasters/orgs/ngo", { headers: { Authorization: `Bearer ${token}` } })
+        api.get("/disasters/orgs/rescue", { headers: { Authorization: `Bearer ${token}` } }),
+        api.get("/disasters/orgs/ngo", { headers: { Authorization: `Bearer ${token}` } })
       ]);
       setRescueOrgs(rescueRes.data);
       setNgoOrgs(ngoRes.data);
@@ -73,8 +73,8 @@ export default function ManageDisasters() {
   const fetchAssignmentDetails = async (disasterId) => {
     try {
       const [missionsRes, aidRes] = await Promise.all([
-        axios.get(`http://localhost:5000/api/admin/missions?disaster=${disasterId}`, { headers: { Authorization: `Bearer ${token}` } }),
-        axios.get(`http://localhost:5000/api/admin/aid-assignments?disaster=${disasterId}`, { headers: { Authorization: `Bearer ${token}` } })
+        api.get(`/admin/missions?disaster=${disasterId}`, { headers: { Authorization: `Bearer ${token}` } }),
+        api.get(`/admin/aid-assignments?disaster=${disasterId}`, { headers: { Authorization: `Bearer ${token}` } })
       ]);
       setAssignmentDetails({
         missions: missionsRes.data || [],
@@ -96,8 +96,8 @@ export default function ManageDisasters() {
   // Actions
   const verifyDisaster = async (id) => {
     try {
-      await axios.patch(
-        `http://localhost:5000/api/disasters/${id}/verify`,
+      await api.patch(
+        `/disasters/${id}/verify`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -111,8 +111,8 @@ export default function ManageDisasters() {
 
   const rejectDisaster = async (id) => {
     try {
-      await axios.patch(
-        `http://localhost:5000/api/disasters/${id}/reject`,
+      await api.patch(
+        `/disasters/${id}/reject`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -130,8 +130,8 @@ export default function ManageDisasters() {
     try {
       setIsSubmitting(true);
       const endpoint = assignModal.type === 'rescue'
-        ? "http://localhost:5000/api/disasters/assign/rescue"
-        : "http://localhost:5000/api/disasters/assign/aid";
+        ? "/disasters/assign/rescue"
+        : "/disasters/assign/aid";
 
       const payload = {
         disasterId: assignModal.disasterId,
@@ -151,7 +151,7 @@ export default function ManageDisasters() {
         payload.items = assignForm.items;
       }
 
-      await axios.post(endpoint, payload, {
+      await api.post(endpoint, payload, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -325,7 +325,7 @@ export default function ManageDisasters() {
                 {selectedDisaster.image && (
                   <div className="rounded-lg overflow-hidden border h-48 w-full bg-gray-100 mb-4">
                     <img
-                      src={`http://localhost:5000/${selectedDisaster.image}`}
+                      src={`/${selectedDisaster.image}`}
                       alt="Disaster"
                       className="w-full h-full object-cover"
                     />
@@ -336,7 +336,7 @@ export default function ManageDisasters() {
                   <div className="rounded-lg overflow-hidden border w-full bg-black mb-4">
                     <video
                       controls
-                      src={`http://localhost:5000/${selectedDisaster.video}`}
+                      src={`/${selectedDisaster.video}`}
                       className="w-full h-auto max-h-60"
                     />
                   </div>
@@ -377,7 +377,7 @@ export default function ManageDisasters() {
                             <div key={mission._id} className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm">
                               <div className="flex justify-between items-start mb-1">
                                 <div>
-                                  <p className="font-semibold text-blue-800">{mission.organization?.name || 'Rescue'}</p>
+                                  <p className="font-semibold text-brand-800">{mission.organization?.name || 'Rescue'}</p>
                                   <p className="text-gray-600 text-xs">{mission.title}</p>
                                 </div>
                                 <span className={`px-2 py-0.5 rounded text-xs font-semibold ${mission.status === 'completed' ? 'bg-green-100 text-green-700' :
@@ -476,7 +476,7 @@ export default function ManageDisasters() {
                     <button
                       onClick={async () => {
                         try {
-                          await axios.patch(`http://localhost:5000/api/disasters/${selectedDisaster._id}/resolve`, {}, {
+                          await api.patch(`/disasters/${selectedDisaster._id}/resolve`, {}, {
                             headers: { Authorization: `Bearer ${token}` }
                           });
                           toast.success("Disaster resolved");
@@ -647,8 +647,8 @@ export default function ManageDisasters() {
               onClick={async () => {
                 /* deletion logic similar to original */
                 try {
-                  await axios.delete(
-                    `http://localhost:5000/api/disasters/${deleteTarget}`,
+                  await api.delete(
+                    `/disasters/${deleteTarget}`,
                     { headers: { Authorization: `Bearer ${token}` } }
                   );
                   toast.success("Deleted");

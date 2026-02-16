@@ -110,3 +110,53 @@ exports.changeMissionStatus = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 };
+
+// Get stats for rescue dashboard
+exports.getDashboardStats = async (req, res) => {
+    try {
+        const Volunteer = require("../models/Volunteer");
+        const Mission = require("../models/Mission");
+        const Alert = require("../models/Alert");
+
+        const orgId = req.user.organization;
+        if (!orgId) return res.status(400).json({ message: "Organization not found for this user" });
+
+        const [activeVolunteers, ongoingMissions, pendingMissions, resolvedMissions, activeAlerts] = await Promise.all([
+            Volunteer.countDocuments({ organization: orgId, available: true }),
+            Mission.countDocuments({ organization: orgId, status: "ongoing" }),
+            Mission.countDocuments({ organization: orgId, status: "pending" }),
+            Mission.countDocuments({ organization: orgId, status: "completed" }),
+            Alert.countDocuments({ status: "Active" })
+        ]);
+
+        res.json({
+            activeVolunteers,
+            ongoingMissions,
+            pendingMissions,
+            resolvedMissions,
+            activeAlerts,
+        });
+    } catch (err) {
+        console.error("DEBUG: Error in getDashboardStats:", err);
+        res.status(500).json({ message: "Failed to load rescue dashboard data" });
+    }
+};
+
+// Get Recent Activity for Rescue
+exports.getRecentActivity = async (req, res) => {
+    try {
+        const StatusLog = require("../models/StatusLog");
+        const logs = await StatusLog.find({
+            organization: req.user.organization,
+            organizationType: "RescueOrganization"
+        })
+            .populate("disaster", "title")
+            .populate("mission", "title")
+            .sort({ createdAt: -1 })
+            .limit(10);
+
+        res.json(logs);
+    } catch (err) {
+        res.status(500).json({ message: "Failed to fetch activity logs" });
+    }
+};

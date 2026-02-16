@@ -97,7 +97,7 @@ export default function Navbar() {
                 <div className="h-7 w-7 rounded-full bg-brand-600 text-white flex items-center justify-center text-xs font-bold shadow-soft overflow-hidden">
                   {user.profilePicture ? (
                     <img
-                      src={`http://localhost:5000/${user.profilePicture}`}
+                      src={`/${user.profilePicture}`}
                       alt="Profile"
                       className="h-full w-full object-cover"
                     />

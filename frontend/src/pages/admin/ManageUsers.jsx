@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useContext } from "react";
 import axios from "axios";
+import * as UserAPI from "../../api/users";
 import { createPortal } from "react-dom";
 import toast, { Toaster } from "react-hot-toast";
 import { AuthContext } from "../../context/AuthContext";
@@ -69,11 +70,10 @@ export default function ManageUsers() {
     setLoading(true);
     setError("");
     try {
-      const res = await axios.get("http://localhost:5000/api/users", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setUsers(res.data);
-      setFilteredUsers(res.data);
+      // Use the API client function
+      const data = await UserAPI.getAllUsers(token);
+      setUsers(data);
+      setFilteredUsers(data);
     } catch (err) {
       console.error(err);
       setError("Failed to load users");
@@ -101,7 +101,7 @@ export default function ManageUsers() {
   const changeStatus = async (id, status) => {
     try {
       await axios.patch(
-        `http://localhost:5000/api/users/${id}/status`,
+        `/api/users/${id}/status`, // Use relative path with proxy
         { status },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -121,7 +121,7 @@ export default function ManageUsers() {
   const deleteUser = async () => {
     try {
       await axios.delete(
-        `http://localhost:5000/api/users/${selectedUser._id}`,
+        `/api/users/${selectedUser._id}`, // Use relative path with proxy
         { headers: { Authorization: `Bearer ${token}` } }
       );
 

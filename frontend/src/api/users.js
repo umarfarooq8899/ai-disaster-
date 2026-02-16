@@ -1,6 +1,6 @@
 import api from "./client";
 
-export async function getAllAlerts(userToken) {
+export async function getAllUsers(userToken) {
   const { data } = await api.get("/users", {
     headers: { Authorization: `Bearer ${userToken}` },
   });

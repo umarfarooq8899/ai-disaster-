@@ -385,7 +385,7 @@ export default function Profile() {
 
                     <div className="space-y-6">
                       <h4 className="text-xl font-black text-slate-900 flex items-center gap-3">
-                        <Briefcase className="w-6 h-6 text-indigo-500" /> Affiliation
+                        <Briefcase className="w-6 h-6 text-brand-500" /> Affiliation
                       </h4>
                       {isEditing ? (
                         <div className="space-y-4">

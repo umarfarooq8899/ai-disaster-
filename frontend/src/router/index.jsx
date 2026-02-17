@@ -52,7 +52,6 @@ const AidHistory = lazy(() => import("../pages/ngo/AidHistory"));
 
 // Rescue pages
 const RescueHome = lazy(() => import("../pages/rescue/RescueHome"));
-const RescueDashboard = lazy(() => import("../pages/rescue/RescueDashboard"));
 const Missions = lazy(() => import("../pages/rescue/Missions"));
 const MissionHistory = lazy(() => import("../pages/rescue/MissionHistory"));
 const MissionForm = lazy(() => import("../pages/rescue/MissionForm"));
@@ -135,7 +134,6 @@ export default function Router() {
 
           {/* ===== Rescue ===== */}
           <Route path="rescue" element={<PageTransition><RescueHome /></PageTransition>} />
-          <Route path="rescue/dashboard" element={<PageTransition><RescueDashboard /></PageTransition>} />
           <Route path="rescue/missions" element={<PageTransition><Missions /></PageTransition>} />
           <Route path="rescue/history" element={<PageTransition><MissionHistory /></PageTransition>} />
           <Route path="rescue/missions/new" element={<PageTransition><MissionForm /></PageTransition>} />

@@ -119,10 +119,10 @@ export default function VolunteerNearby() {
                     onClick={() => setSelectedDisaster(d)}
                   >
                     <div className="flex justify-between items-start mb-3">
-                      <h4 className="font-bold text-gray-900 group-hover:text-blue-600 transition truncate text-sm">
+                      <h4 className="font-bold text-gray-900 group-hover:text-brand-600 transition truncate text-sm">
                         {d.title || d.type || "Active Report"}
                       </h4>
-                      <span className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${d.severity === 'high' ? 'bg-red-500' : d.severity === 'medium' ? 'bg-orange-500' : 'bg-blue-500'}`} />
+                      <span className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${d.severity === 'high' ? 'bg-red-500' : d.severity === 'medium' ? 'bg-orange-500' : 'bg-brand-500'}`} />
                     </div>
 
                     <p className="text-gray-400 text-[10px] font-bold uppercase tracking-wider mb-4 truncate italic">
@@ -168,14 +168,14 @@ export default function VolunteerNearby() {
               <div className="h-1/2 bg-black flex items-center justify-center">
                 {selectedDisaster.video ? (
                   <video
-                    src={`http://localhost:5000/${selectedDisaster.video}`}
+                    src={`/${selectedDisaster.video}`}
                     className="w-full h-full object-contain"
                     controls
                     autoPlay
                   />
                 ) : selectedDisaster.image ? (
                   <img
-                    src={`http://localhost:5000/${selectedDisaster.image}`}
+                    src={`/${selectedDisaster.image}`}
                     alt={selectedDisaster.title}
                     className="w-full h-full object-contain"
                   />
@@ -195,7 +195,7 @@ export default function VolunteerNearby() {
                   center={[selectedDisaster.latitude, selectedDisaster.longitude]}
                 />
                 <div className="absolute top-4 left-4 z-10 bg-white px-3 py-1.5 rounded-lg border border-gray-200 shadow-sm text-[10px] font-bold text-gray-500 uppercase flex items-center gap-2 pointer-events-none">
-                  <MapPin size={12} className="text-blue-500" />
+                  <MapPin size={12} className="text-brand-500" />
                   Live Coordinates
                 </div>
               </div>
@@ -206,7 +206,7 @@ export default function VolunteerNearby() {
               <div className="mb-8">
                 <div className="flex items-center gap-3 mb-4">
                   <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider text-white
-                          ${selectedDisaster.severity === 'high' ? 'bg-red-500' : selectedDisaster.severity === 'medium' ? 'bg-orange-500' : 'bg-blue-500'}`}>
+                          ${selectedDisaster.severity === 'high' ? 'bg-red-500' : selectedDisaster.severity === 'medium' ? 'bg-orange-500' : 'bg-brand-500'}`}>
                     {selectedDisaster.severity} Severity
                   </span>
                   <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-gray-100 text-gray-600`}>
@@ -222,9 +222,9 @@ export default function VolunteerNearby() {
               <div className="space-y-8 flex-1">
                 {/* Location Info */}
                 <div className="space-y-3">
-                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Tactical Address</h4>
+                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Location</h4>
                   <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                    <MapPin size={18} className="text-blue-600 mt-1 shrink-0" />
+                    <MapPin size={18} className="text-brand-600 mt-1 shrink-0" />
                     <div>
                       <p className="text-sm font-bold text-gray-800 leading-snug">{selectedDisaster.location || "Coordinates Pinpointed"}</p>
                       <p className="text-[10px] text-gray-400 font-mono mt-1">
@@ -236,19 +236,19 @@ export default function VolunteerNearby() {
 
                 {/* Description */}
                 <div className="space-y-3">
-                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Incident Intelligence</h4>
-                  <p className="text-gray-600 text-base leading-relaxed bg-blue-50/20 p-5 rounded-2xl border border-blue-50">
+                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Description</h4>
+                  <p className="text-gray-600 text-base leading-relaxed bg-brand-50/20 p-5 rounded-2xl border border-brand-50">
                     {selectedDisaster.description || "Field intelligence report pending full documentation. Initial survey suggests standard monitoring."}
                   </p>
                 </div>
 
                 {/* Status Indicator */}
                 <div className="flex items-center gap-4 py-4 px-5 bg-gray-50 rounded-2xl border border-gray-100 border-dashed">
-                  <div className={`p-3 rounded-xl ${selectedDisaster.status === 'resolved' ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'}`}>
+                  <div className={`p-3 rounded-xl ${selectedDisaster.status === 'resolved' ? 'bg-green-100 text-green-600' : 'bg-brand-100 text-brand-600'}`}>
                     {selectedDisaster.status === 'resolved' ? <ShieldCheck size={20} /> : <AlertCircle size={20} />}
                   </div>
                   <div>
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Deployment Sector</p>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Current Status</p>
                     <p className="text-sm font-bold text-gray-800 uppercase tracking-widest leading-none">
                       {selectedDisaster.status || 'Active Monitoring'}
                     </p>
@@ -259,7 +259,7 @@ export default function VolunteerNearby() {
               <div className="mt-12 pt-8 border-t border-gray-100">
                 <button
                   onClick={() => setSelectedDisaster(null)}
-                  className="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold uppercase tracking-widest text-xs hover:bg-blue-700 transition-all shadow-md active:scale-[0.98]"
+                  className="w-full bg-brand-600 text-white py-4 rounded-2xl font-bold uppercase tracking-widest text-xs hover:bg-brand-700 transition-all shadow-md active:scale-[0.98]"
                 >
                   Acknowledge
                 </button>

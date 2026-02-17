@@ -16,4 +16,19 @@ const disasterSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// Post-save hook to increment cumulative disaster counter
+disasterSchema.post("save", async function (doc) {
+  // Only increment on new documents (not on updates)
+  if (this.isNew) {
+    try {
+      const GlobalStats = mongoose.model("GlobalStats");
+      await GlobalStats.incrementCounter("totalDisastersReported", 1);
+      console.log("✅ Incremented global disaster counter");
+    } catch (err) {
+      console.error("❌ Failed to increment disaster counter:", err);
+    }
+  }
+});
+
 module.exports = mongoose.model("Disaster", disasterSchema);
+

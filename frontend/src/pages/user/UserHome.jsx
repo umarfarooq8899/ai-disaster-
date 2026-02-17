@@ -3,7 +3,7 @@ import MapView from "../../components/map/MapView";
 import { getAllDisasters } from "../../api/disasters";
 import { zones, volunteers } from "../../utils/mockData";
 import { Link } from "react-router-dom";
-import { Bell, User, BarChart3 } from "lucide-react";
+import { Bell, User, BarChart3, ShieldCheck } from "lucide-react";
 
 export default function UserHome() {
   const [disasters, setDisasters] = useState([]);
@@ -25,14 +25,12 @@ export default function UserHome() {
           className="group bg-white rounded-2xl p-6 shadow-sm border hover:shadow-lg hover:-translate-y-1 transition-all"
         >
           <div className="flex items-center gap-4">
-            <div className="p-3 rounded-xl bg-blue-50 text-blue-600 group-hover:bg-blue-100 transition">
-              <Bell size={22} />
+            <div className="p-3 rounded-xl bg-brand-50 text-brand-600 group-hover:bg-brand-100 transition">
+              <ShieldCheck className="w-6 h-6" />
             </div>
-            <div>
-              <h3 className="font-semibold text-lg">Alerts & Actions</h3>
-              <p className="text-sm text-gray-500">
-                Latest alerts and quick response options.
-              </p>
+            <div className="text-left">
+              <h3 className="text-xl font-black text-slate-900 leading-tight">Emergency Alerts</h3>
+              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Status: Secure</p>
             </div>
           </div>
         </Link>
@@ -85,7 +83,7 @@ export default function UserHome() {
       <div className="flex gap-4">
         <Link
           to="/dashboard/user/reports"
-          className="px-5 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition"
+          className="px-5 py-2.5 bg-brand-600 text-white rounded-xl hover:bg-brand-700 transition"
         >
           My Reports
         </Link>

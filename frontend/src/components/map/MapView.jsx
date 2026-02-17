@@ -114,7 +114,7 @@ export default function MapView({ disasters = [], showPin = false, center = null
                       href={`https://www.google.com/maps/search/?api=1&query=${d.latitude},${d.longitude}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-blue-600 hover:text-blue-800 text-xs font-semibold flex items-center gap-1 no-underline"
+                      className="text-brand-600 hover:text-brand-800 text-xs font-semibold flex items-center gap-1 no-underline"
                     >
                       <MapPin className="w-3 h-3" /> Open in Google Maps
                     </a>
@@ -148,7 +148,7 @@ export default function MapView({ disasters = [], showPin = false, center = null
             })}
           >
             <Popup>
-              <div className="text-center font-semibold text-blue-600">
+              <div className="text-center font-semibold text-brand-600">
                 You are here
               </div>
             </Popup>

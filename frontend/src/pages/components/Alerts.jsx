@@ -62,14 +62,14 @@ export default function Alerts() {
               <div className="relative h-48 bg-slate-100 overflow-hidden">
                 {d.video ? (
                   <video
-                    src={`http://localhost:5000/${d.video}`}
+                    src={`/${d.video}`}
                     className="w-full h-full object-cover"
                     controls
                     muted
                   />
                 ) : d.image ? (
                   <img
-                    src={`http://localhost:5000/${d.image}`}
+                    src={`/${d.image}`}
                     alt={d.title}
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                   />
@@ -123,14 +123,14 @@ export default function Alerts() {
             <div className="relative h-64 md:h-96 bg-slate-900 flex items-center justify-center">
               {selectedDisaster.video ? (
                 <video
-                  src={`http://localhost:5000/${selectedDisaster.video}`}
+                  src={`/${selectedDisaster.video}`}
                   className="w-full h-full object-contain"
                   controls
                   autoPlay
                 />
               ) : selectedDisaster.image ? (
                 <img
-                  src={`http://localhost:5000/${selectedDisaster.image}`}
+                  src={`/${selectedDisaster.image}`}
                   alt={selectedDisaster.title}
                   className="w-full h-full object-contain"
                 />

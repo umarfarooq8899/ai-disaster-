@@ -45,8 +45,8 @@ export default function MyReports() {
     <div className="p-6 md:p-10 min-h-screen bg-white">
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center gap-4 mb-12">
-          <div className="p-3 bg-blue-50 rounded-xl">
-            <ClipboardList className="text-blue-600 w-6 h-6" />
+          <div className="p-3 bg-brand-50 rounded-xl">
+            <ClipboardList className="text-brand-600 w-6 h-6" />
           </div>
           <div>
             <h2 className="text-3xl font-bold text-gray-900">My Reports</h2>
@@ -74,14 +74,14 @@ export default function MyReports() {
               >
                 {r.video ? (
                   <video
-                    src={`http://localhost:5000/${r.video}`}
+                    src={`/${r.video}`}
                     className="w-full h-full object-cover"
                     controls={false}
                     muted
                   />
                 ) : r.image ? (
                   <img
-                    src={`http://localhost:5000/${r.image}`}
+                    src={`/${r.image}`}
                     alt={r.title}
                     className="w-full h-full object-cover transition-transform group-hover:scale-105"
                   />
@@ -93,7 +93,7 @@ export default function MyReports() {
 
                 <div className="absolute top-4 left-4">
                   <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider text-white shadow-sm
-                    ${r.severity === 'high' ? 'bg-red-500' : r.severity === 'medium' ? 'bg-orange-500' : 'bg-blue-500'}`}>
+                    ${r.severity === 'high' ? 'bg-red-500' : r.severity === 'medium' ? 'bg-orange-500' : 'bg-brand-500'}`}>
                     {r.severity}
                   </span>
                 </div>
@@ -110,7 +110,7 @@ export default function MyReports() {
                   </div>
                   <button
                     onClick={() => setSelectedReport(r)}
-                    className="text-blue-600 font-bold text-xs uppercase hover:underline"
+                    className="text-brand-600 font-bold text-xs uppercase hover:underline"
                   >
                     Details
                   </button>
@@ -145,14 +145,14 @@ export default function MyReports() {
               <div className="h-1/2 bg-black flex items-center justify-center">
                 {selectedReport.video ? (
                   <video
-                    src={`http://localhost:5000/${selectedReport.video}`}
+                    src={`/${selectedReport.video}`}
                     className="w-full h-full object-contain"
                     controls
                     autoPlay
                   />
                 ) : selectedReport.image ? (
                   <img
-                    src={`http://localhost:5000/${selectedReport.image}`}
+                    src={`/${selectedReport.image}`}
                     alt={selectedReport.title}
                     className="w-full h-full object-contain"
                   />
@@ -172,7 +172,7 @@ export default function MyReports() {
                   center={selectedReport.latitude ? [selectedReport.latitude, selectedReport.longitude] : null}
                 />
                 <div className="absolute top-4 left-4 z-10 bg-white px-3 py-1.5 rounded-lg border border-gray-200 shadow-sm text-[10px] font-bold text-gray-500 uppercase flex items-center gap-2 pointer-events-none">
-                  <MapPin size={12} className="text-blue-500" />
+                  <MapPin size={12} className="text-brand-500" />
                   Location
                 </div>
               </div>
@@ -183,7 +183,7 @@ export default function MyReports() {
               <div className="mb-8">
                 <div className="flex items-center gap-3 mb-4">
                   <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider text-white
-                          ${selectedReport.severity === 'high' ? 'bg-red-500' : selectedReport.severity === 'medium' ? 'bg-orange-500' : 'bg-blue-500'}`}>
+                          ${selectedReport.severity === 'high' ? 'bg-red-500' : selectedReport.severity === 'medium' ? 'bg-orange-500' : 'bg-brand-500'}`}>
                     {selectedReport.severity} Severity
                   </span>
                   <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-gray-100 text-gray-600`}>
@@ -201,7 +201,7 @@ export default function MyReports() {
                 <div className="space-y-3">
                   <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Incident Location</h4>
                   <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                    <MapPin size={18} className="text-blue-600 mt-1 shrink-0" />
+                    <MapPin size={18} className="text-brand-600 mt-1 shrink-0" />
                     <div>
                       <p className="text-sm font-bold text-gray-800 leading-snug">{selectedReport.location || "Coordinates Pinpointed"}</p>
                       {selectedReport.latitude && (
@@ -216,14 +216,14 @@ export default function MyReports() {
                 {/* Description */}
                 <div className="space-y-3">
                   <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Description</h4>
-                  <p className="text-gray-600 text-base leading-relaxed bg-blue-50/20 p-5 rounded-2xl border border-blue-50">
+                  <p className="text-gray-600 text-base leading-relaxed bg-brand-50/20 p-5 rounded-2xl border border-brand-50">
                     {selectedReport.description || "No further details provided for this entry."}
                   </p>
                 </div>
 
                 {/* Status Indicator */}
                 <div className="flex items-center gap-4 py-4 px-5 bg-gray-50 rounded-2xl border border-gray-100 border-dashed">
-                  <div className={`p-3 rounded-xl ${selectedReport.status === 'resolved' ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'}`}>
+                  <div className={`p-3 rounded-xl ${selectedReport.status === 'resolved' ? 'bg-green-100 text-green-600' : 'bg-brand-100 text-brand-600'}`}>
                     {selectedReport.status === 'resolved' ? <ShieldCheck size={20} /> : <AlertCircle size={20} />}
                   </div>
                   <div>
@@ -238,10 +238,11 @@ export default function MyReports() {
               <div className="mt-12 pt-8 border-t border-gray-100">
                 <button
                   onClick={() => setSelectedReport(null)}
-                  className="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold uppercase tracking-widest text-xs hover:bg-blue-700 transition-all shadow-md active:scale-[0.98]"
+                  className="w-full bg-brand-600 text-white py-4 rounded-2xl font-bold uppercase tracking-widest text-xs hover:bg-brand-700 transition-all shadow-md active:scale-[0.98]"
                 >
                   Ok, Understood
                 </button>
+
               </div>
             </div>
           </div>

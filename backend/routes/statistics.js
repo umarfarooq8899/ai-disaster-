@@ -69,12 +69,15 @@ router.get("/dashboard", auth, adminOnly, async (req, res) => {
   try {
     const Mission = mongoose.model("Mission");
     const AidAssignment = mongoose.model("AidAssignment");
+    const GlobalStats = mongoose.model("GlobalStats");
+
+    // Get cumulative stats
+    const globalStats = await GlobalStats.getStats();
 
     const [
       totalUsers,
       totalVolunteers,
       totalNGOs,
-      totalDisasters,
       activeDisasters,
       activeAlerts,
       totalCompletedMissions,
@@ -83,7 +86,6 @@ router.get("/dashboard", auth, adminOnly, async (req, res) => {
       User.countDocuments(),
       User.countDocuments({ role: "volunteer" }),
       NgoOrganization.countDocuments(),
-      Disaster.countDocuments(),
       Disaster.countDocuments({ status: "active" }),
       Alert.countDocuments({ status: "active" }),
       Mission.countDocuments({ status: "completed" }),
@@ -94,7 +96,7 @@ router.get("/dashboard", auth, adminOnly, async (req, res) => {
       totalUsers,
       totalVolunteers,
       totalNGOs,
-      totalDisasters,
+      totalDisasters: globalStats.totalDisastersReported, // Cumulative all-time count
       activeDisasters,
       activeAlerts,
       totalCompletedMissions,

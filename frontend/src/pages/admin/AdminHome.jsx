@@ -11,7 +11,7 @@ export default function AdminHome() {
   const fetchStats = async () => {
     setLoading(true);
     try {
-      const res = await axios.get("http://localhost:5000/api/statistics", {
+      const res = await axios.get("http://localhost:5000/api/statistics/dashboard", {
         headers: { Authorization: `Bearer ${adminToken}` },
       });
       setStats(res.data);
@@ -38,20 +38,20 @@ export default function AdminHome() {
       <h1 className="text-2xl font-bold mb-4">Admin Dashboard</h1>
       <div className="grid grid-cols-4 gap-4">
         <div className="p-4 bg-white rounded shadow">
-          <p className="text-sm text-gray-500">Users</p>
-          <p className="text-xl font-semibold">{statistics.users}</p>
+          <p className="text-sm text-gray-500">Total Users</p>
+          <p className="text-xl font-semibold">{stats.totalUsers}</p>
         </div>
         <div className="p-4 bg-white rounded shadow">
-          <p className="text-sm text-gray-500">Volunteers</p>
-          <p className="text-xl font-semibold">{statistics.volunteers}</p>
+          <p className="text-sm text-gray-500">Total Volunteers</p>
+          <p className="text-xl font-semibold">{stats.totalVolunteers}</p>
         </div>
         <div className="p-4 bg-white rounded shadow">
-          <p className="text-sm text-gray-500">Disasters</p>
-          <p className="text-xl font-semibold">{statistics.disasters}</p>
+          <p className="text-sm text-gray-500">Total Disasters</p>
+          <p className="text-xl font-semibold">{stats.totalDisasters}</p>
         </div>
         <div className="p-4 bg-white rounded shadow">
-          <p className="text-sm text-gray-500">Alerts</p>
-          <p className="text-xl font-semibold">{statistics.alerts}</p>
+          <p className="text-sm text-gray-500">Active Alerts</p>
+          <p className="text-xl font-semibold">{stats.activeAlerts}</p>
         </div>
       </div>
     </div>

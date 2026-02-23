@@ -1,0 +1,372 @@
+--- CELL 1 ---
+!pip install mpl-toolkits.clifford
+
+--- CELL 2 ---
+import pandas as pd
+import cv2
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
+import matplotlib as mpl
+import matplotlib.cm as mtpltcm
+from mpl_toolkits.mplot3d import Axes3D
+import random
+import folium
+from folium.plugins import HeatMap, HeatMapWithTime
+from folium import plugins
+from netCDF4 import Dataset
+import cartopy.crs as ccrs
+import pydub
+from scipy.io.wavfile import read, write
+import librosa
+import librosa.display
+import IPython
+from IPython.display import Audio
+import scipy
+# import skimage2
+from IPython.display import HTML
+import matplotlib.animation as animation
+import PIL
+from scipy import signal
+from scipy.fft import fftshift
+from mpl_toolkits.mplot3d import art3d
+import os
+
+import os.path
+from pathlib import Path
+import glob
+
+
+from warnings import filterwarnings
+
+filterwarnings("ignore",category=DeprecationWarning)
+filterwarnings("ignore", category=FutureWarning) 
+filterwarnings("ignore", category=UserWarning)
+filterwarnings("ignore", category=RuntimeWarning)
+
+--- CELL 4 ---
+ALL_CDF_PATH = "CSR_GRACE_GRACE-FO_RL06_Mascons_all-corrections_v02.nc"
+READ_CDF = Dataset(ALL_CDF_PATH)
+
+--- CELL 5 ---
+READ_CDF
+
+--- CELL 6 ---
+print(READ_CDF.variables.keys())
+
+--- CELL 7 ---
+print(READ_CDF.variables["lwe_thickness"].long_name)
+
+--- CELL 8 ---
+print(READ_CDF.variables["lwe_thickness"].dimensions)
+
+--- CELL 9 ---
+print(READ_CDF.variables["lwe_thickness"].datatype)
+
+--- CELL 10 ---
+print(READ_CDF.variables["lwe_thickness"].shape)
+
+--- CELL 11 ---
+print(READ_CDF.variables["lwe_thickness"].coordinates)
+
+--- CELL 12 ---
+print(READ_CDF.variables["lwe_thickness"].name)
+
+--- CELL 13 ---
+print(READ_CDF.variables["time_bounds"])
+
+--- CELL 14 ---
+print(READ_CDF.variables["time_bounds"].datatype)
+
+--- CELL 15 ---
+print(READ_CDF.variables["time_bounds"].name)
+
+--- CELL 16 ---
+print(READ_CDF.variables["time_bounds"].ndim)
+
+--- CELL 17 ---
+print(READ_CDF.variables["time_bounds"].shape)
+
+--- CELL 18 ---
+print(READ_CDF.variables["lwe_thickness"])
+
+--- CELL 19 ---
+LWE_THICKNESS_GENERAL = READ_CDF.variables["lwe_thickness"][0,:,:]
+LAT_DATA = READ_CDF.variables["lat"][:]
+LON_DATA = READ_CDF.variables["lon"][:]
+TIME_DATA = READ_CDF.variables["time"][:]
+
+--- CELL 20 ---
+LAT_TH = LWE_THICKNESS_GENERAL[:,0]
+LON_TH = LWE_THICKNESS_GENERAL[0,:]
+
+LAT_TH_SER = pd.Series(LAT_TH,name="LAT_THICKNESS").astype(float)
+LON_TH_SER = pd.Series(LON_TH,name="LON_THICKNESS").astype(float)
+
+TIME_SER = pd.Series(TIME_DATA,name="TIME").astype(float)
+LAT_SER = pd.Series(LAT_DATA,name="LAT").astype(float)
+LON_SER = pd.Series(LON_DATA,name="LON").astype(float)
+
+MAIN_TARGET = pd.concat([TIME_SER,LAT_SER,LON_SER,LAT_TH_SER,LON_TH_SER],axis=1)
+
+MAIN_TARGET["TOTAL_THICKNESS"] = MAIN_TARGET["LAT_THICKNESS"] + MAIN_TARGET["LON_THICKNESS"]
+
+--- CELL 21 ---
+MAIN_TARGET.dropna(axis=0,inplace=True)
+
+--- CELL 22 ---
+print(TIME_DATA)
+
+--- CELL 23 ---
+print(TIME_DATA.shape)
+
+--- CELL 24 ---
+print(TIME_DATA.size)
+
+--- CELL 25 ---
+LWE_THICKNESS_TIME = READ_CDF.variables["lwe_thickness"][:,0,0]
+
+--- CELL 26 ---
+print(READ_CDF.variables["time_bounds"][0,:])
+
+--- CELL 27 ---
+print(READ_CDF.variables["time_bounds"][:,0])
+
+--- CELL 28 ---
+print(READ_CDF.variables["time_bounds"].dimensions)
+
+--- CELL 29 ---
+print(len(READ_CDF.variables["lwe_thickness"][:,0,0]))
+
+--- CELL 30 ---
+def displaying_video(source):
+    
+    figure = plt.figure(figsize=(16,11))
+
+    Image_List = []
+    
+    for indexing in source:
+        
+        Read_IMG = plt.imshow(indexing, animated=True,cmap="hot")
+        plt.axis('off')
+        Image_List.append([Read_IMG])
+
+    Animation_Func = animation.ArtistAnimation(figure, Image_List, interval=412, repeat_delay=10200)
+    
+    plt.close()
+    
+    return Animation_Func
+
+--- CELL 31 ---
+i_count = 0
+TRANSFORMED_IMG = []
+
+while i_count <= len(READ_CDF.variables["lwe_thickness"][:,0,0]):
+    
+
+    figure = plt.figure(figsize=(15,10))
+
+    axis_func = plt.axes(projection=ccrs.Robinson())
+    axis_func.set_global()
+    axis_func.coastlines(resolution="110m",linewidth=1)
+    axis_func.gridlines(linestyle='--',color='black',linewidth=2)
+
+    plt.contourf(LON_DATA, LAT_DATA, READ_CDF.variables["lwe_thickness"][i_count*5,:,:], transform=ccrs.PlateCarree(),cmap="RdGy")
+    color_bar_func = plt.colorbar(ax=axis_func, orientation="horizontal",aspect=16, shrink=0.8, extend="max")
+    color_bar_func.ax.tick_params(labelsize=10)
+    
+    i_count = i_count + 1
+    plt.savefig(f"IMG_RESULT_{i_count}.jpg")
+    
+    
+    NEW_READING_IMG = cv2.cvtColor(cv2.imread(f"IMG_RESULT_{i_count}.jpg"),cv2.COLOR_BGR2RGB)
+    TRANSFORMED_IMG.append(NEW_READING_IMG)
+    
+    plt.tight_layout()
+    plt.show()
+
+--- CELL 32 ---
+print(len(TRANSFORMED_IMG))
+
+--- CELL 33 ---
+HTML(displaying_video(TRANSFORMED_IMG).to_html5_video())
+
+--- CELL 34 ---
+MAIN_TARGET
+
+--- CELL 35 ---
+plt.figure(figsize=(18,7))
+plt.title(READ_CDF.variables["lwe_thickness"].long_name)
+plt.plot(MAIN_TARGET["TOTAL_THICKNESS"],color="black")
+plt.tight_layout()
+plt.show()
+
+--- CELL 36 ---
+plt.figure(figsize=(18,7))
+plt.title(READ_CDF.variables["lwe_thickness"].long_name)
+plt.plot(MAIN_TARGET["TOTAL_THICKNESS"],color="black")
+plt.plot(MAIN_TARGET["LAT_THICKNESS"],color="red")
+plt.plot(MAIN_TARGET["LON_THICKNESS"],color="blue")
+plt.tight_layout()
+plt.show()
+
+--- CELL 37 ---
+print(MAIN_TARGET[MAIN_TARGET["TOTAL_THICKNESS"] == MAIN_TARGET["TOTAL_THICKNESS"].max()])
+
+--- CELL 38 ---
+print(MAIN_TARGET[MAIN_TARGET["TOTAL_THICKNESS"] == MAIN_TARGET["TOTAL_THICKNESS"].min()])
+
+--- CELL 39 ---
+import folium
+
+# Create the map with an attribution for the 'Stamen Terrain' tileset
+MAP_FUNCTION = folium.Map(location=[1.9637, 35.2433],
+                          tiles='Stamen Terrain',
+                          zoom_start=2.0,
+                          attr="Map tiles by Stamen Design, under CC BY 3.0. Data by OpenStreetMap, under ODbL.")
+
+# Add Circle Markers
+folium.CircleMarker(
+    location=[-70.625, 19.375],
+    radius=20,
+    popup="<b>MIN 1<b>",
+    tooltip="Click me",
+    color='#2F4F4F',
+    fill=True,
+    fill_color='red',
+).add_to(MAP_FUNCTION)
+
+folium.CircleMarker(
+    location=[-70.375, 19.625],
+    radius=20,
+    popup="<b>MIN 2<b>",
+    tooltip="Click me",
+    color='#2F4F4F',
+    fill=True,
+    fill_color='green',
+).add_to(MAP_FUNCTION)
+
+folium.CircleMarker(
+    location=[-70.125, 19.875],
+    radius=20,
+    popup="<b>MIN 3<b>",
+    tooltip="Click me",
+    color='#2F4F4F',
+    fill=True,
+    fill_color='blue',
+).add_to(MAP_FUNCTION)
+
+folium.CircleMarker(
+    location=[-69.875, 20.125],
+    radius=20,
+    popup="<b>MIN 4<b>",
+    tooltip="Click me",
+    color='#2F4F4F',
+    fill=True,
+    fill_color='black',
+).add_to(MAP_FUNCTION)
+
+# Display the map
+MAP_FUNCTION
+
+
+--- CELL 40 ---
+import folium
+
+# Create the map with an attribution for the 'Stamen Terrain' tileset
+MAP_FUNCTION = folium.Map(location=[1.9637, 35.2433],
+                          tiles='Stamen Terrain',
+                          zoom_start=2.0,
+                          attr="Map tiles by Stamen Design, under CC BY 3.0. Data by OpenStreetMap, under ODbL.")
+
+# Add Circle Markers
+folium.CircleMarker(
+    location=[-72.625, 17.375],
+    radius=20,
+    popup="<b>MAX 1<b>",
+    tooltip="Click me",
+    color='#2F4F4F',
+    fill=True,
+    fill_color='red',
+).add_to(MAP_FUNCTION)
+
+folium.CircleMarker(
+    location=[-72.375, 17.625],
+    radius=20,
+    popup="<b>MAX 2<b>",
+    tooltip="Click me",
+    color='#2F4F4F',
+    fill=True,
+    fill_color='green',
+).add_to(MAP_FUNCTION)
+
+folium.CircleMarker(
+    location=[-72.125, 17.875],
+    radius=20,
+    popup="<b>MAX 3<b>",
+    tooltip="Click me",
+    color='#2F4F4F',
+    fill=True,
+    fill_color='blue',
+).add_to(MAP_FUNCTION)
+
+folium.CircleMarker(
+    location=[-71.875, 18.125],
+    radius=20,
+    popup="<b>MAX 4<b>",
+    tooltip="Click me",
+    color='#2F4F4F',
+    fill=True,
+    fill_color='black',
+).add_to(MAP_FUNCTION)
+
+# Display the map
+MAP_FUNCTION
+
+
+--- CELL 41 ---
+PLOT_LIST = []
+
+for i_count in range(len(READ_CDF.variables["lwe_thickness"][:,0,0])):
+    
+    figure = plt.figure(figsize=(15,10))
+    plt.figure(figsize=(18,7))
+    plt.title(READ_CDF.variables["lwe_thickness"].long_name)
+    plt.plot(READ_CDF.variables["lwe_thickness"][i_count*2,:,0],color="black")
+    plt.plot(READ_CDF.variables["lwe_thickness"][i_count*2,0,:],color="red")
+    plt.savefig(f"PLOT_RESULT_{i_count}.jpg")
+    
+    
+    NEW_READING_IMG = cv2.cvtColor(cv2.imread(f"PLOT_RESULT_{i_count}.jpg"),cv2.COLOR_BGR2RGB)
+    PLOT_LIST.append(NEW_READING_IMG)
+    plt.tight_layout()
+    plt.show()
+
+--- CELL 42 ---
+print(len(PLOT_LIST))
+
+--- CELL 43 ---
+def displaying_plot(source):
+    
+    figure = plt.figure(figsize=(16,11))
+
+    Image_List = []
+    plt.style.use("dark_background")
+    for indexing in source:
+        
+        Read_IMG = plt.imshow(indexing, animated=True,cmap="hot")
+        plt.axis('off')
+        Image_List.append([Read_IMG])
+
+    Animation_Func = animation.ArtistAnimation(figure, Image_List, interval=210, repeat_delay=10200)
+    
+    plt.close()
+    
+    return Animation_Func
+
+--- CELL 44 ---
+HTML(displaying_plot(PLOT_LIST).to_html5_video())
+
+--- CELL 45 ---
+
+

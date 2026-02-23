@@ -5,7 +5,9 @@
   "type": "commonjs",
   "scripts": {
     "start": "node index.js",
-    "dev": "nodemon index.js"
+    "dev": "nodemon index.js",
+    "kill-port": "npx -y kill-port 5001",
+    "predev": "npm run kill-port || exit 0"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

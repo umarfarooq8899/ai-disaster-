@@ -81,7 +81,7 @@ export default function Sidebar({ role = "general", collapsed, mobileOpen, setMo
           <NavItem to="/dashboard/user" exact onClick={() => setMobileOpen(false)}>Home</NavItem>
           <NavItem to="/dashboard/user/reports" onClick={() => setMobileOpen(false)}>Reports</NavItem>
           <NavItem to="/dashboard/user/safe-zones" onClick={() => setMobileOpen(false)}>Safe Zones</NavItem>
-          <NavItem to="/ai-predictions" onClick={() => setMobileOpen(false)}>AI Predictions</NavItem>
+          <NavItem to="/dashboard/user/ai-analysis" onClick={() => setMobileOpen(false)}>AI Analysis</NavItem>
 
           {/* Volunteer */}
           {role === "volunteer" && (

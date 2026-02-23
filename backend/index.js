@@ -4,9 +4,13 @@ const dotenv = require("dotenv");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const morgan = require("morgan");
+const monitoringService = require("./services/monitoringService");
 
 dotenv.config();
 const app = express();
+
+// Start AI Monitoring Service
+monitoringService.startMonitoring();
 
 // ================= MIDDLEWARE =================
 app.use(
@@ -52,7 +56,6 @@ require("./models/StatusLog");
 require("./models/RescueOrganization");
 require("./models/NgoOrganization");
 require("./models/Admin");
-require("./models/Prediction");
 require("./models/GlobalStats"); // Cumulative statistics
 // ================= ROUTES =================
 app.use("/api/auth", require("./routes/auth")); // <-- register & login
@@ -62,7 +65,7 @@ app.use("/api/alerts", require("./routes/alerts"));
 app.use("/api/statistics", require("./routes/statistics"));
 app.use("/api/admin", require("./routes/admin"));
 app.use("/api/organizations", require("./routes/organizationRoutes"));
-app.use("/api/predictions", require("./routes/predictionRoutes"));
+app.use("/api/ai", require("./routes/ai"));
 
 // ================= RESCUE & VOLUNTEER ROUTES =================
 const { protect } = require("./middleware/auth");
@@ -91,4 +94,4 @@ app.use((err, req, res, next) => {
 // ================= SERVER =================
 const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT} 🚀`));
- 
+

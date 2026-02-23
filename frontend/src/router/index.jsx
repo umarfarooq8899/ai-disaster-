@@ -24,7 +24,6 @@ const Signup = lazy(() => import("../pages/components/Signup"));
 const ReportDisaster = lazy(() => import("../pages/components/ReportDisaster"));
 const Alerts = lazy(() => import("../pages/components/Alerts"));
 const Statistics = lazy(() => import("../pages/components/Statistics"));
-const AIPredictions = lazy(() => import("../pages/components/AIPredictions"));
 const Coordination = lazy(() => import("../pages/components/Coordination"));
 const ForgotPassword = lazy(() => import("../pages/components/ForgotPassword"));
 const ResetPassword = lazy(() => import("../pages/components/ResetPassword"));
@@ -34,6 +33,7 @@ const Profile = lazy(() => import("../pages/user/Profile"));
 const UserHome = lazy(() => import("../pages/user/UserHome"));
 const MyReports = lazy(() => import("../pages/user/Reports"));
 const SafeZones = lazy(() => import("../pages/user/SafeZones"));
+const AIDashboard = lazy(() => import("../pages/user/AIDashboard"));
 
 // Volunteer pages
 const VolunteerHome = lazy(() => import("../pages/volunteer/VolunteerHome"));
@@ -89,7 +89,6 @@ export default function Router() {
           <Route path="report" element={<PageTransition><ReportDisaster /></PageTransition>} />
           <Route path="alerts" element={<PageTransition><Alerts /></PageTransition>} />
           <Route path="statistics" element={<PageTransition><Statistics /></PageTransition>} />
-          <Route path="ai-predictions" element={<PageTransition><AIPredictions /></PageTransition>} />
           <Route path="coordination" element={<PageTransition><Coordination /></PageTransition>} />
           <Route path="forgot-password" element={<PageTransition><ForgotPassword /></PageTransition>} />
           <Route path="reset-password/:token" element={<PageTransition><ResetPassword /></PageTransition>} />
@@ -118,6 +117,7 @@ export default function Router() {
           <Route path="user" element={<PageTransition><UserHome /></PageTransition>} />
           <Route path="user/reports" element={<PageTransition><MyReports /></PageTransition>} />
           <Route path="user/safe-zones" element={<PageTransition><SafeZones /></PageTransition>} />
+          <Route path="user/ai-analysis" element={<PageTransition><AIDashboard /></PageTransition>} />
 
           <Route path="volunteer" element={<PageTransition><VolunteerHome /></PageTransition>} />
           <Route path="volunteer/create" element={<PageTransition><CreateVolunteer /></PageTransition>} />

@@ -121,15 +121,6 @@ export default function Home() {
               desc="Disaster trends and historical insights"
             />
 
-            {/* AI PREDICTION */}
-            <FeatureCard
-              to="/ai-prediction"
-              icon={<Brain />}
-              title="AI Prediction"
-              badge="AI"
-              desc="AI-powered disaster forecasting"
-            />
-
             {/* COORDINATION */}
             <FeatureCard
               to="/coordination"

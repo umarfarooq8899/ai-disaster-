@@ -53,6 +53,20 @@ function ChangeView({ center, zoom }) {
   return null;
 }
 
+// 🩺 Diagnostic Logger to confirm map is alive
+function MapLogger() {
+  const map = useMap();
+  useEffect(() => {
+    console.log("LEAFLET DEBUG: Map instance initialized:", map);
+    // Force a resize check just in case container was hidden at start
+    setTimeout(() => {
+      map.invalidateSize();
+      console.log("LEAFLET DEBUG: map.invalidateSize() called");
+    }, 100);
+  }, [map]);
+  return null;
+}
+
 export default function MapView({ disasters = [], showPin = false, center = null, userLocation = null }) {
   // 🔒 HARD SAFETY
   const safeDisasters = Array.isArray(disasters) ? disasters : [];
@@ -65,20 +79,35 @@ export default function MapView({ disasters = [], showPin = false, center = null
   );
 
   return (
-    <div className="relative w-full h-[300px] sm:h-[400px] md:h-[500px] rounded-2xl overflow-hidden shadow-lg">
+    <div
+      className="relative w-full rounded-2xl overflow-hidden shadow-lg bg-slate-100"
+      style={{ minHeight: "300px", height: "100%", zIndex: 1 }}
+    >
       <MapContainer
         center={center || [30, 70]}
         zoom={center ? 12 : 5}
         scrollWheelZoom
         zoomControl={false}
         className="h-full w-full"
+        style={{ height: "400px", width: "100%" }} // EXPLICIT OVERRIDE
       >
+        <MapLogger />
         {center && <ChangeView center={center} zoom={12} />}
         <ZoomControl position="bottomright" />
 
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+          eventHandlers={{
+            tileerror: (e) => {
+              console.error("Tile load error:", e);
+              // Proactively log that tiles are failing
+              if (!window.mapTileErrorNotified) {
+                console.warn("DASHBOARD MAP: Tiles are failing to load. This is likely a DNS/Connectivity issue (ERR_NAME_NOT_RESOLVED).");
+                window.mapTileErrorNotified = true;
+              }
+            }
+          }}
         />
 
         {validDisasters.map((d) => {

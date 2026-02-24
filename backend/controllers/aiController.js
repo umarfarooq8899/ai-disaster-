@@ -39,11 +39,9 @@ const runPythonScript = (scriptName, arg) => {
 
 exports.detectFlood = async (req, res) => {
     try {
-        if (!req.file) {
-            return res.status(400).json({ message: 'No image uploaded' });
-        }
-        const imagePath = req.file.path;
-        const result = await runPythonScript('predict_flood.py', imagePath);
+        // Now using weather-based prediction via kerala.csv inside the script
+        // We can still pass an image if the user uploads one, but the current logic is data-driven
+        const result = await runPythonScript('predict_flood.py', '');
         res.json(result);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -52,11 +50,8 @@ exports.detectFlood = async (req, res) => {
 
 exports.detectFire = async (req, res) => {
     try {
-        if (!req.file) {
-            return res.status(400).json({ message: 'No image uploaded' });
-        }
-        const imagePath = req.file.path;
-        const result = await runPythonScript('predict_fire.py', imagePath);
+        // Using weather-based prediction via forestfires.csv
+        const result = await runPythonScript('predict_fire.py', '');
         res.json(result);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -65,11 +60,17 @@ exports.detectFire = async (req, res) => {
 
 exports.predictEarthquake = async (req, res) => {
     try {
-        if (!req.file) {
-            return res.status(400).json({ message: 'No CSV file uploaded' });
-        }
-        const csvPath = req.file.path;
-        const result = await runPythonScript('predict_earthquake.py', csvPath);
+        // Using seismic-based prediction via test_earthquake.csv
+        const result = await runPythonScript('predict_earthquake.py', '');
+        res.json(result);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+exports.predictCyclone = async (req, res) => {
+    try {
+        const result = await runPythonScript('predict_cyclone.py', '');
         res.json(result);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -101,14 +102,10 @@ exports.fetchLiveEarthquake = async (req, res) => {
 };
 
 exports.getSLRData = async (req, res) => {
-    // For now, return a mock success or metadata about the SLR component
-    // In a real scenario, this would return points for a heatmap or similar
-    res.json({
-        message: "Sea-Level Rise visualization data",
-        data: [
-            { lat: -70.625, lon: 19.375, value: 12.5 },
-            { lat: -72.625, lon: 17.375, value: 15.2 }
-        ],
-        status: "success"
-    });
+    try {
+        const result = await runPythonScript('predict_slr.py', '');
+        res.json(result);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
 };

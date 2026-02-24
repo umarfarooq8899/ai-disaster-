@@ -29,7 +29,7 @@ export default function UserHome() {
               <ShieldCheck className="w-6 h-6" />
             </div>
             <div className="text-left">
-              <h3 className="text-xl font-black text-slate-900 leading-tight">Emergency Alerts</h3>
+              <h3 className="font-semibold text-lg">Emergency Alerts</h3>
               <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Status: Secure</p>
             </div>
           </div>
@@ -111,7 +111,7 @@ export default function UserHome() {
         </Link>
         <Link
           to="/dashboard/user/ai-analysis"
-          className="px-5 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition"
+          className="px-5 py-2.5 border rounded-xl hover:bg-gray-100 transition"
         >
           AI Analysis
         </Link>

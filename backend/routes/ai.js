@@ -22,6 +22,7 @@ router.post('/fetch-live', aiController.fetchLiveEarthquake);
 router.post('/flood', upload.single('image'), aiController.detectFlood);
 router.post('/fire', upload.single('image'), aiController.detectFire);
 router.post('/earthquake', upload.single('data'), aiController.predictEarthquake);
+router.get('/cyclone', aiController.predictCyclone);
 router.get('/slr', aiController.getSLRData);
 
 module.exports = router;

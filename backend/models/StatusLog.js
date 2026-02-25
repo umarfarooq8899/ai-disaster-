@@ -18,16 +18,14 @@ const statusLogSchema = new mongoose.Schema(
         organization: {
             type: mongoose.Schema.Types.ObjectId,
             refPath: "organizationType",
-            required: true,
         },
         organizationType: {
             type: String,
             enum: ["RescueOrganization", "NgoOrganization"],
-            required: true,
         },
         updateType: {
             type: String,
-            enum: ["rescued", "cleared", "food", "medical", "shelter", "logistics", "other"],
+            enum: ["rescued", "cleared", "food", "medical", "shelter", "logistics", "other", "admin_broadcast"],
             required: true,
         },
         description: {

@@ -15,8 +15,8 @@ export default function VolunteerHistory() {
         try {
             const res = await axiosInstance.get("/volunteer/my-missions");
             // Filter for completed missions only
-            const completedCissions = res.data.filter(m => m.status === "completed");
-            setMissions(completedCissions);
+            const completedMissions = res.data.filter(m => m.status === "completed");
+            setMissions(completedMissions);
         } catch (err) {
             console.error(err);
             toast.error("Failed to fetch mission history");

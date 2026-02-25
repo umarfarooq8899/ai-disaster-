@@ -5,6 +5,7 @@ import {
   Marker,
   Popup,
   ZoomControl,
+  Circle,
   useMap,
 } from "react-leaflet";
 import { MapPin, Navigation } from "lucide-react";
@@ -67,7 +68,7 @@ function MapLogger() {
   return null;
 }
 
-export default function MapView({ disasters = [], showPin = false, center = null, userLocation = null }) {
+export default function MapView({ disasters = [], showPin = false, showRadius = false, center = null, userLocation = null }) {
   // 🔒 HARD SAFETY
   const safeDisasters = Array.isArray(disasters) ? disasters : [];
 
@@ -151,6 +152,19 @@ export default function MapView({ disasters = [], showPin = false, center = null
                 </div>
               </Popup>
             </Marker>
+          );
+        })}
+
+        {/* Danger Radius overlay */}
+        {showRadius && validDisasters.map(d => {
+          if (!d.dangerRadius) return null;
+          return (
+            <Circle
+              key={`radius-${d._id || `${d.latitude}-${d.longitude}`}`}
+              center={[d.latitude, d.longitude]}
+              pathOptions={{ color: 'red', fillColor: '#ef4444', fillOpacity: 0.15, weight: 1, dashArray: '5, 5' }}
+              radius={d.dangerRadius * 1000} // Convert km to meters
+            />
           );
         })}
 

@@ -16,6 +16,16 @@ const userSchema = new mongoose.Schema(
     organizationType: { type: String, enum: ["NgoOrganization", "RescueOrganization", null], default: null },
     organization: { type: mongoose.Schema.Types.ObjectId, refPath: "organizationType", default: null },
     profilePicture: { type: String, default: null },
+    latitude: { type: Number },
+    longitude: { type: Number },
+    notifications: [
+      {
+        message: { type: String, required: true },
+        type: { type: String, enum: ["info", "warning", "panic", "success"], default: "info" },
+        read: { type: Boolean, default: false },
+        createdAt: { type: Date, default: Date.now }
+      }
+    ]
   },
   { timestamps: true }
 );

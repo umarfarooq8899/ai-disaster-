@@ -37,21 +37,28 @@ const runPythonScript = (scriptName, arg) => {
     });
 };
 
-exports.detectFlood = async (req, res) => {
+
+exports.predictCyclone = async (req, res) => {
     try {
-        // Now using weather-based prediction via kerala.csv inside the script
-        // We can still pass an image if the user uploads one, but the current logic is data-driven
-        const result = await runPythonScript('predict_flood.py', '');
+        const result = await runPythonScript('predict_cyclone.py', '');
         res.json(result);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
 };
 
-exports.detectFire = async (req, res) => {
+exports.predictFlood = async (req, res) => {
     try {
-        // Using weather-based prediction via forestfires.csv
-        const result = await runPythonScript('predict_fire.py', '');
+        const result = await runPythonScript('predict_flood.py', req.query.data || '');
+        res.json(result);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+exports.predictFire = async (req, res) => {
+    try {
+        const result = await runPythonScript('predict_fire.py', req.query.data || '');
         res.json(result);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -60,17 +67,7 @@ exports.detectFire = async (req, res) => {
 
 exports.predictEarthquake = async (req, res) => {
     try {
-        // Using seismic-based prediction via test_earthquake.csv
-        const result = await runPythonScript('predict_earthquake.py', '');
-        res.json(result);
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
-};
-
-exports.predictCyclone = async (req, res) => {
-    try {
-        const result = await runPythonScript('predict_cyclone.py', '');
+        const result = await runPythonScript('predict_earthquake.py', req.query.data || '');
         res.json(result);
     } catch (error) {
         res.status(500).json({ message: error.message });

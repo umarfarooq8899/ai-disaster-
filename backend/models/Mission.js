@@ -11,6 +11,7 @@ const missionSchema = new mongoose.Schema(
     assignedResources: [{ type: mongoose.Schema.Types.ObjectId, ref: "Resource" }],
     skillsRequired: [{ type: String, enum: ["medical", "technical", "rescue", "logistics", "communication"] }],
     status: { type: String, enum: ["pending", "ongoing", "completed", "cancelled"], default: "pending" },
+    evidenceUrls: [{ type: String }], // Array of image URLs/paths
   },
   { timestamps: true }
 );

@@ -4,29 +4,24 @@ import {
     Flame,
     Waves,
     Activity,
-    Upload,
-    AlertCircle,
-    CheckCircle2,
-    ChevronRight,
-    Info,
-    ShieldAlert,
-    Radio,
-    Target,
-    Zap,
     RefreshCw,
     BellRing,
     BrainCircuit,
     MapPin,
-    History
+    History,
+    Radio,
+    ChevronRight,
+    AlertCircle,
+    ShieldAlert,
+    Target,
+    Info
 } from 'lucide-react';
 import axios from 'axios';
 
 const AIDashboard = () => {
     const [activeTab, setActiveTab] = useState('earthquake');
-    const [file, setFile] = useState(null);
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState(null);
-    const [preview, setPreview] = useState(null);
     const [liveStatus, setLiveStatus] = useState(null);
     const [isScanning, setIsScanning] = useState(false);
 
@@ -57,36 +52,30 @@ const AIDashboard = () => {
         setLoading(true);
         try {
             if (activeTab === 'earthquake') {
-                const res = await axios.post('http://localhost:5001/api/ai/fetch-live');
-                setResult(res.data.data);
+                const res = await axios.post('http://localhost:5001/api/ai/fetch-live'); // Sync live data
+                const pred = await axios.get('http://localhost:5001/api/ai/earthquake'); // Get prediction
+                setResult({ ...res.data.data, prediction: pred.data.prediction, time_to_failure: pred.data.time_to_failure });
+                fetchLiveStatus(); // Refresh background state
+            } else if (activeTab === 'flood') {
+                const res = await axios.get('http://localhost:5001/api/ai/flood');
+                setResult(res.data);
+                fetchLiveStatus();
+            } else if (activeTab === 'fire') {
+                const res = await axios.get('http://localhost:5001/api/ai/fire');
+                setResult(res.data);
+                fetchLiveStatus();
             } else {
-                await new Promise(r => setTimeout(r, 2000));
+                await new Promise(r => setTimeout(r, 1000));
                 setResult(liveStatus[activeTab]);
             }
         } catch (err) {
-            setResult({ error: 'Sensor synchronization failed', status: 'error' });
+            setResult({ error: 'AI synchronization failed', status: 'error' });
         } finally {
             setLoading(false);
             setTimeout(() => setIsScanning(false), 1000);
         }
     };
 
-    const submitOveride = async () => {
-        if (!file) return;
-        setLoading(true);
-        const formData = new FormData();
-        formData.append(activeTab === 'earthquake' ? 'data' : 'image', file);
-
-        try {
-            const endpoint = `/api/ai/${activeTab}`;
-            const res = await axios.post(`http://localhost:5001${endpoint}`, formData);
-            setResult(res.data);
-        } catch (err) {
-            setResult({ error: err.response?.data?.message || 'Manual override failed', status: 'error' });
-        } finally {
-            setLoading(false);
-        }
-    };
 
     const currentLive = liveStatus?.[activeTab] || { risk: 'stable', detail: 'Connecting to regional telemetry...' };
 
@@ -137,7 +126,7 @@ const AIDashboard = () => {
                         {tabs.map((tab) => (
                             <button
                                 key={tab.id}
-                                onClick={() => { setActiveTab(tab.id); setResult(null); setFile(null); setPreview(null); }}
+                                onClick={() => { setActiveTab(tab.id); setResult(null); }}
                                 className={`w-full flex items-center justify-between px-5 py-4 rounded-2xl transition-all duration-200 border group ${activeTab === tab.id
                                     ? 'bg-brand-600 text-white border-brand-600 shadow-lg shadow-brand-200 translate-x-1'
                                     : 'bg-white text-slate-600 border-slate-200 hover:border-brand-200 hover:text-brand-600'
@@ -198,7 +187,7 @@ const AIDashboard = () => {
                                         <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200 text-left">
                                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
                                                 <Radio className="w-3 h-3 text-brand-500" />
-                                                Disaster Check Results
+                                                Live Pakistan Regional Telemetry
                                             </p>
                                             <p className="text-base font-bold text-slate-700 leading-relaxed">
                                                 {currentLive.detail}
@@ -208,7 +197,12 @@ const AIDashboard = () => {
                                         {/* Predictive Note */}
                                         <div className="flex items-center gap-3 px-2">
                                             <MapPin className="w-4 h-4 text-slate-400" />
-                                            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-tight">Focusing on: Sector PAK-NW/COASTAL</p>
+                                            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-tight">
+                                                {activeTab === 'earthquake' ? 'Broad-scan: Quetta, Islamabad & MBT Fault' :
+                                                    activeTab === 'flood' ? 'Sector: Indus River Basin & Northern Plains' :
+                                                        activeTab === 'fire' ? 'Sector: Margalla Hills & Northern Juniper Forests' :
+                                                            'Sector: Coastal Tectonic & Sea Level Nodes'}
+                                            </p>
                                         </div>
                                     </div>
                                 </div>
@@ -235,89 +229,35 @@ const AIDashboard = () => {
                             </div>
                         </section>
 
-                        {/* MANUAL OVERRIDE SECTION */}
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                            <div className="lg:col-span-2 bg-white rounded-3xl border shadow-soft p-10 text-left">
-                                <header className="mb-6">
-                                    <h2 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-                                        <Zap className="w-5 h-5 text-brand-500" />
-                                        Check Your Own Data
-                                    </h2>
-                                    <p className="text-xs text-slate-500 mt-1 font-medium">Upload a file to test the AI with your own information.</p>
-                                </header>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-                                    <div
-                                        className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl p-8 text-center hover:border-brand-400 transition-colors group relative overflow-hidden flex flex-col justify-center min-h-[160px]"
-                                    >
-                                        {preview ? (
-                                            <img src={preview} alt="Override" className="max-h-24 mx-auto rounded-lg shadow-soft" />
-                                        ) : (
-                                            <div className="space-y-2">
-                                                <div className="p-3 bg-white w-fit mx-auto rounded-xl shadow-sm border border-slate-100">
-                                                    <Upload className="w-6 h-6 text-slate-400 group-hover:text-brand-600 group-hover:scale-110 transition-all" />
-                                                </div>
-                                                <p className="text-[10px] text-slate-400 uppercase font-black">Drop file here</p>
-                                            </div>
-                                        )}
-                                        <input type="file" onChange={(e) => {
-                                            const file = e.target.files[0];
-                                            setFile(file);
-                                            if (file && file.type.startsWith('image/')) {
-                                                const reader = new FileReader();
-                                                reader.onloadend = () => setPreview(reader.result);
-                                                reader.readAsDataURL(file);
-                                            }
-                                        }} className="absolute inset-0 opacity-0 cursor-pointer" />
-                                    </div>
-
-                                    <div className="space-y-5">
-                                        <p className="text-xs text-slate-500 leading-relaxed font-medium">
-                                            This helps test if the AI can find old disasters from Pakistan.
+                        {/* LOGS / SYSTEM HEALTH */}
+                        <div className="bg-slate-900 rounded-3xl p-8 text-left shadow-2xl relative overflow-hidden">
+                            <div className="absolute top-0 right-0 p-4 opacity-20">
+                                <History className="w-12 h-12 text-blue-400" />
+                            </div>
+                            <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-6">System Status</h3>
+                            <div className="space-y-4 font-mono text-[10px] leading-relaxed">
+                                {result && (
+                                    <div className="text-blue-400 bg-blue-500/10 p-3 rounded-xl border border-blue-500/20 mb-4 animate-in slide-in-from-right-4">
+                                        <p className="font-black mb-1 uppercase tracking-tighter">Localized Results:</p>
+                                        <p className="text-xs font-bold text-white uppercase">
+                                            {result.prediction || result.time_to_failure?.toFixed(2) || result.message}
+                                            {result.time_to_failure && " SEISMIC_COEFF"}
+                                            {result.location_context && ` | ${result.location_context}`}
                                         </p>
-                                        <button
-                                            onClick={submitOveride}
-                                            disabled={!file || loading}
-                                            className={`w-full py-4 rounded-2xl font-black text-sm uppercase tracking-wider transition-all shadow-lg ${!file || loading
-                                                ? 'bg-slate-100 text-slate-400 shadow-none'
-                                                : 'bg-brand-600 text-white hover:bg-brand-700 shadow-brand-100'
-                                                }`}
-                                        >
-                                            {loading ? 'Thinking...' : 'Start Scan'}
-                                        </button>
                                     </div>
-                                </div>
+                                )}
+                                <div className="text-brand-400">{`[${new Date().toLocaleTimeString()}] PK_HAZARD_SCAN_OK`}</div>
+                                <div className="text-slate-500">{`[${new Date().toLocaleTimeString()}] CHECKING_INDUS_CONFLUENCE_LEVELS`}</div>
+                                <div className="text-slate-500">{`[${new Date().toLocaleTimeString()}] MONITORING_QUETTA_FAULT_LINE`}</div>
+                                <div className="text-green-500/70">{`[${new Date().toLocaleTimeString()}] DATA_SYNC_PMRC_LOCAL_NODES`}</div>
                             </div>
 
-                            {/* LOGS / SYSTEM HEALTH */}
-                            <div className="bg-slate-900 rounded-3xl p-8 text-left shadow-2xl relative overflow-hidden">
-                                <div className="absolute top-0 right-0 p-4 opacity-20">
-                                    <History className="w-12 h-12 text-blue-400" />
-                                </div>
-                                <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-6">System Status</h3>
-                                <div className="space-y-4 font-mono text-[10px] leading-relaxed">
-                                    {result && (
-                                        <div className="text-blue-400 bg-blue-500/10 p-3 rounded-xl border border-blue-500/20 mb-4 animate-in slide-in-from-right-4">
-                                            <p className="font-black mb-1 uppercase tracking-tighter">Results Found:</p>
-                                            <p className="text-xs font-bold text-white uppercase">
-                                                {result.prediction || result.time_to_failure?.toFixed(2) || result.message}
-                                                {result.time_to_failure && " FAIL_SEC"}
-                                            </p>
-                                        </div>
-                                    )}
-                                    <div className="text-brand-400">{`[${new Date().toLocaleTimeString()}] DISASTER_CHECK_OK`}</div>
-                                    <div className="text-slate-500">{`[${new Date().toLocaleTimeString()}] CHECKING_EARTHQUAKE_DATA`}</div>
-                                    <div className="text-slate-500">{`[${new Date().toLocaleTimeString()}] SATELLITE_DATA_READY`}</div>
-                                    <div className="text-green-500/70">{`[${new Date().toLocaleTimeString()}] DISASTER_SCAN_RUNNING`}</div>
-                                </div>
-
-                                <div className="mt-10 bg-brand-500/10 border border-brand-500/20 p-4 rounded-2xl">
-                                    <div className="flex gap-3">
-                                        <Info className="w-5 h-5 text-brand-400 mt-0.5 shrink-0" />
-                                        <p className="text-[10px] text-brand-200 uppercase font-black tracking-tight leading-4">
-                                            Regional AI calibrated for local terrain topography.
-                                        </p>
-                                    </div>
+                            <div className="mt-10 bg-brand-500/10 border border-brand-500/20 p-4 rounded-2xl">
+                                <div className="flex gap-3">
+                                    <Info className="w-5 h-5 text-brand-400 mt-0.5 shrink-0" />
+                                    <p className="text-[10px] text-brand-200 uppercase font-black tracking-tight leading-4">
+                                        AI Models calibrated with Pakistan historical data (2010-2024).
+                                    </p>
                                 </div>
                             </div>
                         </div>

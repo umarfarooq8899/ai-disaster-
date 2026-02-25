@@ -3,19 +3,27 @@ import json
 import random
 from datetime import datetime
 
-def predict_cyclone():
-    # Simulated logic based on "seasonal" patterns and random noise
-    # Since we have no NOAA CSV, we provide a realistic-looking response
-    
-    month = datetime.now().month
-    # Typical cyclone season in some regions
-    base_risk = 0.2
-    if 5 <= month <= 11: # May to November
-        base_risk = 0.6
-        
-    risk_score = random.uniform(base_risk - 0.2, base_risk + 0.3)
-    risk_score = max(0, min(1, risk_score))
-    
+def predict_cyclone(input_data=None):
+    # If live data is provided (wind_speed, pressure)
+    if input_data and ',' in input_data:
+        try:
+            wind_speed, pressure = [float(x) for x in input_data.split(',')]
+            # Simple heuristic risk assessment
+            # Category 1 starts at ~119 km/h
+            risk_score = (wind_speed / 120.0) * 0.5 + ((1013 - pressure) / 50.0) * 0.5
+            risk_score = max(0, min(1, risk_score))
+            status = "actual"
+            msg = f"Analysis based on live telemetry (Wind: {wind_speed}km/h, Pressure: {pressure}hPa)"
+        except:
+            risk_score = 0.1
+            status = "fallback"
+            msg = "Data parsing failed, using baseline."
+    else:
+        # Default baseline
+        risk_score = 0.1
+        status = "baseline"
+        msg = "No live storm data detected."
+
     if risk_score > 0.7:
         prediction = "High Risk"
         intensity = "Category 3+"
@@ -30,12 +38,12 @@ def predict_cyclone():
         "prediction": prediction,
         "risk_score": round(risk_score, 2),
         "estimated_intensity": intensity,
-        "wind_speed_kmh": round(random.uniform(50, 200 * risk_score + 50), 1),
-        "status": "simulated",
-        "message": "Actual NOAA dataset not found. Using seasonal simulation model.",
-        "model": "Seasonal Probability Model"
+        "status": status,
+        "message": msg,
+        "model": "Meteorological Risk Model"
     }
     return result
 
 if __name__ == "__main__":
-    print(json.dumps(predict_cyclone()))
+    input_val = sys.argv[1] if len(sys.argv) > 1 else None
+    print(json.dumps(predict_cyclone(input_val)))

@@ -132,6 +132,39 @@ router.get("/aid-assignments", auth, adminOnly, async (req, res) => {
   }
 });
 
+// Get disaster audit trail (admin only)
+router.get("/disasters/:disasterId/audit-trail", auth, adminOnly, async (req, res) => {
+  try {
+    const adminController = require("../controllers/adminController");
+    await adminController.getDisasterAuditTrail(req, res);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server Error" });
+  }
+});
+
+// Calculate Danger Zone Impact
+router.get("/disasters/:id/impact", auth, adminOnly, async (req, res) => {
+  try {
+    const adminController = require("../controllers/adminController");
+    await adminController.getDisasterImpact(req, res);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server Error" });
+  }
+});
+
+// Broadcast Panic Alert (admin only)
+router.post("/disasters/:id/broadcast", auth, adminOnly, async (req, res) => {
+  try {
+    const adminController = require("../controllers/adminController");
+    await adminController.broadcastPanicAlert(req, res);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server Error" });
+  }
+});
+
 // ================== MISSION HISTORY ROUTES ==================
 
 // Get all completed rescue missions (admin only)

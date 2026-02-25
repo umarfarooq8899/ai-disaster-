@@ -24,6 +24,7 @@ export const getDisasters = () => axios.get("/admin/disasters");
 export const resolveDisaster = (id) =>
   axios.patch(`/admin/disasters/${id}/resolve`);
 export const deleteDisaster = (id) => axios.delete(`/admin/disasters/${id}`);
+export const broadcastPanicAlert = (id) => axios.post(`/admin/disasters/${id}/broadcast`);
 
 // ===== Alerts =====
 export const getAlerts = () => axios.get("/admin/alerts");

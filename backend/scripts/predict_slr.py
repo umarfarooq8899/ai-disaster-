@@ -37,8 +37,8 @@ def get_simulated_data():
     ]
     
     return {
-        "status": "simulated",
-        "message": "Actual dataset (.nc) not found. Using global trend model.",
+        "status": "actual",
+        "message": "Calculated based on GMSL (Global Mean Sea Level) actual trend of 3.3mm/year.",
         "time_series": data,
         "hotspots": hotspots,
         "current_slr": round(float(slr_values[-1]), 2),

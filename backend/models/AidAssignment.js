@@ -27,10 +27,11 @@ const aidAssignmentSchema = new mongoose.Schema(
         ],
         status: {
             type: String,
-            enum: ["pending", "assigned", "distributed"],
+            enum: ["pending", "assigned", "distributed", "in_transit"], // Adding in_transit for realistic flow
             default: "pending"
         },
         notes: String,
+        evidenceUrls: [{ type: String }], // Array of image URLs/paths
     },
     { timestamps: true }
 );

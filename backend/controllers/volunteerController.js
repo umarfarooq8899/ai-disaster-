@@ -106,7 +106,7 @@ exports.updateTaskStatus = async (req, res) => {
     if (!mission) return res.status(404).json({ message: "Task not found" });
 
     // Ensure volunteer is assigned to this task
-    if (!mission.assignedVolunteers.includes(req.user.id)) {
+    if (!mission.assignedVolunteers.some(v => v.toString() === req.user.id)) {
       return res.status(403).json({ message: "Not authorized to update this task" });
     }
 
@@ -153,6 +153,7 @@ exports.getDashboardStats = async (req, res) => {
       assignedTasks: assignedTasksCount,
       nearbyAlerts: nearbyAlertsCount,
       isAvailable: volunteer?.available || false,
+      tasksCompleted: volunteer?.tasksCompleted || 0,
     });
   } catch (err) {
     console.error(err);
@@ -394,7 +395,92 @@ exports.autoAssignVolunteers = async (req, res) => {
   }
 };
 
-// Get Missions Assigned to Volunteer
+// Get Recommendations for a task
+exports.getTaskRecommendations = async (req, res) => {
+  try {
+    const { taskId, type } = req.query; // type: 'Mission' or 'AidAssignment'
+    if (!taskId || !type) {
+      return res.status(400).json({ message: "Missing taskId or type" });
+    }
+
+    const orgId = ["rescue", "rescue_coordinator", "ngo", "ngo_coordinator"].includes(req.user.role) ? req.user.organization : null;
+    let task;
+    let disaster;
+
+    if (type === "Mission") {
+      const Mission = require("../models/Mission");
+      task = await Mission.findById(taskId).populate("disaster");
+    } else {
+      const AidAssignment = require("../models/AidAssignment");
+      task = await AidAssignment.findById(taskId).populate("disaster");
+    }
+
+    if (!task) return res.status(404).json({ message: "Task not found" });
+    if (!task.disaster) return res.status(400).json({ message: "Task has no disaster location data" });
+
+    disaster = task.disaster;
+
+    // Find available volunteers in the org
+    const volunteers = await Volunteer.find({
+      organization: orgId,
+      available: true
+    }).populate("user", "name email");
+
+    if (volunteers.length === 0) {
+      return res.json([]);
+    }
+
+    const { latitude: dLat, longitude: dLon } = disaster;
+
+    const scoredVolunteers = volunteers.map(v => {
+      // Calculate distance
+      const hasCoords = v.latitude !== undefined && v.longitude !== undefined;
+      const distance = (hasCoords && dLat !== undefined && dLon !== undefined)
+        ? parseFloat(getDistance(dLat, dLon, v.latitude, v.longitude).toFixed(2))
+        : Infinity;
+
+      // Calculate skill matches
+      const skillsRequired = type === "Mission" ? (task.skillsRequired || []) : [];
+      let matchScore = 0;
+      let matchingSkills = [];
+
+      if (skillsRequired.length > 0 && v.skills && v.skills.length > 0) {
+        matchingSkills = v.skills.filter(s => skillsRequired.includes(s));
+        // Perfect match = 100, partial = percentage
+        matchScore = (matchingSkills.length / skillsRequired.length) * 100;
+      } else if (skillsRequired.length === 0) {
+        // If task has no requirements, everyone is a 100% skill match conceptually
+        matchScore = 100;
+      }
+
+      return {
+        _id: v._id,
+        user: v.user, // for assignment
+        name: v.name || v.user?.name,
+        distance,
+        matchScore,
+        matchingSkills,
+        skillsRequired,
+        hasCoords
+      };
+    });
+
+    // Sort: Score descending, then Distance ascending
+    scoredVolunteers.sort((a, b) => {
+      if (b.matchScore !== a.matchScore) {
+        return b.matchScore - a.matchScore; // Highest score first
+      }
+      return a.distance - b.distance; // Closest first
+    });
+
+    res.json(scoredVolunteers);
+
+  } catch (error) {
+    console.error("DEBUG: Error in getTaskRecommendations:", error);
+    res.status(500).json({ message: "Failed to generate recommendations" });
+  }
+};
+
 // Get Missions Assigned to Volunteer
 exports.getMyMissions = async (req, res) => {
   try {
@@ -446,24 +532,44 @@ exports.getMyMissions = async (req, res) => {
 exports.completeMission = async (req, res) => {
   const { missionId } = req.params;
   const userId = req.user.id;
+  const { evidenceUrls } = req.body; // Array of strings (optional)
 
   try {
     // Try to find Mission first
     let mission = await Mission.findById(missionId);
     if (mission) {
       // Verify volunteer assignment
-      if (!mission.assignedVolunteers.includes(userId)) {
+      if (!mission.assignedVolunteers.some(v => v.toString() === userId)) {
         return res.status(403).json({ message: "Not authorized" });
       }
-      await Mission.findByIdAndUpdate(missionId, { status: "completed" });
+      // Update Mission
+      const updateData = { status: "completed" };
+      if (evidenceUrls && evidenceUrls.length > 0) {
+        updateData.evidenceUrls = evidenceUrls;
+      }
+      await Mission.findByIdAndUpdate(missionId, updateData);
 
-      // Update volunteer availability
-      await Volunteer.findOneAndUpdate(
+      // Update volunteer availability and increment total tasks completed
+      const volunteer = await Volunteer.findOneAndUpdate(
         { user: userId },
-        { currentTask: null, available: true }
+        { currentTask: null, currentTaskType: null, available: true, $inc: { tasksCompleted: 1 } }
       );
 
-      return res.json({ message: "Mission marked as complete", mission });
+      // Create Status Log if evidence was uploaded
+      if (evidenceUrls && evidenceUrls.length > 0) {
+        const StatusLog = require("../models/StatusLog");
+        await StatusLog.create({
+          disaster: mission.disaster,
+          mission: mission._id,
+          organization: mission.organization, // Rescue Org
+          organizationType: 'RescueOrganization',
+          updateType: 'evidence_uploaded',
+          description: `Volunteer ${req.user.name || 'A volunteer'} uploaded field evidence upon task completion.`,
+          images: evidenceUrls
+        });
+      }
+
+      return res.json({ message: "Mission marked as complete", mission: await Mission.findById(missionId) });
     }
 
     // Try AidAssignment
@@ -476,15 +582,34 @@ exports.completeMission = async (req, res) => {
         return res.status(403).json({ message: "Not authorized" });
       }
 
-      await AidAssignment.findByIdAndUpdate(missionId, { status: "distributed" });
+      // Update Aid Assignment
+      const updateData = { status: "distributed" };
+      if (evidenceUrls && evidenceUrls.length > 0) {
+        updateData.evidenceUrls = evidenceUrls;
+      }
+      await AidAssignment.findByIdAndUpdate(missionId, updateData);
 
-      // Update volunteer availability
-      await Volunteer.findOneAndUpdate(
+      // Update volunteer availability and increment total tasks completed
+      const volunteer = await Volunteer.findOneAndUpdate(
         { user: userId },
-        { currentTask: null, available: true }
+        { currentTask: null, currentTaskType: null, available: true, $inc: { tasksCompleted: 1 } }
       );
 
-      return res.json({ message: "Aid assignment marked as complete", mission: aidAssignment });
+      // Create Status Log if evidence was uploaded
+      if (evidenceUrls && evidenceUrls.length > 0) {
+        const StatusLog = require("../models/StatusLog");
+        await StatusLog.create({
+          disaster: aidAssignment.disaster,
+          aidAssignment: aidAssignment._id,
+          organization: aidAssignment.ngo,
+          organizationType: 'NgoOrganization',
+          updateType: 'evidence_uploaded',
+          description: `Volunteer ${req.user.name || 'A volunteer'} uploaded field evidence upon aid distribution.`,
+          images: evidenceUrls
+        });
+      }
+
+      return res.json({ message: "Aid assignment marked as complete", mission: await AidAssignment.findById(missionId) });
     }
 
     return res.status(404).json({ message: "Task not found" });
@@ -492,6 +617,149 @@ exports.completeMission = async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: error.message });
+  }
+};
+
+// Reject Task (Volunteer)
+exports.rejectTask = async (req, res) => {
+  const { missionId } = req.params;
+  const userId = req.user.id;
+  const { reason, type } = req.body; // type: 'Mission' or 'AidAssignment'
+
+  try {
+    let task;
+    let orgId;
+    let disasterId;
+    let skillsRequired = [];
+
+    // 1. Remove volunteer from task
+    if (type === "Mission") {
+      task = await Mission.findById(missionId).populate("disaster");
+      if (!task) return res.status(404).json({ message: "Mission not found" });
+
+      await Mission.findByIdAndUpdate(missionId, {
+        $pull: { assignedVolunteers: userId }
+      });
+      orgId = task.organization;
+      disasterId = task.disaster;
+      skillsRequired = task.skillsRequired || [];
+
+      // Update status if no volunteers left
+      if (task.assignedVolunteers.length <= 1) { // 1 because we just pulled it conceptually
+        await Mission.findByIdAndUpdate(missionId, { status: "pending" });
+      }
+
+    } else if (type === "AidAssignment") {
+      const AidAssignment = require("../models/AidAssignment");
+      task = await AidAssignment.findById(missionId).populate("disaster");
+      if (!task) return res.status(404).json({ message: "Aid assignment not found" });
+
+      await AidAssignment.findByIdAndUpdate(missionId, {
+        $pull: { volunteers: userId }
+      });
+      orgId = task.ngo;
+      disasterId = task.disaster;
+
+      if (task.volunteers.length <= 1) {
+        await AidAssignment.findByIdAndUpdate(missionId, { status: "pending" });
+      }
+    } else {
+      return res.status(400).json({ message: "Invalid task type" });
+    }
+
+    // 2. Free up the volunteer
+    const rejectingVolunteer = await Volunteer.findOneAndUpdate(
+      { user: userId },
+      { currentTask: null, currentTaskType: null, available: true }
+    );
+
+    // 3. Log the rejection
+    const StatusLog = require("../models/StatusLog");
+    await StatusLog.create({
+      disaster: disasterId,
+      [type === "Mission" ? "mission" : "aidAssignment"]: missionId,
+      organization: orgId,
+      organizationType: type === "Mission" ? 'RescueOrganization' : 'NgoOrganization',
+      updateType: 'volunteer_rejected',
+      description: `Volunteer ${req.user.name || 'A volunteer'} rejected the task. Reason: ${reason || 'Not specified'}.`
+    });
+
+    // 4. Trigger Auto-Reassignment for this specific task
+    if (task.disaster && task.disaster.latitude !== undefined && task.disaster.longitude !== undefined) {
+      console.log(`DEBUG: Triggering auto-reassignment for task ${missionId} after rejection.`);
+
+      // Find candidates excluding the rejecting volunteer
+      const candidates = await Volunteer.find({
+        available: true,
+        organization: orgId,
+        user: { $ne: userId } // Exclude the person who just rejected it
+      });
+
+      if (candidates.length > 0) {
+        const { latitude: dLat, longitude: dLon } = task.disaster;
+
+        const scoredVolunteers = candidates.map(v => {
+          const hasCoords = v.latitude !== undefined && v.longitude !== undefined;
+          const distance = hasCoords ? getDistance(dLat, dLon, v.latitude, v.longitude) : Infinity;
+          const skillMatchCount = (v.skills || []).filter(s => skillsRequired.includes(s)).length;
+
+          return { volunteer: v, distance, skillMatchCount };
+        });
+
+        let eligible = scoredVolunteers;
+        if (skillsRequired.length > 0) {
+          eligible = scoredVolunteers.filter(ev => ev.skillMatchCount > 0);
+        }
+
+        eligible.sort((a, b) => {
+          if (a.distance === Infinity && b.distance === Infinity) {
+            return b.skillMatchCount - a.skillMatchCount;
+          }
+          return a.distance - b.distance;
+        });
+
+        // Assign top 1
+        if (eligible.length > 0) {
+          const replacement = eligible[0].volunteer;
+
+          if (type === "Mission") {
+            await Mission.findByIdAndUpdate(missionId, {
+              $push: { assignedVolunteers: replacement.user },
+              status: "ongoing"
+            });
+          } else {
+            const AidAssignment = require("../models/AidAssignment");
+            await AidAssignment.findByIdAndUpdate(missionId, {
+              $push: { volunteers: replacement.user },
+              status: "assigned"
+            });
+          }
+
+          // Mark replacement as unavailable
+          await Volunteer.findByIdAndUpdate(replacement._id, {
+            available: false,
+            currentTask: missionId,
+            currentTaskType: type
+          });
+
+          await StatusLog.create({
+            disaster: disasterId,
+            [type === "Mission" ? "mission" : "aidAssignment"]: missionId,
+            organization: orgId,
+            organizationType: type === "Mission" ? 'RescueOrganization' : 'NgoOrganization',
+            updateType: 'volunteer_assigned',
+            description: `Auto-assigned replacement volunteer to ${task.title}.`
+          });
+          console.log(`DEBUG: Successfully auto-assigned replacement to task ${missionId}`);
+        }
+      }
+    }
+
+    res.json({ success: true, message: "Task rejected successfully" });
+
+  } catch (error) {
+    console.error("Reject Task Error:", error);
+    res.status(500).json({ message: "Failed to reject task" });
   }
 };
 

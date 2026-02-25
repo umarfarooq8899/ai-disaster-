@@ -371,6 +371,7 @@ export default function ManageDisasters() {
                     disasters={[selectedDisaster]}
                     showPin={true}
                     showRadius={true} // new prop to instruct MapView to draw radius
+                    height="100%"
                   />
                 </div>
 

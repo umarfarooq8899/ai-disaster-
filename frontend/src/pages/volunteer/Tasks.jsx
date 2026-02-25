@@ -232,6 +232,7 @@ export default function VolunteerTasks() {
                   <MapView
                     disasters={[{ ...selectedMission.disaster, _id: selectedMission._id }]}
                     showPin={true}
+                    height="100%"
                   />
                   <div className="absolute top-4 left-4 z-[1000] bg-white/90 backdrop-blur rounded-lg px-3 py-1.5 shadow-sm border flex items-center gap-2">
                     <MapPin className="w-4 h-4 text-red-600" />

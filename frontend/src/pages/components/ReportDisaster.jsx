@@ -95,15 +95,54 @@ function LocateControl({ setLocation, setAddress, setShowPermissionModal }) {
 
   // We need to listen to the custom event "triggerLocate" which we'll dispatch from the modal
   useEffect(() => {
+    const fallbackToIPLocation = async () => {
+      try {
+        setAddress("Fetching location via IP...");
+        // ipinfo.io is generally more reliable and less blocked by adblockers than ipapi.co
+        const res = await fetch("https://ipinfo.io/json");
+        const data = await res.json();
+
+        if (data && data.loc) {
+          const [latStr, lngStr] = data.loc.split(',');
+          const latlng = { lat: parseFloat(latStr), lng: parseFloat(lngStr) };
+
+          setLocation(latlng);
+          const addr = await getAddressFromCoords(latlng.lat, latlng.lng);
+          setAddress(addr || `${data.city}, ${data.region}, ${data.country}`);
+          map.flyTo(latlng, 12);
+          toast.success("Location found via IP fallback.");
+        } else {
+          toast.error("IP fallback missing coordinates data.");
+          console.error("IP API Response:", data);
+          setAddress("");
+        }
+      } catch (err) {
+        console.error("IP fallback fetch error:", err);
+        toast.error("Network or AdBlocker prevented automatic location fetch.");
+        setAddress("");
+      }
+    };
+
     const handleLocateEvent = () => {
-      map.locate().on("locationfound", function (e) {
-        setLocation(e.latlng);
-        setAddress("Fetching address...");
-        getAddressFromCoords(e.latlng.lat, e.latlng.lng).then(addr => setAddress(addr));
-        map.flyTo(e.latlng, map.getZoom());
-      }).on("locationerror", function (e) {
-        toast.error("Location access denied or unavailable.");
-      });
+      if ("geolocation" in navigator) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const latlng = { lat: position.coords.latitude, lng: position.coords.longitude };
+            setLocation(latlng);
+            setAddress("Fetching address...");
+            getAddressFromCoords(latlng.lat, latlng.lng).then(addr => setAddress(addr));
+            map.flyTo(latlng, 14); // Use a standard zoom level like 14
+          },
+          (error) => {
+            console.error("Geolocation error:", error);
+            // If it fails or is denied, quietly fall back to IP location
+            fallbackToIPLocation();
+          },
+          { enableHighAccuracy: false, timeout: 15000, maximumAge: 0 }
+        );
+      } else {
+        fallbackToIPLocation();
+      }
     };
 
     window.addEventListener('triggerLocate', handleLocateEvent);

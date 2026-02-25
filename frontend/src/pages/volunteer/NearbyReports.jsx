@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import MapView from "../../components/map/MapView";
 import { getAllDisasters } from "../../api/disasters";
 import {
@@ -24,9 +24,11 @@ export default function VolunteerNearby() {
   useEffect(() => {
     fetchDisasters();
     handleLocateMe();
+    const timer = setInterval(fetchDisasters, 30_000);
+    return () => clearInterval(timer);
   }, []);
 
-  const fetchDisasters = async () => {
+  const fetchDisasters = useCallback(async () => {
     try {
       const data = await getAllDisasters();
       setDisasters(data);
@@ -35,7 +37,29 @@ export default function VolunteerNearby() {
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  const calculateDistance = (lat1, lon1, lat2, lon2) => {
+    if (!lat1 || !lon1 || !lat2 || !lon2) return Infinity;
+    const R = 6371; // Radius of the earth in km
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLon = ((lon2 - lon1) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
   };
+
+  const sortedDisasters = [...disasters].sort((a, b) => {
+    if (!userLocation) return new Date(b.createdAt) - new Date(a.createdAt);
+    const distA = calculateDistance(userLocation.latitude, userLocation.longitude, a.latitude, a.longitude);
+    const distB = calculateDistance(userLocation.latitude, userLocation.longitude, b.latitude, b.longitude);
+    return distA - distB;
+  });
 
   const handleLocateMe = () => {
     if (!navigator.geolocation) {
@@ -88,6 +112,7 @@ export default function VolunteerNearby() {
                   center={mapCenter}
                   userLocation={userLocation}
                   showPin={true}
+                  height="100%"
                 />
               </div>
             </div>
@@ -107,12 +132,12 @@ export default function VolunteerNearby() {
                     <div key={i} className="bg-gray-50 h-32 rounded-2xl animate-pulse" />
                   ))}
                 </div>
-              ) : disasters.length === 0 ? (
+              ) : sortedDisasters.length === 0 ? (
                 <div className="text-center py-12 bg-gray-50 rounded-3xl border border-dashed border-gray-200">
                   <p className="text-gray-400 text-xs font-medium">No signals detected.</p>
                 </div>
               ) : (
-                disasters.map((d) => (
+                sortedDisasters.map((d) => (
                   <div
                     key={d._id}
                     className="group bg-white rounded-2xl p-4 border border-gray-100 shadow-sm hover:shadow-md transition-all cursor-pointer flex flex-col"
@@ -134,6 +159,13 @@ export default function VolunteerNearby() {
                         <Clock size={12} />
                         {new Date(d.createdAt).toLocaleDateString()}
                       </div>
+
+                      {userLocation && d.latitude && d.longitude && (
+                        <div className="text-[10px] font-bold text-brand-600 bg-brand-50 px-2 py-0.5 rounded-full">
+                          {calculateDistance(userLocation.latitude, userLocation.longitude, d.latitude, d.longitude).toFixed(1)} km
+                        </div>
+                      )}
+
                       <ChevronRight size={14} className="text-gray-300" />
                     </div>
                   </div>
@@ -193,6 +225,7 @@ export default function VolunteerNearby() {
                   disasters={[selectedDisaster]}
                   showPin={true}
                   center={[selectedDisaster.latitude, selectedDisaster.longitude]}
+                  height="100%"
                 />
                 <div className="absolute top-4 left-4 z-10 bg-white px-3 py-1.5 rounded-lg border border-gray-200 shadow-sm text-[10px] font-bold text-gray-500 uppercase flex items-center gap-2 pointer-events-none">
                   <MapPin size={12} className="text-brand-500" />

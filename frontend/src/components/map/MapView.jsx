@@ -74,7 +74,9 @@ function ChangeView({ center, zoom }) {
   const map = useMap();
   useEffect(() => {
     if (center) {
-      map.setView(center, zoom || map.getZoom());
+      map.flyTo(center, zoom || map.getZoom(), {
+        duration: 1.5
+      });
     }
   }, [center, zoom, map]);
   return null;
@@ -126,11 +128,6 @@ export default function MapView({
       typeof d.longitude === "number"
   );
 
-  // Derive a key so MapContainer remounts cleanly when center changes
-  const mapKey = center
-    ? `map-${center[0].toFixed(4)}-${center[1].toFixed(4)}`
-    : "map-default";
-
   return (
     <MapErrorBoundary height={height}>
       <div
@@ -138,15 +135,14 @@ export default function MapView({
         style={{ height, minHeight: "250px", zIndex: 1 }}
       >
         <MapContainer
-          key={mapKey}
           center={center || [30, 70]}
-          zoom={center ? 12 : 5}
+          zoom={center ? 14 : 5}
           scrollWheelZoom
           zoomControl={false}
           style={{ height: "100%", width: "100%" }}
         >
           <MapResizeHandler />
-          {center && <ChangeView center={center} zoom={12} />}
+          {center && <ChangeView center={center} zoom={14} />}
           <ZoomControl position="bottomright" />
 
           <TileLayer

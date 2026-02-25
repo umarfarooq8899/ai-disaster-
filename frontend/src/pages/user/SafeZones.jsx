@@ -8,7 +8,7 @@ export default function SafeZones() {
     <div>
       <h2 className="text-xl font-semibold">Safe Zones</h2>
       <div className="mt-3">
-        <MapView zones={safe} disasters={[]} volunteers={[]} />
+        <MapView zones={safe} disasters={[]} volunteers={[]} height="420px" />
       </div>
     </div>
   )

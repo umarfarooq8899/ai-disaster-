@@ -170,6 +170,7 @@ export default function MyReports() {
                   disasters={[selectedReport]}
                   showPin={true}
                   center={selectedReport.latitude ? [selectedReport.latitude, selectedReport.longitude] : null}
+                  height="100%"
                 />
                 <div className="absolute top-4 left-4 z-10 bg-white px-3 py-1.5 rounded-lg border border-gray-200 shadow-sm text-[10px] font-bold text-gray-500 uppercase flex items-center gap-2 pointer-events-none">
                   <MapPin size={12} className="text-brand-500" />

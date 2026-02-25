@@ -88,7 +88,7 @@ export function AuthProvider({ children }) {
     if (!token) return { success: false, message: "User not logged in" };
 
     try {
-      const res = await VolunteerAPI.createVolunteer(form, token); // /volunteer/create
+      const res = await VolunteerAPI.createVolunteerProfile(form); // /volunteer/create
 
       if (res?.success) {
         updateUser({ ...res.volunteer, profileCompleted: true });

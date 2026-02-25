@@ -106,3 +106,16 @@ exports.getSLRData = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 };
+
+exports.getDamStatus = async (req, res) => {
+    try {
+        const status = monitoringService.getLiveStatus();
+        if (!status.dams) {
+            return res.status(503).json({ message: 'Dam gauge data not yet available. Try again shortly.' });
+        }
+        res.json(status.dams);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+

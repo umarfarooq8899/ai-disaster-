@@ -10,7 +10,6 @@ router.get('/flood', aiController.predictFlood);
 router.get('/fire', aiController.predictFire);
 router.get('/earthquake', aiController.predictEarthquake);
 router.get('/slr', aiController.getSLRData);
-
-module.exports = router;
+router.get('/dams', aiController.getDamStatus);
 
 module.exports = router;

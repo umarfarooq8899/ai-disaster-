@@ -3,6 +3,7 @@ const path = require('path');
 const { spawn } = require('child_process');
 const fs = require('fs');
 const Alert = require('../models/Alert');
+const { getDamGaugeData } = require('./damGaugeService');
 
 /**
  * Creates an automated system alert if risk is detected
@@ -40,9 +41,10 @@ const PREDICT_EARTHQUAKE_SCRIPT = path.join(__dirname, '..', 'scripts', 'predict
 // Cache for live status
 let liveStatus = {
     earthquake: { risk: 'low', lastChecked: null, detail: 'Systems scanning Pakistan seismic zones (Quetta, Islamabad, etc).' },
-    flood: { risk: 'low', lastChecked: null, detail: 'Indus river basin monitoring active. Levels normal.' },
+    flood: { risk: 'low', lastChecked: null, detail: 'Indus river basin & dam catchment monitoring active. Levels normal.' },
     fire: { risk: 'low', lastChecked: null, detail: 'Forest monitoring (Margalla, Murree, Juniper forests) active.' },
-    slr: { risk: 'stable', lastChecked: null, detail: 'Coastal monitoring (Karachi, Gwadar) stable.' }
+    slr: { risk: 'stable', lastChecked: null, detail: 'Coastal monitoring (Karachi, Gwadar) stable.' },
+    dams: { lastChecked: null, mangla: null, tarbela: null, detail: 'Fetching dam gauge estimates for Mangla & Tarbela...' }
 };
 
 // Accuracy Enhancements: Data Buffers
@@ -122,37 +124,63 @@ const checkEarthquakeRisk = async () => {
 };
 
 /**
- * Fetches real-time weather forecast for Pakistan (Islamabad) from Open-Meteo
+ * PMD-equivalent: Fetches real-time weather for 6 Pakistani city grid-points in parallel
+ * and returns a regional aggregate. Cities: Islamabad, Lahore, Karachi, Peshawar, Quetta, Gilgit.
  */
-const getWeatherForecast = async () => {
-    try {
-        console.log('[Monitoring] Fetching live weather forecast for Pakistan regions...');
-        // Using Islamabad as primary indicator for flood/fire models in this demo
-        const response = await axios.get('https://api.open-meteo.com/v1/forecast?latitude=33.68&longitude=73.04&daily=precipitation_sum,temperature_2m_max,relative_humidity_2m_max,wind_speed_10m_max&timezone=auto');
+const PMD_CITY_POINTS = [
+    { name: 'Islamabad', lat: 33.68, lon: 73.04 },
+    { name: 'Lahore', lat: 31.55, lon: 74.35 },
+    { name: 'Karachi', lat: 24.86, lon: 67.00 },
+    { name: 'Peshawar', lat: 34.01, lon: 71.58 },
+    { name: 'Quetta', lat: 30.19, lon: 67.01 },
+    { name: 'Gilgit', lat: 35.92, lon: 74.31 },
+];
 
-        const daily = response.data.daily;
+const getPMDWeatherData = async () => {
+    try {
+        console.log('[Monitoring] Fetching PMD-equivalent multi-city weather (6 grid-points)...');
+        const fetchCity = ({ lat, lon }) =>
+            axios.get(
+                `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
+                `&daily=precipitation_sum,temperature_2m_max,relative_humidity_2m_max,wind_speed_10m_max&timezone=auto`,
+                { timeout: 8000 }
+            ).then(r => r.data.daily);
+
+        const cityResults = await Promise.allSettled(PMD_CITY_POINTS.map(fetchCity));
+
+        // Use fulfilled results only
+        const valid = cityResults
+            .filter(r => r.status === 'fulfilled')
+            .map(r => r.value);
+
+        if (valid.length === 0) return null;
+
+        // Regional average of today's values
+        const avg = (key) => valid.reduce((sum, d) => sum + (d[key][0] || 0), 0) / valid.length;
+
         return {
-            temp: daily.temperature_2m_max[0],
-            humidity: daily.relative_humidity_2m_max[0] || 50,
-            wind: daily.wind_speed_10m_max[0],
-            rain: daily.precipitation_sum[0]
+            temp: parseFloat(avg('temperature_2m_max').toFixed(1)),
+            humidity: parseFloat(avg('relative_humidity_2m_max').toFixed(1)) || 50,
+            wind: parseFloat(avg('wind_speed_10m_max').toFixed(1)),
+            rain: parseFloat(avg('precipitation_sum').toFixed(2)),
+            cities: valid.length
         };
     } catch (error) {
-        console.error('[Monitoring] Weather API fetch failed:', error.message);
+        console.error('[Monitoring] PMD weather fetch failed:', error.message);
         return null;
     }
 };
 
 const checkFloodRisk = async () => {
     try {
-        const forecast = await getWeatherForecast();
+        const forecast = await getPMDWeatherData();
         if (!forecast) throw new Error('No weather data available');
 
         // Update rainfall buffer for temporal accuracy
         rainfallBuffer.push(forecast.rain);
         if (rainfallBuffer.length > 7) rainfallBuffer.shift();
 
-        console.log(`[Monitoring] Running AI Flood Prediction (Buffer: ${rainfallBuffer.join(',')}mm)...`);
+        console.log(`[Monitoring] Running AI Flood Prediction (${forecast.cities} PMD cities | Buffer: ${rainfallBuffer.join(',')}mm)...`);
 
         const result = await runPythonScript('predict_flood.py', rainfallBuffer.join(','));
 
@@ -160,7 +188,7 @@ const checkFloodRisk = async () => {
         const isHighRisk = result.prediction.toLowerCase().includes('high');
         liveStatus.flood.risk = isHighRisk ? 'high' : (result.prediction.toLowerCase().includes('medium') ? 'medium' : 'low');
 
-        const detail = `AI Regional Analysis: ${result.prediction}. ${result.description}`;
+        const detail = `AI Regional Analysis (${forecast.cities} PMD cities): ${result.prediction}. ${result.description}`;
         liveStatus.flood.detail = detail;
 
         if (isHighRisk) triggerAutomatedAlert('Flood', detail);
@@ -171,10 +199,10 @@ const checkFloodRisk = async () => {
 
 const checkFireRisk = async () => {
     try {
-        const forecast = await getWeatherForecast();
+        const forecast = await getPMDWeatherData();
         if (!forecast) throw new Error('No weather data available');
 
-        console.log(`[Monitoring] Running AI Fire Prediction (Forecast: ${forecast.temp}°C, ${forecast.wind}km/h wind)...`);
+        console.log(`[Monitoring] Running AI Fire Prediction (${forecast.cities} PMD cities | ${forecast.temp}°C, ${forecast.wind}km/h wind)...`);
 
         const inputData = `${forecast.temp},${forecast.humidity},${forecast.wind},${forecast.rain}`;
         const result = await runPythonScript('predict_fire.py', inputData);
@@ -183,7 +211,7 @@ const checkFireRisk = async () => {
         const isHighRisk = result.prediction.toLowerCase().includes('high');
         liveStatus.fire.risk = isHighRisk ? 'high' : (result.prediction.toLowerCase().includes('medium') ? 'medium' : 'low');
 
-        const detail = `AI Forestry Scan: ${result.prediction} Risk (${result.impact_index} impact). Monitoring Margalla & North forests (Conditions: ${forecast.temp}°C, ${forecast.wind}km/h wind).`;
+        const detail = `AI Forestry Scan (${forecast.cities} PMD cities): ${result.prediction} Risk (${result.impact_index} impact). Conditions: ${forecast.temp}°C avg, ${forecast.wind}km/h wind.`;
         liveStatus.fire.detail = detail;
 
         if (isHighRisk) triggerAutomatedAlert('Fire', detail);
@@ -216,6 +244,29 @@ const checkCycloneRisk = async () => {
 };
 
 /**
+ * Checks Mangla & Tarbela dam gauge estimates and updates liveStatus.dams
+ */
+const checkDamGauges = async () => {
+    try {
+        console.log('[Monitoring] Updating Mangla & Tarbela dam gauge estimates...');
+        const data = await getDamGaugeData();
+        liveStatus.dams.mangla = data.mangla;
+        liveStatus.dams.tarbela = data.tarbela;
+        liveStatus.dams.lastChecked = new Date();
+        liveStatus.dams.detail = `Mangla: ${data.mangla.levelM}m (${data.mangla.capacityPct}% capacity) | Tarbela: ${data.tarbela.levelM}m (${data.tarbela.capacityPct}% capacity)`;
+
+        // Auto-alert if either dam hits critical fill
+        [data.mangla, data.tarbela].forEach(dam => {
+            if (dam.statusColor === 'high') {
+                triggerAutomatedAlert('Flood', `DAM ALERT – ${dam.name}: ${dam.status} (${dam.capacityPct}% capacity, inflow ${dam.inflowCumecs} cumecs)`);
+            }
+        });
+    } catch (error) {
+        console.error('[Monitoring] Error in dam gauge check:', error.message);
+    }
+};
+
+/**
  * Automated scanner loop
  */
 const startMonitoring = () => {
@@ -226,6 +277,7 @@ const startMonitoring = () => {
     checkFloodRisk();
     checkFireRisk();
     checkCycloneRisk();
+    checkDamGauges();
 
     // Run every 5 minutes
     setInterval(() => {
@@ -233,6 +285,7 @@ const startMonitoring = () => {
         checkFloodRisk();
         checkFireRisk();
         checkCycloneRisk();
+        checkDamGauges();
     }, 300000);
 };
 
@@ -243,5 +296,6 @@ module.exports = {
     getLiveStatus,
     checkEarthquakeRisk,
     checkFloodRisk,
-    checkFireRisk
+    checkFireRisk,
+    checkDamGauges
 };

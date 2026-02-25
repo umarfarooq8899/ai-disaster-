@@ -1,62 +1,40 @@
 const mongoose = require("mongoose");
-const crypto = require("crypto");
+const bcrypt = require("bcryptjs");
 
 const userSchema = new mongoose.Schema(
   {
-    name: {
-      type: String,
-      required: [true, "Name is required"],
-      trim: true,
-    },
-
-    email: {
-      type: String,
-      required: [true, "Email is required"],
-      unique: true,
-      lowercase: true,
-      trim: true,
-    },
-
+    name: { type: String, required: true, trim: true },
+    email: { type: String, required: true, unique: true, lowercase: true },
+    password: { type: String, required: true, select: false },
     role: {
       type: String,
-      enum: ["general", "volunteer", "ngo", "rescue", "admin"],
+      enum: ["general", "volunteer", "admin", "rescue", "ngo", "rescue_coordinator", "ngo_coordinator"],
       default: "general",
     },
-
-    password: {
-      type: String,
-      required: [true, "Password is required"],
-      select: false,
-    },
-
-    // 🔐 Forgot Password fields
-    resetPasswordToken: String,
-    resetPasswordExpire: Date,
+    status: { type: String, enum: ["active", "blocked"], default: "active" },
+    profileCompleted: { type: Boolean, default: function () { return this.role !== "volunteer"; } },
+    organizationType: { type: String, enum: ["NgoOrganization", "RescueOrganization", null], default: null },
+    organization: { type: mongoose.Schema.Types.ObjectId, refPath: "organizationType", default: null },
+    profilePicture: { type: String, default: null },
   },
   { timestamps: true }
 );
 
-// Ensure email is always unique
-userSchema.index({ email: 1 }, { unique: true });
-
-/**
- * Generate reset password token
- */
-userSchema.methods.getResetPasswordToken = function () {
-  // Generate token
-  const resetToken = crypto.randomBytes(20).toString("hex");
-
-  // Hash token & save to DB
-  this.resetPasswordToken = crypto
-    .createHash("sha256")
-    .update(resetToken)
-    .digest("hex");
-
-  // Token expires in 15 minutes
-  this.resetPasswordExpire = Date.now() + 15 * 60 * 1000;
-
-  return resetToken; // send RAW token via email
+// Compare password
+userSchema.methods.matchPassword = async function (enteredPassword) {
+  return bcrypt.compare(enteredPassword, this.password);
 };
 
-module.exports = mongoose.model("User", userSchema);
+// Hash password before saving
+userSchema.pre("save", async function (next) {
+  if (!this.isModified("password")) return next();
+  const salt = await bcrypt.genSalt(10);
+  this.password = await bcrypt.hash(this.password, salt);
+  next();
+});
 
+// Indexes
+userSchema.index({ email: 1 });
+userSchema.index({ role: 1 });
+
+module.exports = mongoose.model("User", userSchema);

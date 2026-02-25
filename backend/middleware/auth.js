@@ -1,27 +1,28 @@
-const jwt = require('jsonwebtoken');
+const jwt = require("jsonwebtoken");
+const User = require("../models/User");
 
-// Verifies JWT and attaches { id, role } to req.user
-module.exports = (req, res, next) => {
-  let token = req.header('Authorization');
-
-  if (!token) {
-    return res.status(401).json({ message: 'Authorization header missing' });
+exports.protect = async (req, res, next) => {
+  let token;
+  if (req.headers.authorization?.startsWith("Bearer")) {
+    token = req.headers.authorization.split(" ")[1];
   }
 
-  // Support: Authorization: Bearer <token>
-  if (token.startsWith('Bearer ')) {
-    token = token.split(' ')[1];
-  }
-
-  if (!token) {
-    return res.status(401).json({ message: 'Token missing' });
-  }
+  if (!token) return res.status(401).json({ message: "User not logged in" });
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded; // { id, role }
+    req.user = await User.findById(decoded.id);
     next();
   } catch (err) {
-    return res.status(401).json({ message: 'Invalid or expired token' });
+    console.error("Auth error:", err);
+    res.status(401).json({ message: "Token invalid" });
+  }
+};
+
+exports.admin = (req, res, next) => {
+  if (req.user && req.user.role === "admin") {
+    next();
+  } else {
+    res.status(403).json({ message: "Not authorized as admin" });
   }
 };

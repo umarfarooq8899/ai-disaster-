@@ -1,19 +1,14 @@
-import { Routes, Route } from "react-router-dom";
-import PublicLayout from "./layouts/PublicLayout";
-import PublicStatistics from "./pages/components/Statistics";
+import AdminDashboard from "./pages/AdminDashboard";
+import DisasterMap from "./components/DisasterMap";
 
 function App() {
-  return (
-    <Routes>
+  const user = JSON.parse(localStorage.getItem("user"));
 
-      {/* PUBLIC LAYOUT */}
-      <Route path="/" element={<PublicLayout />}>
-        <Route path="statistics" element={<PublicStatistics />} />
-      </Route>
+  if (user?.role === "admin") {
+    return <AdminDashboard />;
+  }
 
-    </Routes>
-  );
+  return <DisasterMap />;
 }
 
 export default App;
-

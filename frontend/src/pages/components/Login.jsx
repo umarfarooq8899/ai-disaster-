@@ -4,29 +4,27 @@ import { AuthContext } from "../../context/AuthContext";
 
 export default function Login() {
   const navigate = useNavigate();
-  const { loginUser } = useContext(AuthContext);
+  const { loginUser, getDashboardPath } = useContext(AuthContext);
 
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
 
-  const handleChange = (e) =>
-    setForm((s) => ({ ...s, [e.target.name]: e.target.value }));
+  const handleChange = (e) => {
+    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+
     const res = await loginUser(form);
-    if (!res.success) return setError(res.message);
+
+    if (!res?.success) {
+      return setError(res?.message || "Login failed");
+    }
 
     const role = res.data.user.role;
-    const map = {
-      general: "/dashboard/user",
-      volunteer: "/dashboard/volunteer",
-      ngo: "/dashboard/ngo",
-      rescue: "/dashboard/rescue",
-      admin: "/dashboard/admin",
-    };
-    navigate(map[role] || "/login");
+    navigate(getDashboardPath(role)); // navigate to correct dashboard
   };
 
   return (
@@ -36,7 +34,7 @@ export default function Login() {
           Login
         </h1>
         <p className="mt-1 text-sm text-slate-600">
-          Sign in to access your dashboard.
+          Sign in to access your dashboard
         </p>
 
         {error && (
@@ -55,6 +53,7 @@ export default function Login() {
               type="email"
               name="email"
               required
+              autoComplete="email"
               onChange={handleChange}
             />
           </div>
@@ -68,17 +67,9 @@ export default function Login() {
               type="password"
               name="password"
               required
+              autoComplete="current-password"
               onChange={handleChange}
             />
-          </div>
-
-          <div className="text-right">
-            <Link
-              to="/forgot-password"
-              className="text-sm font-medium text-blue-600 hover:underline"
-            >
-              Forgot password?
-            </Link>
           </div>
 
           <button className="btn-primary w-full" type="submit">

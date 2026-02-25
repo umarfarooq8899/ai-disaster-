@@ -1,5 +1,6 @@
 import React, { createContext, useEffect, useMemo, useState } from "react";
 import * as AuthAPI from "../api/auth";
+import * as VolunteerAPI from "../api/volunteer";
 
 export const AuthContext = createContext();
 
@@ -13,63 +14,122 @@ const readUser = () => {
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(readUser);
+  const [token, setToken] = useState(() => localStorage.getItem("adr_token"));
+  const [loading, setLoading] = useState(true);
 
-  // Keep localStorage in sync
+  // ================= Sync state with localStorage =================
   useEffect(() => {
-    if (user) {
+    if (user && token) {
       localStorage.setItem("adr_user", JSON.stringify(user));
+      localStorage.setItem("adr_token", token);
     } else {
       localStorage.removeItem("adr_user");
       localStorage.removeItem("adr_token");
     }
-  }, [user]);
+    setLoading(false);
+  }, [user, token]);
 
-  // Set session after login
-  const setSession = (payload) => {
-    localStorage.setItem("adr_token", payload.token);
-    setUser(payload.user);
+  // ================= Helpers =================
+  const setSession = ({ token: newToken, user: newUser }) => {
+    setToken(newToken);
+    setUser(newUser);
   };
 
-  // Clear session on logout
   const clearSession = () => {
-    localStorage.removeItem("adr_token");
-    localStorage.removeItem("adr_user");
     setUser(null);
+    setToken(null);
+    localStorage.removeItem("adr_user");
+    localStorage.removeItem("adr_token");
   };
 
-  // Signup: does NOT auto-login
+  // ================= AUTH ACTIONS =================
   const signupUser = async (form) => {
     try {
-      const data = await AuthAPI.signup(form);
-      return { success: true, data };
+      const data = await AuthAPI.signup(form); // /auth/register
+
+      if (data?.token && data?.user) {
+        setSession({ token: data.token, user: data.user });
+        return { success: true, data };
+      }
+
+      return { success: false, message: data?.message || "Signup failed" };
     } catch (err) {
-      const message = err?.response?.data?.message || "Signup failed";
-      return { success: false, message };
+      return {
+        success: false,
+        message: err?.response?.data?.message || "Signup failed",
+      };
     }
   };
 
-  // Login: sets session
   const loginUser = async (form) => {
     try {
       const data = await AuthAPI.login(form);
-      if (data?.token && data?.user) setSession(data);
-      return { success: true, data };
-    } catch (err) {
-      const message = err?.response?.data?.message || "Login failed";
-      return { success: false, message };
-    }
-  };
 
-  // Update current user (used by Profile page)
-  const updateUser = (newData) => {
-    setUser((prev) => ({ ...prev, ...newData }));
+      if (data?.token && data?.user) {
+        setSession({ token: data.token, user: data.user });
+        return { success: true, data };
+      }
+
+      return { success: false, message: data?.message || "Invalid credentials" };
+    } catch (err) {
+      return {
+        success: false,
+        message: err?.response?.data?.message || "Login failed",
+      };
+    }
   };
 
   const logout = () => clearSession();
 
+  const updateUser = (newData) => setUser((prev) => ({ ...prev, ...newData }));
+
+  // ================= Volunteer Profile =================
+  const createVolunteerProfile = async (form) => {
+    if (!token) return { success: false, message: "User not logged in" };
+
+    try {
+      const res = await VolunteerAPI.createVolunteer(form, token); // /volunteer/create
+
+      if (res?.success) {
+        updateUser({ ...res.volunteer, profileCompleted: true });
+        return { success: true, data: res.volunteer };
+      }
+
+      return { success: false, message: res?.message || "Failed to create volunteer profile" };
+    } catch (err) {
+      return {
+        success: false,
+        message: err?.response?.data?.message || "Failed to create volunteer profile",
+      };
+    }
+  };
+
+  // ================= Dashboard Routing =================
+  const getDashboardPath = (role) => {
+    const map = {
+      admin: "/dashboard/admin",
+      general: "/dashboard/user",
+      volunteer: "/dashboard/volunteer",
+      rescue_coordinator: "/dashboard/rescue",
+      ngo_coordinator: "/dashboard/ngo",
+    };
+    return map[role] || "/";
+  };
+
+  // ================= Context Value =================
   const value = useMemo(
-    () => ({ user, signupUser, loginUser, logout, updateUser }),
-    [user]
+    () => ({
+      user,
+      token,
+      loading,
+      signupUser,
+      loginUser,
+      logout,
+      updateUser,
+      createVolunteerProfile,
+      getDashboardPath,
+    }),
+    [user, token, loading]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

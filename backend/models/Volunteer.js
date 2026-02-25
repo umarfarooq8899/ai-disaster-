@@ -13,6 +13,7 @@ const volunteerSchema = new mongoose.Schema({
   currentTask: { type: mongoose.Schema.Types.ObjectId, refPath: "currentTaskType", default: null },
   latitude: { type: Number },
   longitude: { type: Number },
+  tasksCompleted: { type: Number, default: 0 }
 });
 
 // Indexes

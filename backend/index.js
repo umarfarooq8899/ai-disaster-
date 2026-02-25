@@ -4,9 +4,13 @@ const dotenv = require("dotenv");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const morgan = require("morgan");
+const monitoringService = require("./services/monitoringService");
 
 dotenv.config();
 const app = express();
+
+// Start AI Monitoring Service
+monitoringService.startMonitoring();
 
 // ================= MIDDLEWARE =================
 app.use(
@@ -52,6 +56,7 @@ require("./models/StatusLog");
 require("./models/RescueOrganization");
 require("./models/NgoOrganization");
 require("./models/Admin");
+require("./models/GlobalStats"); // Cumulative statistics
 // ================= ROUTES =================
 app.use("/api/auth", require("./routes/auth")); // <-- register & login
 app.use("/api/users", require("./routes/users"));
@@ -60,6 +65,7 @@ app.use("/api/alerts", require("./routes/alerts"));
 app.use("/api/statistics", require("./routes/statistics"));
 app.use("/api/admin", require("./routes/admin"));
 app.use("/api/organizations", require("./routes/organizationRoutes"));
+app.use("/api/ai", require("./routes/ai"));
 
 // ================= RESCUE & VOLUNTEER ROUTES =================
 const { protect } = require("./middleware/auth");
@@ -67,47 +73,6 @@ const rescueOnly = require("./middleware/rescueOnly");
 app.use("/api/rescue", protect, rescueOnly, require("./routes/rescue"));
 app.use("/api/ngo", protect, require("./middleware/ngoOnly"), require("./routes/ngo"));
 app.use("/api/volunteer", protect, require("./routes/volunteer"));
-
-// ================= DASHBOARD STATS =================
-app.get("/api/statscard/dashboard", protect, rescueOnly, async (req, res) => {
-  try {
-    const Volunteer = mongoose.model("Volunteer");
-    const Mission = mongoose.model("Mission");
-    const Alert = mongoose.model("Alert");
-
-    const orgId = req.user.organization;
-    if (!orgId) return res.status(400).json({ message: "Organization not found for this user" });
-
-    // Count volunteers in THIS organization who are available
-    const activeVolunteers = await Volunteer.countDocuments({
-      organization: orgId,
-      available: true
-    });
-
-    // Count missions for THIS organization
-    const ongoingMissions = await Mission.countDocuments({
-      organization: orgId,
-      status: "ongoing"
-    });
-    const resolvedMissions = await Mission.countDocuments({
-      organization: orgId,
-      status: "completed"
-    });
-
-    // Active alerts (global or scoped? Usually alerts are global for now)
-    const activeAlerts = await Alert.countDocuments({ status: "Active" });
-
-    res.json({
-      activeVolunteers,
-      ongoingMissions,
-      resolvedMissions,
-      activeAlerts,
-    });
-  } catch (err) {
-    console.error("Statscard dashboard error:", err);
-    res.status(500).json({ message: "Failed to load rescue dashboard data ❌" });
-  }
-});
 
 // ================= HEALTH CHECK =================
 app.get("/", (req, res) => {
@@ -127,5 +92,6 @@ app.use((err, req, res, next) => {
 });
 
 // ================= SERVER =================
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT} 🚀`));
+

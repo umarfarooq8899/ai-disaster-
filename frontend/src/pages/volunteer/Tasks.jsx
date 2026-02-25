@@ -20,6 +20,11 @@ export default function VolunteerTasks() {
     description: "",
     metricValue: 0
   });
+  const [evidenceFiles, setEvidenceFiles] = useState([]);
+  const [uploading, setUploading] = useState(false);
+  const [rejecting, setRejecting] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
+  const [showRejectForm, setShowRejectForm] = useState(false);
 
   const fetchMissions = async () => {
     try {
@@ -40,14 +45,34 @@ export default function VolunteerTasks() {
 
   const handleComplete = async (missionId) => {
     try {
-      await axiosInstance.post(`/volunteer/missions/${missionId}/complete`);
+      setUploading(true);
+      let evidenceUrls = [];
+
+      // Upload files first if any
+      if (evidenceFiles.length > 0) {
+        const formData = new FormData();
+        evidenceFiles.forEach(file => {
+          formData.append("evidence", file);
+        });
+
+        const uploadRes = await axiosInstance.post("/volunteer/upload-evidence", formData, {
+          headers: { "Content-Type": "multipart/form-data" }
+        });
+        evidenceUrls = uploadRes.data.urls;
+      }
+
+      await axiosInstance.post(`/volunteer/missions/${missionId}/complete`, { evidenceUrls });
       toast.success("Mission marked as complete!");
-      // Reload page as requested by user
-      setTimeout(() => {
-        window.location.reload();
-      }, 1500);
+      // Update UI without full reload
+      setSelectedMission(null);
+      setEvidenceFiles([]);
+      setShowRejectForm(false);
+      setRejectReason("");
+      fetchMissions();
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to complete mission");
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -66,6 +91,25 @@ export default function VolunteerTasks() {
       setLogForm({ updateType: "rescued", description: "", metricValue: 0 });
     } catch (err) {
       toast.error("Failed to post update");
+    }
+  };
+
+  const handleReject = async (missionId) => {
+    try {
+      setRejecting(true);
+      await axiosInstance.post(`/volunteer/missions/${missionId}/reject`, {
+        type: selectedMission.type || (selectedMission.organization?.name ? "Mission" : "AidAssignment"), // Use available identifier or generic logic
+        reason: rejectReason
+      });
+      toast.success("Task rejected and re-routed successfully.");
+      setSelectedMission(null);
+      setShowRejectForm(false);
+      setRejectReason("");
+      fetchMissions(); // Refetch the list to remove the rejected task
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to reject task");
+    } finally {
+      setRejecting(false);
     }
   };
 
@@ -188,6 +232,7 @@ export default function VolunteerTasks() {
                   <MapView
                     disasters={[{ ...selectedMission.disaster, _id: selectedMission._id }]}
                     showPin={true}
+                    height="100%"
                   />
                   <div className="absolute top-4 left-4 z-[1000] bg-white/90 backdrop-blur rounded-lg px-3 py-1.5 shadow-sm border flex items-center gap-2">
                     <MapPin className="w-4 h-4 text-red-600" />
@@ -213,7 +258,12 @@ export default function VolunteerTasks() {
                     </p>
                   </div>
                   <button
-                    onClick={() => setSelectedMission(null)}
+                    onClick={() => {
+                      setSelectedMission(null);
+                      setEvidenceFiles([]);
+                      setShowRejectForm(false);
+                      setRejectReason("");
+                    }}
                     className="p-1 hover:bg-gray-100 rounded-full transition"
                   >
                     <X className="w-6 h-6 text-gray-400" />
@@ -249,6 +299,31 @@ export default function VolunteerTasks() {
                       <p className="text-xs text-gray-600 mt-1">{selectedMission.disaster.description}</p>
                     </div>
                   )}
+
+                  {/* Evidence Upload Section */}
+                  {selectedMission.status !== "completed" && (
+                    <div className="pt-4 border-t">
+                      <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Field Evidence (Optional)</h3>
+                      <div className="flex flex-col gap-3">
+                        <input
+                          type="file"
+                          multiple
+                          accept="image/*"
+                          onChange={(e) => setEvidenceFiles(Array.from(e.target.files))}
+                          className="text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100"
+                        />
+                        {evidenceFiles.length > 0 && (
+                          <div className="flex flex-wrap gap-2 mt-2">
+                            {evidenceFiles.map((f, i) => (
+                              <span key={i} className="px-2 py-1 bg-gray-100 text-xs text-gray-600 rounded">
+                                {f.name}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -256,31 +331,65 @@ export default function VolunteerTasks() {
               <div className="p-6 bg-gray-50 border-t flex flex-col gap-3">
                 {selectedMission.status !== "completed" ? (
                   <>
-                    <div className="grid grid-cols-2 gap-3">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleComplete(selectedMission._id);
-                        }}
-                        className="bg-emerald-600 text-white py-2.5 rounded-xl font-bold hover:bg-emerald-700 transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-200"
-                      >
-                        <CheckCircle className="w-4 h-4" />
-                        Complete
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          // No-op for now as we haven't changed the layout for updates, 
-                          // but will keep the modal for status updates if needed
-                        }}
-                        className="bg-slate-900 text-white py-2.5 rounded-xl font-bold hover:bg-slate-800 transition flex items-center justify-center gap-2 shadow-lg shadow-slate-200"
-                      >
-                        <Send className="w-4 h-4" /> Update
-                      </button>
-                    </div>
-                    <p className="text-[10px] text-center text-gray-400">
-                      Completed tasks will move to your history log.
-                    </p>
+                    {!showRejectForm ? (
+                      <>
+                        <div className="grid grid-cols-2 gap-3">
+                          <button
+                            disabled={uploading}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleComplete(selectedMission._id);
+                            }}
+                            className="bg-emerald-600 text-white py-2.5 rounded-xl font-bold hover:bg-emerald-700 transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-200 disabled:opacity-50"
+                          >
+                            <CheckCircle className="w-4 h-4" />
+                            {uploading ? "Completing..." : "Complete"}
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setShowRejectForm(true);
+                            }}
+                            className="bg-red-50 text-red-600 border border-red-200 py-2.5 rounded-xl font-bold hover:bg-red-100 hover:text-red-700 transition flex items-center justify-center gap-2"
+                          >
+                            <X className="w-4 h-4" /> Reject Task
+                          </button>
+                        </div>
+                        <p className="text-[10px] text-center text-gray-400">
+                          Completed tasks move to your history. Rejecting will automatically re-assign to someone else.
+                        </p>
+                      </>
+                    ) : (
+                      // Reject Confirmation Form
+                      <div className="bg-red-50 border border-red-100 rounded-xl p-4 animate-in fade-in zoom-in duration-200">
+                        <h4 className="text-sm font-bold text-red-800 mb-2">Reject Task</h4>
+                        <p className="text-xs text-red-600 mb-3">
+                          Are you sure? This task will be removed from your list and re-routed to another volunteer automatically.
+                        </p>
+                        <textarea
+                          placeholder="Optional reason (e.g., too far, sick, lack equipment)"
+                          value={rejectReason}
+                          onChange={(e) => setRejectReason(e.target.value)}
+                          className="w-full border-red-200 rounded-lg p-2 text-sm bg-white focus:ring-red-500 max-h-24 resize-y mb-3"
+                          rows={2}
+                        />
+                        <div className="flex gap-2 justify-end">
+                          <button
+                            onClick={() => setShowRejectForm(false)}
+                            className="px-4 py-1.5 text-sm font-semibold text-gray-600 hover:bg-gray-100 rounded-lg transition"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            disabled={rejecting}
+                            onClick={() => handleReject(selectedMission._id)}
+                            className="px-4 py-1.5 text-sm font-semibold bg-red-600 text-white hover:bg-red-700 shadow-sm rounded-lg transition disabled:opacity-50"
+                          >
+                            {rejecting ? "Rejecting..." : "Confirm Reject"}
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </>
                 ) : (
                   <div className="bg-emerald-100 text-emerald-700 py-3 rounded-xl flex items-center justify-center gap-2 font-bold">

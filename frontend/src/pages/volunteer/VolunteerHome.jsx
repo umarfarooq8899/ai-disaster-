@@ -7,6 +7,7 @@ export default function VolunteerHome() {
     assignedTasks: 0,
     nearbyAlerts: 0,
     isAvailable: false,
+    tasksCompleted: 0,
   });
   const [loading, setLoading] = useState(true);
 
@@ -48,7 +49,36 @@ export default function VolunteerHome() {
           </Link>
         </div>
 
-        {/* Removed Availability Toggle Card as it's now in the header */}
+        {/* Impact Profile Card */}
+        <div className="bg-white p-4 rounded-xl shadow hover:shadow-lg transition flex flex-col justify-between">
+          <div>
+            <h3 className="text-lg font-semibold mb-2">Impact Profile</h3>
+            <p className="text-3xl font-bold text-emerald-600">{stats.tasksCompleted} <span className="text-sm font-normal text-gray-500">Tasks Completed</span></p>
+          </div>
+
+          <div className="mt-4">
+            {stats.tasksCompleted >= 10 ? (
+              <div className="bg-gradient-to-r from-amber-400 to-amber-600 text-white text-xs font-bold px-3 py-1.5 rounded inline-flex items-center gap-1 shadow-sm">
+                🏆 Veteran Responder
+              </div>
+            ) : stats.tasksCompleted >= 5 ? (
+              <div className="bg-gradient-to-r from-slate-400 to-slate-500 text-white text-xs font-bold px-3 py-1.5 rounded inline-flex items-center gap-1 shadow-sm">
+                🥈 Experienced Volunteer
+              </div>
+            ) : stats.tasksCompleted >= 1 ? (
+              <div className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-xs font-bold px-3 py-1.5 rounded inline-flex items-center gap-1 shadow-sm">
+                🥉 First Responder
+              </div>
+            ) : (
+              <div className="bg-gray-100 text-gray-500 text-xs font-bold px-3 py-1.5 rounded inline-flex items-center gap-1">
+                New Recruit
+              </div>
+            )}
+          </div>
+          <Link to="/dashboard/volunteer/history" className="text-sm text-emerald-600 hover:underline mt-4 block">
+            View History
+          </Link>
+        </div>
       </div>
     </div>
   );

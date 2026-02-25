@@ -65,7 +65,7 @@ export default function MissionHistory() {
                 </div>
                 <div className="bg-white rounded-lg p-4 border shadow-sm">
                     <div className="text-sm text-gray-500">Total Volunteers</div>
-                    <div className="text-2xl font-bold text-blue-600">{totalVolunteers}</div>
+                    <div className="text-2xl font-bold text-brand-600">{totalVolunteers}</div>
                 </div>
             </div>
 

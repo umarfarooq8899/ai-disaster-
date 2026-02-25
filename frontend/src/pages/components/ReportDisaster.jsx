@@ -59,7 +59,7 @@ function LocationPermissionModal({ onClose, onConfirm }) {
     <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/50" onClick={onClose}>
       <div className="bg-white p-6 rounded-xl shadow-2xl w-full max-w-sm animate-modal" onClick={e => e.stopPropagation()}>
         <div className="text-center mb-4">
-          <div className="bg-blue-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3 text-blue-600">
+          <div className="bg-brand-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3 text-brand-600">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -79,7 +79,7 @@ function LocationPermissionModal({ onClose, onConfirm }) {
           </button>
           <button
             onClick={onConfirm}
-            className="flex-1 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 font-medium shadow-sm hover:shadow"
+            className="flex-1 py-2 rounded-lg bg-brand-600 text-white hover:bg-brand-700 font-medium shadow-sm hover:shadow"
           >
             Allow Access
           </button>
@@ -95,15 +95,54 @@ function LocateControl({ setLocation, setAddress, setShowPermissionModal }) {
 
   // We need to listen to the custom event "triggerLocate" which we'll dispatch from the modal
   useEffect(() => {
+    const fallbackToIPLocation = async () => {
+      try {
+        setAddress("Fetching location via IP...");
+        // ipinfo.io is generally more reliable and less blocked by adblockers than ipapi.co
+        const res = await fetch("https://ipinfo.io/json");
+        const data = await res.json();
+
+        if (data && data.loc) {
+          const [latStr, lngStr] = data.loc.split(',');
+          const latlng = { lat: parseFloat(latStr), lng: parseFloat(lngStr) };
+
+          setLocation(latlng);
+          const addr = await getAddressFromCoords(latlng.lat, latlng.lng);
+          setAddress(addr || `${data.city}, ${data.region}, ${data.country}`);
+          map.flyTo(latlng, 12);
+          toast.success("Location found via IP fallback.");
+        } else {
+          toast.error("IP fallback missing coordinates data.");
+          console.error("IP API Response:", data);
+          setAddress("");
+        }
+      } catch (err) {
+        console.error("IP fallback fetch error:", err);
+        toast.error("Network or AdBlocker prevented automatic location fetch.");
+        setAddress("");
+      }
+    };
+
     const handleLocateEvent = () => {
-      map.locate().on("locationfound", function (e) {
-        setLocation(e.latlng);
-        setAddress("Fetching address...");
-        getAddressFromCoords(e.latlng.lat, e.latlng.lng).then(addr => setAddress(addr));
-        map.flyTo(e.latlng, map.getZoom());
-      }).on("locationerror", function (e) {
-        toast.error("Location access denied or unavailable.");
-      });
+      if ("geolocation" in navigator) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const latlng = { lat: position.coords.latitude, lng: position.coords.longitude };
+            setLocation(latlng);
+            setAddress("Fetching address...");
+            getAddressFromCoords(latlng.lat, latlng.lng).then(addr => setAddress(addr));
+            map.flyTo(latlng, 14); // Use a standard zoom level like 14
+          },
+          (error) => {
+            console.error("Geolocation error:", error);
+            // If it fails or is denied, quietly fall back to IP location
+            fallbackToIPLocation();
+          },
+          { enableHighAccuracy: false, timeout: 15000, maximumAge: 0 }
+        );
+      } else {
+        fallbackToIPLocation();
+      }
     };
 
     window.addEventListener('triggerLocate', handleLocateEvent);
@@ -316,7 +355,7 @@ export default function ReportDisaster() {
           <button
             type="submit"
             disabled={status.loading}
-            className="w-full bg-blue-600 text-white font-semibold py-3 rounded-lg hover:bg-blue-700 disabled:opacity-50 mt-4"
+            className="w-full bg-brand-600 text-white font-semibold py-3 rounded-lg hover:bg-brand-700 disabled:opacity-50 mt-4"
           >
             {status.loading ? "Submitting..." : "Submit Report"}
           </button>

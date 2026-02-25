@@ -1,8 +1,8 @@
 // src/pages/admin/ManageAlerts.jsx
 import React, { useEffect, useState, useContext } from "react";
-import axios from "axios";
+import api from "../../api/axios"; // Use configured axios
 import { AuthContext } from "../../context/AuthContext";
-import { Bell, Trash2, Power } from "lucide-react";
+import { Bell, Power, Trash2 } from "lucide-react";
 
 export default function ManageAlerts() {
   const { token } = useContext(AuthContext);
@@ -14,7 +14,7 @@ export default function ManageAlerts() {
     setLoading(true);
     setError(null);
     try {
-      const res = await axios.get("http://localhost:5000/api/alerts", {
+      const res = await api.get("/admin/alerts", {
         headers: { Authorization: `Bearer ${token}` },
       });
       setAlerts(res.data);
@@ -28,8 +28,8 @@ export default function ManageAlerts() {
 
   const toggleStatus = async (id, status) => {
     try {
-      await axios.patch(
-        `http://localhost:5000/api/alerts/${id}/status`,
+      await api.patch(
+        `/admin/alerts/${id}/status`,
         { status: status === "Active" ? "Disabled" : "Active" },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -42,7 +42,7 @@ export default function ManageAlerts() {
 
   const deleteAlert = async (id) => {
     try {
-      await axios.delete(`http://localhost:5000/api/alerts/${id}`, {
+      await api.delete(`/admin/alerts/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       fetchAlerts();
@@ -97,11 +97,10 @@ export default function ManageAlerts() {
                 <td className="p-4 text-gray-600">{a.target}</td>
                 <td className="p-4">
                   <span
-                    className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      a.status === "Active"
-                        ? "bg-green-100 text-green-700"
-                        : "bg-gray-200 text-gray-600"
-                    }`}
+                    className={`px-2 py-1 rounded-full text-xs font-medium ${a.status === "Active"
+                      ? "bg-green-100 text-green-700"
+                      : "bg-gray-200 text-gray-600"
+                      }`}
                   >
                     {a.status}
                   </span>
@@ -109,11 +108,10 @@ export default function ManageAlerts() {
                 <td className="p-4 flex justify-end gap-2">
                   <button
                     onClick={() => toggleStatus(a._id, a.status)}
-                    className={`flex items-center gap-1 px-3 py-1.5 text-xs rounded-lg border transition ${
-                      a.status === "Active"
-                        ? "border-orange-300 text-orange-600 hover:bg-orange-50"
-                        : "border-green-300 text-green-600 hover:bg-green-50"
-                    }`}
+                    className={`flex items-center gap-1 px-3 py-1.5 text-xs rounded-lg border transition ${a.status === "Active"
+                      ? "border-orange-300 text-orange-600 hover:bg-orange-50"
+                      : "border-green-300 text-green-600 hover:bg-green-50"
+                      }`}
                   >
                     <Power className="w-4 h-4" />
                     {a.status === "Active" ? "Disable" : "Enable"}

@@ -82,13 +82,13 @@ export default function Statistics() {
           title="Total Citizens"
           value={stats.totalUsers}
           icon={<Users className="w-6 h-6" />}
-          color="bg-blue-50 text-blue-600 border-blue-100"
+          color="bg-brand-50 text-brand-600 border-brand-100"
         />
         <StatCard
           title="Active Volunteers"
           value={stats.totalVolunteers}
           icon={<Shield className="w-6 h-6" />}
-          color="bg-indigo-50 text-indigo-600 border-indigo-100"
+          color="bg-brand-50 text-brand-600 border-brand-100"
         />
         <StatCard
           title="Partner NGOs"
@@ -141,7 +141,7 @@ export default function Statistics() {
             title="Total Missions"
             value={stats.totalMissions || 0}
             icon={<Activity className="w-6 h-6" />}
-            color="bg-blue-50 text-blue-600 border-blue-100"
+            color="bg-brand-50 text-brand-600 border-brand-100"
             size="small"
           />
 
@@ -151,7 +151,7 @@ export default function Statistics() {
               <BarChart3 className="w-6 h-6 text-brand-600" />
             </div>
             <div className="relative z-10">
-              <h3 className="text-xl font-bold mb-2">Safety First Architecture</h3>
+              <h3 className="text-xl font-bold mb-2">Disaster Insights</h3>
               <p className="text-white/80 text-sm max-w-lg">
                 These statistics represent the collective efforts of our coordinated response system.
                 Every alert contributes to a safer community and a faster response time for those in need.
@@ -167,7 +167,7 @@ export default function Statistics() {
             <StatusIndicator label="Active Alerts" value={stats.activeAlerts} color="bg-red-500" />
             <StatusIndicator label="Global Response Rate" value="94%" color="bg-emerald-500" />
             <StatusIndicator label="Avg. Response Time" value="12m" color="bg-brand-500" />
-            <StatusIndicator label="Verified Sources" value="1,240+" color="bg-indigo-500" />
+            <StatusIndicator label="Verified Sources" value="1,240+" color="bg-brand-500" />
           </div>
 
           <div className="mt-8 pt-6 border-t border-slate-50">

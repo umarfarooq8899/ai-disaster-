@@ -11,6 +11,7 @@ const disasterSchema = new mongoose.Schema(
     video: { type: String }, // URL/path to uploaded video
     latitude: { type: Number },
     longitude: { type: Number },
+    dangerRadius: { type: Number, default: 5 }, // Radius in kilometers
     reportedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   },
   { timestamps: true }

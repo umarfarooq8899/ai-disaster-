@@ -3,7 +3,7 @@ import MapView from "../../components/map/MapView";
 import { getAllDisasters } from "../../api/disasters";
 import { zones, volunteers } from "../../utils/mockData";
 import { Link } from "react-router-dom";
-import { Bell, User, BarChart3, ShieldCheck } from "lucide-react";
+import { Bell, User, BarChart3, ShieldCheck, BrainCircuit } from "lucide-react";
 
 export default function UserHome() {
   const [disasters, setDisasters] = useState([]);
@@ -29,7 +29,7 @@ export default function UserHome() {
               <ShieldCheck className="w-6 h-6" />
             </div>
             <div className="text-left">
-              <h3 className="text-xl font-black text-slate-900 leading-tight">Emergency Alerts</h3>
+              <h3 className="font-semibold text-lg">Emergency Alerts</h3>
               <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Status: Secure</p>
             </div>
           </div>
@@ -69,6 +69,22 @@ export default function UserHome() {
           </div>
         </Link>
 
+        <Link
+          to="/dashboard/user/ai-analysis"
+          className="group bg-white rounded-2xl p-6 shadow-sm border hover:shadow-lg hover:-translate-y-1 transition-all"
+        >
+          <div className="flex items-center gap-4">
+            <div className="p-3 rounded-xl bg-blue-50 text-blue-600 group-hover:bg-blue-100 transition">
+              <BrainCircuit size={22} />
+            </div>
+            <div>
+              <h3 className="font-semibold text-lg">AI Analysis</h3>
+              <p className="text-sm text-gray-500">
+                Predict and detect disasters using AI.
+              </p>
+            </div>
+          </div>
+        </Link>
       </div>
 
       {/* LIVE MAP */}
@@ -92,6 +108,12 @@ export default function UserHome() {
           className="px-5 py-2.5 border rounded-xl hover:bg-gray-100 transition"
         >
           Report Disaster
+        </Link>
+        <Link
+          to="/dashboard/user/ai-analysis"
+          className="px-5 py-2.5 border rounded-xl hover:bg-gray-100 transition"
+        >
+          AI Analysis
         </Link>
       </div>
 

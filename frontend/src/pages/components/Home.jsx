@@ -1,28 +1,33 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { BarChart3, Brain, Users, AlertTriangle } from "lucide-react";
 import MapView from "../../components/map/MapView";
 import { getAllDisasters } from "../../api/disasters";
 import CountUp from "react-countup";
 
+const POLL_INTERVAL_MS = 30_000;
+
 export default function Home() {
   const [disasters, setDisasters] = useState([]);
-  const [loadingMap, setLoadingMap] = useState(true);
   const [loadingCards, setLoadingCards] = useState(true);
 
-  useEffect(() => {
+  const fetchDisasters = useCallback(() => {
     getAllDisasters()
       .then((data) => {
         setDisasters(data);
-        setTimeout(() => setLoadingMap(false), 600);
-        setTimeout(() => setLoadingCards(false), 800);
+        setLoadingCards(false);
       })
       .catch(() => {
         setDisasters([]);
-        setLoadingMap(false);
         setLoadingCards(false);
       });
   }, []);
+
+  useEffect(() => {
+    fetchDisasters();
+    const timer = setInterval(fetchDisasters, POLL_INTERVAL_MS);
+    return () => clearInterval(timer);
+  }, [fetchDisasters]);
 
   // Example volunteers count (hardcoded here, could be dynamic)
   const volunteers = 30;
@@ -69,29 +74,9 @@ export default function Home() {
             </div>
           </div>
 
-          {/* MAP WITH LEGEND AND SKELETON */}
-          <div className="rounded-2xl overflow-hidden border relative">
-            {loadingMap ? (
-              <div className="h-[320px] animate-pulse bg-slate-100 flex items-center justify-center text-slate-400">
-                Loading map…
-              </div>
-            ) : (
-              <MapView disasters={disasters} />
-            )}
-
-            {/* MAP LEGEND */}
-            {!loadingMap && (
-              <div className="absolute bottom-4 left-4 bg-white/90 px-3 py-2 rounded-lg text-sm shadow-md">
-                <div className="flex items-center gap-2">
-                  <AlertTriangle className="text-red-600" />
-                  <span>Active Disaster</span>
-                </div>
-                <div className="flex items-center gap-2 mt-1">
-                  <Users className="text-brand-600" />
-                  <span>Volunteer</span>
-                </div>
-              </div>
-            )}
+          {/* LIVE MAP — mounts immediately; markers appear when data loads */}
+          <div className="rounded-2xl overflow-hidden border relative" style={{ height: "320px" }}>
+            <MapView disasters={disasters} height="320px" />
           </div>
 
         </div>

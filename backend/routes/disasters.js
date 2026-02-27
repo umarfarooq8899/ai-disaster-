@@ -50,11 +50,41 @@ router.post("/", auth, upload.fields([{ name: "image", maxCount: 1 }, { name: "v
 // Get all disasters (any user)
 router.get("/", async (req, res) => {
   try {
+    const { isAI } = req.query;
+    const filter = { status: { $in: ["active", "resolved"] } };
+
+    if (isAI !== undefined) {
+      filter.isAI = isAI === 'true';
+    }
+
     // Only show active or resolved disasters to the public
-    const disasters = await Disaster.find({
-      status: { $in: ["active", "resolved"] },
-    }).sort({ createdAt: -1 });
+    const disasters = await Disaster.find(filter).sort({ createdAt: -1 });
     res.json(disasters);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// Create AI Disaster (Admin only)
+router.post("/ai", auth, adminOnly, async (req, res) => {
+  try {
+    const { title, description, severity, latitude, longitude, location, dangerRadius } = req.body;
+
+    const newDisaster = new Disaster({
+      title,
+      description,
+      location,
+      latitude,
+      longitude,
+      severity: severity || "high",
+      status: "active", // AI alerts are active immediately
+      isAI: true,
+      dangerRadius: dangerRadius || 10,
+    });
+
+    const saved = await newDisaster.save();
+    res.status(201).json(saved);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });

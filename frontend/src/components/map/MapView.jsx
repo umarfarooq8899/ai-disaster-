@@ -118,6 +118,7 @@ export default function MapView({
   center = null,
   userLocation = null,
   height = "400px",
+  defaultZoom = null,
 }) {
   const safeDisasters = Array.isArray(disasters) ? disasters : [];
 
@@ -128,6 +129,8 @@ export default function MapView({
       typeof d.longitude === "number"
   );
 
+  const initialZoom = defaultZoom || (center ? 14 : 5);
+
   return (
     <MapErrorBoundary height={height}>
       <div
@@ -136,13 +139,13 @@ export default function MapView({
       >
         <MapContainer
           center={center || [30, 70]}
-          zoom={center ? 14 : 5}
+          zoom={initialZoom}
           scrollWheelZoom
           zoomControl={false}
           style={{ height: "100%", width: "100%" }}
         >
           <MapResizeHandler />
-          {center && <ChangeView center={center} zoom={14} />}
+          {center && <ChangeView center={center} zoom={initialZoom} />}
           <ZoomControl position="bottomright" />
 
           <TileLayer

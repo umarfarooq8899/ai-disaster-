@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { getAllDisasters } from "../../api/disasters";
-import { MapPin, Clock, AlertCircle, Image as ImageIcon } from "lucide-react";
+import { MapPin, Clock, AlertCircle, Radio, X } from "lucide-react";
 
 const badge = (severity) => {
   const map = {
@@ -17,7 +17,7 @@ export default function Alerts() {
   const [selectedDisaster, setSelectedDisaster] = useState(null);
 
   useEffect(() => {
-    getAllDisasters()
+    getAllDisasters(true)
       .then(setItems)
       .finally(() => setLoading(false));
   }, []);
@@ -58,38 +58,17 @@ export default function Alerts() {
               onClick={() => setSelectedDisaster(d)}
               className="group bg-white rounded-3xl border border-brand-100 overflow-hidden hover:shadow-xl transition-all duration-500 flex flex-col cursor-pointer"
             >
-              {/* Media Section */}
-              <div className="relative h-48 bg-slate-100 overflow-hidden">
-                {d.video ? (
-                  <video
-                    src={`/${d.video}`}
-                    className="w-full h-full object-cover"
-                    controls
-                    muted
-                  />
-                ) : d.image ? (
-                  <img
-                    src={`/${d.image}`}
-                    alt={d.title}
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                  />
-                ) : (
-                  <div className="w-full h-full flex flex-col items-center justify-center text-slate-400">
-                    <ImageIcon className="w-10 h-10 mb-2 opacity-20" />
-                    <span className="text-xs font-medium">No Visual Provided</span>
-                  </div>
-                )}
-                <div className={`absolute top-4 right-4 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg ${badge(d.severity)}`}>
-                  {d.severity}
-                </div>
-              </div>
-
               {/* Content Section */}
               <div className="p-6 flex-1 flex flex-col">
-                <h3 className="text-xl font-bold text-slate-900 mb-2 group-hover:text-brand-600 transition-colors capitalize">
-                  {d.title}
-                </h3>
-                <p className="text-slate-600 text-sm line-clamp-2 mb-6 flex-1 italic">
+                <div className="flex justify-between items-start mb-2 gap-4">
+                  <h3 className="text-xl font-bold text-slate-900 group-hover:text-brand-600 transition-colors capitalize line-clamp-2">
+                    {d.title}
+                  </h3>
+                  <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shrink-0 shadow-sm ${badge(d.severity)}`}>
+                    {d.severity}
+                  </div>
+                </div>
+                <p className="text-slate-600 text-sm line-clamp-3 mb-6 flex-1 italic">
                   "{d.description}"
                 </p>
 
@@ -98,6 +77,12 @@ export default function Alerts() {
                     <MapPin className="w-3.5 h-3.5 text-brand-500" />
                     <span className="truncate">{d.location}</span>
                   </div>
+                  {d.dangerRadius && (
+                    <div className="flex items-center gap-2 text-xs text-slate-500">
+                      <Radio className="w-3.5 h-3.5 text-orange-500" />
+                      <span>{d.dangerRadius} km Danger Range</span>
+                    </div>
+                  )}
                   <div className="flex items-center gap-2 text-[10px] text-slate-400">
                     <Clock className="w-3.5 h-3.5" />
                     <span>{new Date(d.createdAt).toLocaleString()}</span>
@@ -119,39 +104,16 @@ export default function Alerts() {
             className="bg-white rounded-3xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col shadow-2xl animate-modal"
             onClick={e => e.stopPropagation()}
           >
-            {/* Modal Media */}
-            <div className="relative h-64 md:h-96 bg-slate-900 flex items-center justify-center">
-              {selectedDisaster.video ? (
-                <video
-                  src={`/${selectedDisaster.video}`}
-                  className="w-full h-full object-contain"
-                  controls
-                  autoPlay
-                />
-              ) : selectedDisaster.image ? (
-                <img
-                  src={`/${selectedDisaster.image}`}
-                  alt={selectedDisaster.title}
-                  className="w-full h-full object-contain"
-                />
-              ) : (
-                <div className="text-slate-500 flex flex-col items-center">
-                  <AlertCircle className="w-12 h-12 mb-2" />
-                  <span>No media available</span>
-                </div>
-              )}
-
+            {/* Modal Content */}
+            <div className="relative p-8 overflow-y-auto">
               <button
                 onClick={() => setSelectedDisaster(null)}
-                className="absolute top-4 right-4 bg-white/20 hover:bg-white/40 backdrop-blur-md text-white p-2 rounded-full transition-colors z-10"
+                className="absolute top-6 right-6 text-slate-400 hover:text-slate-600 bg-slate-100 hover:bg-slate-200 p-2 rounded-full transition-colors z-10"
               >
-                <X className="w-6 h-6" />
+                <X className="w-5 h-5" />
               </button>
-            </div>
-
-            {/* Modal Content */}
-            <div className="p-8 overflow-y-auto">
-              <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+              
+              <div className="flex flex-wrap items-center justify-between gap-4 mb-6 pr-12">
                 <div>
                   <h2 className="text-3xl font-extrabold text-slate-900 capitalize">
                     {selectedDisaster.title}
@@ -165,6 +127,12 @@ export default function Alerts() {
                       <Clock className="w-4 h-4" />
                       {new Date(selectedDisaster.createdAt).toLocaleString()}
                     </div>
+                    {selectedDisaster.dangerRadius && (
+                      <div className="flex items-center gap-1.5 text-slate-500 text-sm">
+                        <Radio className="w-4 h-4 text-orange-500" />
+                        {selectedDisaster.dangerRadius} km Danger Range
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className={`px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest shadow-md ${badge(selectedDisaster.severity)}`}>
@@ -200,5 +168,3 @@ export default function Alerts() {
   );
 }
 
-// Add X icon from lucide-react if not already imported
-import { X } from "lucide-react";

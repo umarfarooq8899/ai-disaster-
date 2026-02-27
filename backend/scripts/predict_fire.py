@@ -5,8 +5,8 @@ import pandas as pd
 import numpy as np
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import LabelEncoder
+from datetime import datetime
 
-# Paths
 # Paths
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DATA_PATH = os.path.join(BASE_DIR, 'model_training', 'Climate-Disasters-Warning-Systems-main', 'Fire Detection', 'forestfires.csv')
@@ -20,7 +20,6 @@ def train_and_predict(features_input=None):
         df = pd.read_csv(DATA_PATH)
         
         # Preprocessing
-        # Label encode month and day
         le_month = LabelEncoder()
         df['month'] = le_month.fit_transform(df['month'])
         le_day = LabelEncoder()
@@ -28,49 +27,39 @@ def train_and_predict(features_input=None):
         
         # Features: Everything except 'area'
         X = df.drop('area', axis=1)
-        y = df['area']
+        y = np.log1p(df['area']) # Use log transform for target to handle skewed fire areas better
         
-        # Random Forest Regressor (predicting area of fire/impact)
         model = RandomForestRegressor(n_estimators=100, random_state=42)
         model.fit(X, y)
         
-        # LOGIC GUARDS
-        if features_input and ',' in features_input:
-            vals = features_input.split(',')
-            if len(vals) == 4:
-                temp, rhino, wind, rain = [float(x) for x in vals]
-                # Pakistan specific: High heat and low rain are primary drivers
-                if rain > 1.0: # Even light rain significantly reduces risk in PK
-                     return {
-                        "prediction": "Low",
-                        "impact_index": 0.0,
-                        "description": f"Rain detected ({rain}mm). Fire risk inhibited in regional foliage.",
-                        "status": "success",
-                        "model": "Logic Guard (PK Context)"
-                    }
-                if temp < 15 and rhino > 70:
-                    return {
-                        "prediction": "Low",
-                        "impact_index": 0.0,
-                        "description": "Cool and humid conditions. High fuel moisture in forests like Margalla.",
-                        "status": "success",
-                        "model": "Logic Guard (PK Context)"
-                    }
+        current_month = datetime.now().strftime('%b').lower()
+        current_day = datetime.now().strftime('%a').lower()
         
-        # If no input provided, use the last row as a "current" prediction example
         if features_input is None:
             latest_data = X.iloc[-1].values.reshape(1, -1)
             desc = "Historical baseline"
         elif ',' in features_input:
             vals = features_input.split(',')
             if len(vals) == 4:
+                # Live Open-Meteo payload: Temp, RH, Wind, Rain
+                temp, rhino, wind, rain = [float(x) for x in vals]
+                
+                # Base row off average conditions
                 row = X.mean().values
-                row[8] = float(vals[0])  # temp
-                row[9] = float(vals[1])  # RH
-                row[10] = float(vals[2]) # wind
-                row[11] = float(vals[3]) # rain
+                
+                # Set dynamic time
+                try:
+                    row[2] = le_month.transform([current_month])[0]  # month
+                    row[3] = le_day.transform([current_day])[0]      # day
+                except:
+                    pass
+                
+                row[8] = temp  # temp
+                row[9] = rhino  # RH
+                row[10] = wind # wind
+                row[11] = rain # rain
                 latest_data = row.reshape(1, -1)
-                desc = f"PK Regional Forecast: {vals[0]}°C, {vals[1]}% RH"
+                desc = f"AI evaluating real-time weather: {temp}°C, {rhino}% RH, {wind}km/h Wind"
             else:
                 # Full feature input
                 try:
@@ -84,41 +73,53 @@ def train_and_predict(features_input=None):
             latest_data = X.iloc[-1].values.reshape(1, -1)
             desc = "Fallback to baseline"
 
-        prediction_area = model.predict(latest_data)[0]
+        # Predict log(area)
+        log_prediction = model.predict(latest_data)[0]
+        # Transform back to actual area
+        prediction_area = np.expm1(log_prediction)
         
-        # HYBRID DECISION: Pakistan Meteorological Thresholds
-        vals = [0, 0, 0, 0]
-        if features_input and ',' in features_input and len(features_input.split(',')) == 4:
-            vals = [float(x) for x in features_input.split(',')]
-        
-        temp, rhino, wind, rain = vals
-        
-        # ACCURACY ENHANCEMENT: Heat-Wind Spread Index (HWSI)
-        # Formula: (Temp * Wind) / (Humidity + 1)
-        hwsi = (temp * wind) / (rhino + 1)
-        
-        # Pakistan Extreme Heat/Wind combinations
-        if temp > 40 and rhino < 15:
-            risk = "High"
-            desc += " (Critical: Extreme heatwave fire danger)"
-        elif hwsi > 15: # High spread potential
-            risk = "High"
-            desc += f" | Spread Alert: HWSI is {round(hwsi, 1)} (Exponential spread risk detected)."
-        elif prediction_area > 5:
-            risk = "High"
-        elif prediction_area > 0.5 or (temp > 35 and rhino < 25) or hwsi > 8:
-            risk = "Medium"
-            if hwsi > 8: desc += " | Note: Moderate spread potential detected."
+        # The AI predicts the impacted area directly based heavily on temps, wind, and RH.
+        # Due to dataset skewness (mostly 0s), even a predicted log-transformed area of > 2.0 represents extreme fire conditions
+        if prediction_area > 2.5:
+            risk = "High Risk"
+            desc += " (Critical: High spread potential based on atmospheric conditions)"
+        elif prediction_area > 1.0:
+            risk = "Medium Risk"
         else:
-            risk = "Low"
+            risk = "Low Risk"
+            if len(features_input.split(',')) == 4 and float(features_input.split(',')[3]) > 0.5:
+                desc += " (Rain actively suppressing risk)"
+                
+        # Threat Zones
+        threat_zones = []
+        if risk in ["High Risk", "Medium Risk"]:
+            threat_zones.append({
+                "latitude": 33.7463,
+                "longitude": 73.0566,
+                "title": "Margalla Hills",
+                "severity": "high" if risk == "High Risk" else "medium",
+                "type": "fire",
+                "dangerRadius": 25 if risk == "High Risk" else 15,
+                "description": desc
+            })
+            if risk == "High Risk":
+                 threat_zones.append({
+                    "latitude": 30.1798,
+                    "longitude": 66.9750,
+                    "title": "Balochistan Scrub Forests",
+                    "severity": "medium",
+                    "type": "fire",
+                    "dangerRadius": 40,
+                    "description": "Extreme heat and low humidity flagged."
+                })
             
         result = {
             "prediction": risk,
             "impact_index": round(float(prediction_area), 2),
-            "hwsi": round(hwsi, 2),
             "description": desc,
             "status": "success",
-            "model": "Hybrid (HWSI-Enhanced RF)"
+            "model": "RandomForest Regressor (AI)",
+            "threat_zones": threat_zones
         }
         return result
         
@@ -126,6 +127,6 @@ def train_and_predict(features_input=None):
         return {"error": str(e), "status": "error"}
 
 if __name__ == "__main__":
-    # If an argument is passed, it should be comma-separated feature values
     input_data = sys.argv[1] if len(sys.argv) > 1 else None
     print(json.dumps(train_and_predict(input_data)))
+

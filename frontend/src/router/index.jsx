@@ -10,7 +10,6 @@ const DashboardLayout = lazy(() => import("../layouts/DashboardLayout"));
 
 // Admin pages
 const AdminDashboard = lazy(() => import("../pages/admin/AdminDashboard"));
-const AdminHome = lazy(() => import("../pages/admin/AdminHome"));
 const ManageUsers = lazy(() => import("../pages/admin/ManageUsers"));
 const ManageDisasters = lazy(() => import("../pages/admin/ManageDisasters"));
 const ManageAlerts = lazy(() => import("../pages/admin/ManageAlerts"));

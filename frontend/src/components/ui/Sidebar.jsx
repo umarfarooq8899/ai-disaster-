@@ -81,7 +81,9 @@ export default function Sidebar({ role = "general", collapsed, mobileOpen, setMo
           <NavItem to="/dashboard/user" exact onClick={() => setMobileOpen(false)}>Home</NavItem>
           <NavItem to="/dashboard/user/reports" onClick={() => setMobileOpen(false)}>Reports</NavItem>
           <NavItem to="/dashboard/user/safe-zones" onClick={() => setMobileOpen(false)}>Safe Zones</NavItem>
-          <NavItem to="/dashboard/user/ai-analysis" onClick={() => setMobileOpen(false)}>AI Analysis</NavItem>
+          {role !== "admin" && (
+            <NavItem to="/dashboard/user/ai-analysis" onClick={() => setMobileOpen(false)}>AI Analysis</NavItem>
+          )}
 
           {/* Volunteer */}
           {role === "volunteer" && (
@@ -145,6 +147,7 @@ export default function Sidebar({ role = "general", collapsed, mobileOpen, setMo
                 Admin
               </div>
               <NavItem to="/dashboard/admin" exact onClick={() => setMobileOpen(false)}>Admin Panel</NavItem>
+              <NavItem to="/dashboard/user/ai-analysis" onClick={() => setMobileOpen(false)}>AI Analysis</NavItem>
               <NavItem to="/dashboard/admin/users" onClick={() => setMobileOpen(false)}>Manage Users</NavItem>
               <NavItem to="/dashboard/admin/disasters" onClick={() => setMobileOpen(false)}>
                 Manage Disasters

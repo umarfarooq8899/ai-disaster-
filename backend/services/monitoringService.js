@@ -40,10 +40,10 @@ const PREDICT_EARTHQUAKE_SCRIPT = path.join(__dirname, '..', 'scripts', 'predict
 
 // Cache for live status
 let liveStatus = {
-    earthquake: { risk: 'low', lastChecked: null, detail: 'Systems scanning Pakistan seismic zones (Quetta, Islamabad, etc).' },
-    flood: { risk: 'low', lastChecked: null, detail: 'Indus river basin & dam catchment monitoring active. Levels normal.' },
-    fire: { risk: 'low', lastChecked: null, detail: 'Forest monitoring (Margalla, Murree, Juniper forests) active.' },
-    slr: { risk: 'stable', lastChecked: null, detail: 'Coastal monitoring (Karachi, Gwadar) stable.' },
+    earthquake: { risk: 'low', lastChecked: null, detail: 'Systems scanning Pakistan seismic zones (Quetta, Islamabad, etc).', threatZones: [] },
+    flood: { risk: 'low', lastChecked: null, detail: 'Indus river basin & dam catchment monitoring active. Levels normal.', threatZones: [] },
+    fire: { risk: 'low', lastChecked: null, detail: 'Forest monitoring (Margalla, Murree, Juniper forests) active.', threatZones: [] },
+    slr: { risk: 'stable', lastChecked: null, detail: 'Coastal monitoring (Karachi, Gwadar) stable.', threatZones: [] },
     dams: { lastChecked: null, mangla: null, tarbela: null, detail: 'Fetching dam gauge estimates for Mangla & Tarbela...' }
 };
 
@@ -81,42 +81,50 @@ const runPythonScript = (scriptName, arg = '') => {
     });
 };
 
-/**
- * Simulates running the AI model on real-time data fetched from USGS
- */
 const checkEarthquakeRisk = async () => {
     try {
-        console.log('[Monitoring] Fetching live seismic data for Pakistan region...');
-        const response = await axios.get('https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_hour.geojson');
-        const features = response.data.features.filter(f => {
-            const [lon, lat] = f.geometry.coordinates;
-            return lat >= 23.69 && lat <= 37.08 && lon >= 60.87 && lon <= 77.83;
-        });
+        console.log('[Monitoring] Fetching real-time USGS earthquake data for Pakistan region...');
+
+        // Bounding box for Pakistan: lat 23.6 to 37.1, lon 60.8 to 77.8
+        const endTime = new Date();
+        const startTime = new Date(endTime.getTime() - 7 * 24 * 60 * 60 * 1000); // Past 7 days
+
+        const url = `https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime=${startTime.toISOString()}&endtime=${endTime.toISOString()}&minlatitude=23.6&maxlatitude=37.1&minlongitude=60.8&maxlongitude=77.8`;
+
+        const response = await axios.get(url, { timeout: 10000 });
+        const events = response.data.features;
+
+        const count = events.length;
+        const maxMag = events.reduce((max, eq) => Math.max(max, eq.properties.mag || 0), 0);
+
+        // Pass recent magnitudes to Python as a buffer
+        // If empty, pass '0' to avoid errors
+        let bufferString = '0';
+        if (events.length > 0) {
+            const mags = events.map(e => parseFloat(e.properties.mag || 0).toFixed(1));
+            // Let's pass up to 50 latest magnitudes
+            bufferString = mags.slice(0, 50).join(',');
+        }
 
         liveStatus.earthquake.lastChecked = new Date();
 
-        if (features.length > 0) {
-            const latest = features[0].properties;
-            const mag = latest.mag;
+        // Run AI prediction using real USGS data
+        const result = await runPythonScript('predict_earthquake.py', bufferString);
 
-            // Run AI script with city context if available in 'place'
-            const result = await runPythonScript('predict_earthquake.py', latest.place);
-
-            if (mag > 5.0 || result.prediction.toLowerCase().includes('high')) {
-                liveStatus.earthquake.risk = 'high';
-                const detail = `DANGER: Strong tectonic activity (${mag}) near ${latest.place}. AI Status: ${result.prediction}. Context: ${result.location_context}`;
-                liveStatus.earthquake.detail = detail;
-                triggerAutomatedAlert('Earthquake', detail);
-            } else if (mag > 3.5 || result.prediction.toLowerCase().includes('medium')) {
-                liveStatus.earthquake.risk = 'medium';
-                liveStatus.earthquake.detail = `WARNING: Seismic activity (${mag}) near ${latest.place}. Region: ${result.location_context}.`;
-            } else {
-                liveStatus.earthquake.risk = 'low';
-                liveStatus.earthquake.detail = `Minor tremors detected near ${latest.place}. System status safe.`;
-            }
+        if (result.prediction.toLowerCase().includes('high')) {
+            liveStatus.earthquake.risk = 'high';
+            const detail = `DANGER: Anomalous seismic swarms detected. AI Status: ${result.prediction}. Context: ${result.location_context}.`;
+            liveStatus.earthquake.detail = detail;
+            liveStatus.earthquake.threatZones = result.threat_zones || [];
+            triggerAutomatedAlert('Earthquake', detail);
+        } else if (result.prediction.toLowerCase().includes('medium')) {
+            liveStatus.earthquake.risk = 'medium';
+            liveStatus.earthquake.detail = `WARNING: Elevated seismic activity. Region: ${result.location_context}.`;
+            liveStatus.earthquake.threatZones = result.threat_zones || [];
         } else {
             liveStatus.earthquake.risk = 'low';
-            liveStatus.earthquake.detail = 'Nationwide Scan: No seismic events detected in Pakistan territory in the last hour.';
+            liveStatus.earthquake.detail = `Seismic activity normal. ${count} quakes past 7 days (Max mag: ${maxMag}). Region: ${result.location_context}.`;
+            liveStatus.earthquake.threatZones = [];
         }
     } catch (error) {
         console.error('[Monitoring] Error in earthquake scan:', error.message);
@@ -190,6 +198,7 @@ const checkFloodRisk = async () => {
 
         const detail = `AI Regional Analysis (${forecast.cities} PMD cities): ${result.prediction}. ${result.description}`;
         liveStatus.flood.detail = detail;
+        liveStatus.flood.threatZones = result.threat_zones || [];
 
         if (isHighRisk) triggerAutomatedAlert('Flood', detail);
     } catch (error) {
@@ -213,6 +222,7 @@ const checkFireRisk = async () => {
 
         const detail = `AI Forestry Scan (${forecast.cities} PMD cities): ${result.prediction} Risk (${result.impact_index} impact). Conditions: ${forecast.temp}°C avg, ${forecast.wind}km/h wind.`;
         liveStatus.fire.detail = detail;
+        liveStatus.fire.threatZones = result.threat_zones || [];
 
         if (isHighRisk) triggerAutomatedAlert('Fire', detail);
     } catch (error) {
@@ -236,6 +246,7 @@ const checkCycloneRisk = async () => {
         // Since the UI uses 'slr' tab for sea level, we can combine them or stick to what's there
         liveStatus.slr.risk = isHighRisk ? 'high' : (result.prediction.toLowerCase().includes('medium') ? 'medium' : 'low');
         liveStatus.slr.detail = `Coastal Analysis: ${result.prediction} (${result.message})`;
+        liveStatus.slr.threatZones = result.threat_zones || [];
 
         if (isHighRisk) triggerAutomatedAlert('Cyclone', liveStatus.slr.detail);
     } catch (error) {

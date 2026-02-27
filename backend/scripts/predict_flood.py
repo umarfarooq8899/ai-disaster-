@@ -3,10 +3,9 @@ import os
 import json
 import pandas as pd
 import numpy as np
-from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 
-# Paths
 # Paths
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DATA_PATH = os.path.join(BASE_DIR, 'backend', 'data', 'pakistan_rainfall.csv')
@@ -24,18 +23,14 @@ def train_and_predict(input_data=None):
         X = df[feature_cols]
         y = df['FLOODS']
         
-        model = LogisticRegression(max_iter=1000)
+        # Use a more advanced ensemble model
+        model = RandomForestClassifier(n_estimators=100, random_state=42, class_weight="balanced")
         model.fit(X, y)
         
         from datetime import datetime
         current_month_idx = datetime.now().month - 1
         
-        # HYBRID LOGIC: Meteorological Overrides + AI Probability
-        input_rain = 0.0
-        if input_data is not None and not ',' in input_data:
-            input_rain = float(input_data)
-        
-        if input_data is None:
+        if not input_data:
             latest_data = X.iloc[-1].values.reshape(1, -1)
             year = int(df.iloc[-1]['YEAR'])
             desc = "Historical baseline"
@@ -43,49 +38,57 @@ def train_and_predict(input_data=None):
             # Full 12 month input
             latest_data = np.array([float(x) for x in input_data.split(',')]).reshape(1, -1)
             year = "Custom"
-            desc = "Full monthly profile"
+            desc = "Full monthly profile used for prediction."
         else:
             # Single value or buffer forecast:
-            # Use current month or median baseline
+            # The input buffer from monitoringService contains up to 7 days of rainfall sum
             vals = [float(x) for x in input_data.split(',')] if ',' in input_data else [float(input_data)]
+            recent_sum = sum(vals) # Total rain in the recent buffer
             input_rain = vals[-1] # Today's rain
             
+            # Map recent rain realistically into the monthly feature for the AI
             row = X.median().values
-            row[current_month_idx] = input_rain * 30 
+            # Assume to scale the short term rain to monthly impact (rough scaling for the ML)
+            row[current_month_idx] = recent_sum * 4  
             latest_data = row.reshape(1, -1)
-            year = "Forecast 24h"
-            desc = f"Analysis of {input_rain}mm forecast"
+            year = "Real-time Forecast"
+            desc = f"AI evaluating {len(vals)}-day rainfall accumulation ({round(recent_sum, 1)}mm)."
 
+        # Let the AI make the prediction natively
         prediction_prob = model.predict_proba(latest_data)[0][1]
         
-        # ACCURACY ENHANCEMENT: Saturated Soil / Cumulative Risk
-        cumulative_modifier = 0.0
-        if input_data and ',' in input_data:
-            vals = [float(x) for x in input_data.split(',')]
-            if len(vals) >= 3: # Multi-day detection
-                recent_sum = sum(vals[-7:]) # Last 7 days max
-                if recent_sum > 100: # Significant saturation
-                    cumulative_modifier = 0.3
-                    desc += f" | WARNING: High 7-day accumulation ({round(recent_sum,1)}mm) suggests soil saturation."
-
-        prediction_prob = min(prediction_prob + cumulative_modifier, 1.0)
-
-        # FINAL DECISION: Hybrid of Thresholds and AI
-        if input_rain >= 50 or (cumulative_modifier > 0 and input_rain > 20):
+        # We define severity boundaries based directly on the model's output probabilities
+        if prediction_prob >= 0.70:
             prediction = "High Risk"
-            desc += " (Extreme rainfall or saturated soil threshold reached)"
-            prediction_prob = max(prediction_prob, 0.85)
-        elif input_rain >= 20 or cumulative_modifier > 0:
+        elif prediction_prob >= 0.40:
             prediction = "Medium Risk"
-            desc += " (Significant rainfall or accumulation detected)"
-            prediction_prob = max(prediction_prob, 0.55)
-        elif input_rain < 1.0 and cumulative_modifier == 0:
-            prediction = "Low Risk"
-            prediction_prob = min(prediction_prob, 0.1)
-            desc = "0mm rain forecast. Status: Safe."
         else:
-            # Respect the model for intermediate values
-            prediction = "High Risk" if prediction_prob > 0.7 else ("Medium Risk" if prediction_prob > 0.4 else "Low Risk")
+            prediction = "Low Risk"
+
+        # Threat Zones
+        threat_zones = []
+        if prediction in ["High Risk", "Medium Risk"]:
+            # Depending on rain severity, assign to Indus Basin and secondary basins
+            threat_zones.append({
+                "latitude": 33.1391,
+                "longitude": 73.6501,
+                "title": "Mangla Dam Catchment",
+                "severity": "high" if prediction == "High Risk" else "medium",
+                "type": "flood",
+                "dangerRadius": 40 if prediction == "High Risk" else 20,
+                "description": desc
+            })
+            if prediction == "High Risk" or prediction_prob > 0.55:
+                # Add another basin
+                threat_zones.append({
+                    "latitude": 34.0884,
+                    "longitude": 72.8226,
+                    "title": "Tarbela Dam Catchment",
+                    "severity": "medium",
+                    "type": "flood",
+                    "dangerRadius": 30,
+                    "description": "Secondary flood wave expected"
+                })
 
         result = {
             "prediction": prediction,
@@ -93,7 +96,8 @@ def train_and_predict(input_data=None):
             "reference": year,
             "description": desc,
             "status": "success",
-            "model": "Hybrid (Temporal PK + AI)"
+            "model": "RandomForest Classifier (AI)",
+            "threat_zones": threat_zones
         }
         return result
         
@@ -101,6 +105,7 @@ def train_and_predict(input_data=None):
         return {"error": str(e), "status": "error"}
 
 if __name__ == "__main__":
-    # If an argument is passed, it should be 12 comma-separated rainfall values
+    # If an argument is passed, it should be comma-separated rainfall values
     input_data = sys.argv[1] if len(sys.argv) > 1 else None
     print(json.dumps(train_and_predict(input_data)))
+

@@ -1,46 +1,100 @@
 import sys
 import json
-import random
-from datetime import datetime
+import numpy as np
+from sklearn.neighbors import KNeighborsClassifier
+
+def get_cyclone_baseline_data():
+    # Saffir-Simpson Hurricane Wind Scale mappings for Wind (km/h) and typical pressures
+    # Classes: 0: Low Risk/Depression, 1: Medium Risk/Cat 1-2, 2: High Risk/Cat 3+
+    
+    # [wind_speed, pressure]
+    X = np.array([
+        [20, 1010], [40, 1005], [55, 1000],  # Tropical Depression (Low Risk)
+        [75, 995], [95, 985], [110, 980],    # Tropical Storm (Medium-Low)
+        [130, 975], [145, 965],              # Cat 1 (Medium Risk)
+        [165, 955],                          # Cat 2 (Medium Risk)
+        [190, 945], [200, 935],              # Cat 3 (High Risk)
+        [220, 920], [240, 910],              # Cat 4 (High Risk)
+        [260, 890], [300, 880]               # Cat 5 (High Risk)
+    ])
+    
+    y = np.array([0, 0, 0, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2])
+    return X, y
 
 def predict_cyclone(input_data=None):
-    # If live data is provided (wind_speed, pressure)
+    # Train the basic classification model
+    X_train, y_train = get_cyclone_baseline_data()
+    knn = KNeighborsClassifier(n_neighbors=3)
+    knn.fit(X_train, y_train)
+
     if input_data and ',' in input_data:
         try:
             wind_speed, pressure = [float(x) for x in input_data.split(',')]
-            # Simple heuristic risk assessment
-            # Category 1 starts at ~119 km/h
-            risk_score = (wind_speed / 120.0) * 0.5 + ((1013 - pressure) / 50.0) * 0.5
-            risk_score = max(0, min(1, risk_score))
+            
+            # Predict using the model
+            current_conditions = np.array([[wind_speed, pressure]])
+            risk_class = knn.predict(current_conditions)[0]
+            probabilities = knn.predict_proba(current_conditions)[0]
+            
             status = "actual"
-            msg = f"Analysis based on live telemetry (Wind: {wind_speed}km/h, Pressure: {pressure}hPa)"
-        except:
-            risk_score = 0.1
-            status = "fallback"
-            msg = "Data parsing failed, using baseline."
+            msg = f"AI analysis of live coastal telemetry (Wind: {wind_speed}km/h, Pressure: {pressure}hPa)"
+            
+            # Mapping class to output
+            if risk_class == 2:
+                prediction = "High Risk"
+                intensity = "Category 3+"
+                risk_score = probabilities[2]
+            elif risk_class == 1:
+                prediction = "Medium Risk"
+                intensity = "Tropical Storm / Cat 1-2"
+                risk_score = 0.4 + (probabilities[1] * 0.3)
+            else:
+                prediction = "Low Risk"
+                intensity = "Tropical Depression / Normal"
+                risk_score = 0.1 + (probabilities[0] * 0.2)
+                
+        except Exception as e:
+            msg = f"Error evaluating data: {str(e)}"
+            return {"error": msg, "status": "error"}
     else:
         # Default baseline
         risk_score = 0.1
-        status = "baseline"
-        msg = "No live storm data detected."
-
-    if risk_score > 0.7:
-        prediction = "High Risk"
-        intensity = "Category 3+"
-    elif risk_score > 0.4:
-        prediction = "Medium Risk"
-        intensity = "Category 1-2"
-    else:
         prediction = "Low Risk"
-        intensity = "Tropical Depression"
-        
+        intensity = "Tropical Depression / Normal"
+        status = "baseline"
+        msg = "No live storm telemetry detected."
+
+    # Threat Zones
+    threat_zones = []
+    if prediction in ["High Risk", "Medium Risk"]:
+        threat_zones.append({
+            "latitude": 24.8607,
+            "longitude": 67.0011,
+            "title": "Karachi Coastline",
+            "severity": "high" if prediction == "High Risk" else "medium",
+            "type": "cyclone",
+            "dangerRadius": 100 if prediction == "High Risk" else 50,
+            "description": f"{intensity} approaching."
+        })
+        if prediction == "High Risk":
+            threat_zones.append({
+                "latitude": 25.1216,
+                "longitude": 62.3254,
+                "title": "Gwadar Port",
+                "severity": "medium",
+                "type": "cyclone",
+                "dangerRadius": 80,
+                "description": "Secondary coastal impacts expected."
+            })
+
     result = {
         "prediction": prediction,
         "risk_score": round(risk_score, 2),
         "estimated_intensity": intensity,
         "status": status,
         "message": msg,
-        "model": "Meteorological Risk Model"
+        "model": "K-Nearest Neighbors Classifier (AI)",
+        "threat_zones": threat_zones
     }
     return result
 

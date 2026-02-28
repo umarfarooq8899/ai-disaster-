@@ -4,6 +4,7 @@ import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import "leaflet/dist/leaflet.css";
 import { Toaster } from "react-hot-toast";
+
 import AppRouter from "./router"; // your router file
 import { AuthProvider } from "./context/AuthContext";
 

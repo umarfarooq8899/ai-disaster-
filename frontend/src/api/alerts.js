@@ -6,7 +6,6 @@ export async function getAllAlerts(userToken) {
   });
   return data;
 }
-
 export async function createAlert(payload, userToken) {
   const { data } = await api.post("/alerts", payload, {
     headers: { Authorization: `Bearer ${userToken}` },

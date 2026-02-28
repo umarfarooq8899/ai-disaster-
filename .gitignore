@@ -9,5 +9,6 @@ __pycache__/
 .DS_Store
 *.csv
 !venv/earthquake.csv
+frontend/dist/
 model_training/**/Data/
 *.log

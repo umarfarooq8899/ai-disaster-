@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { getAllDisasters } from "../../api/disasters";
+import { getMyDisasters } from "../../api/disasters";
 import MapView from "../../components/map/MapView";
 import {
   ClipboardList,
@@ -19,7 +19,7 @@ export default function MyReports() {
   const [selectedReport, setSelectedReport] = useState(null);
 
   useEffect(() => {
-    getAllDisasters()
+    getMyDisasters()
       .then((data) => setReports(data))
       .finally(() => setLoading(false));
   }, []);

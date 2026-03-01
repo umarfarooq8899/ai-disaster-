@@ -119,6 +119,26 @@ function MapEventTracker({ setBounds, setZoom }) {
   return null;
 }
 
+// ─── Cluster Marker (uses useMap for flyTo) ───────────────────────────────────
+function ClusterMarker({ latitude, longitude, pointCount, clusterId, supercluster }) {
+  const map = useMap();
+  return (
+    <Marker
+      position={[latitude, longitude]}
+      icon={fetchClusterIcon(clusterId, pointCount)}
+      eventHandlers={{
+        click: () => {
+          const expansionZoom = Math.min(
+            supercluster.getClusterExpansionZoom(clusterId),
+            20
+          );
+          map.flyTo([latitude, longitude], expansionZoom, { duration: 0.8 });
+        },
+      }}
+    />
+  );
+}
+
 // ─── ChangeView ──────────────────────────────────────────────────────────────
 function ChangeView({ center, zoom }) {
   const map = useMap();
@@ -194,11 +214,12 @@ export default function MapView({
           <ZoomControl position="bottomright" />
 
           <TileLayer
-            attribution='&copy; <a href="https://carto.com/attributions">CARTO</a>'
-            url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-            subdomains={["a", "b", "c", "d"]}
-            maxNativeZoom={19}
-            maxZoom={20}
+            attribution="&copy; OpenStreetMap contributors"
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            subdomains={["a", "b", "c"]}
+            maxNativeZoom={18}
+            maxZoom={19}
+            keepBuffer={4}
           />
 
           {clusters.map((cluster) => {
@@ -207,20 +228,13 @@ export default function MapView({
 
             if (isCluster) {
               return (
-                <Marker
+                <ClusterMarker
                   key={`cluster-${cluster.id}`}
-                  position={[latitude, longitude]}
-                  icon={fetchClusterIcon(cluster.id, pointCount)}
-                  eventHandlers={{
-                    click: () => {
-                      const expansionZoom = Math.min(
-                        supercluster.getClusterExpansionZoom(cluster.id),
-                        20
-                      );
-                      // Custom fly to via state update on ChangeView maybe? Wait, we can't easily flyto here without useMap.
-                      // We'll leave it static for pure map interactions, or let ZoomControl handle it
-                    },
-                  }}
+                  latitude={latitude}
+                  longitude={longitude}
+                  pointCount={pointCount}
+                  clusterId={cluster.id}
+                  supercluster={supercluster}
                 />
               );
             }
@@ -256,7 +270,7 @@ export default function MapView({
                     </div>
                     {d.description && (
                       <p className="text-gray-600 text-xs italic mt-2 line-clamp-3">
-                        "{d.description}"
+                        {d.description}
                       </p>
                     )}
                     <div className="pt-2 border-t mt-2">

@@ -235,6 +235,7 @@ export default function ManageDisasters() {
       // Reset form
       setAssignForm({ organizationId: "", title: "", description: "", skills: [], items: [], notes: "" });
     } catch (err) {
+      console.error("DEBUG ASSIGNMENT ERROR:", err?.response?.data || err);
       toast.error(err.response?.data?.message || "Assignment failed");
     } finally {
       setIsSubmitting(false);
@@ -250,8 +251,6 @@ export default function ManageDisasters() {
     }));
     setNewItem({ name: "", quantity: 1 });
   };
-
-  if (loading) return <SkeletonTable />;
 
   if (loading) return <SkeletonTable />;
 

@@ -104,6 +104,19 @@ exports.changeMissionStatus = async (req, res) => {
 
         await Mission.findByIdAndUpdate(missionId, { status });
 
+        // Auto-resolve Disaster if all assignments are completed
+        if (status === "completed") {
+            const AidAssignment = require("../models/AidAssignment");
+            const pendingMissions = await Mission.countDocuments({ disaster: mission.disaster, status: { $ne: "completed" } });
+            const pendingAid = await AidAssignment.countDocuments({ disaster: mission.disaster, status: { $ne: "distributed" } });
+
+            if (pendingMissions === 0 && pendingAid === 0) {
+                const Disaster = require("../models/Disaster");
+                await Disaster.findByIdAndUpdate(mission.disaster, { status: "resolved" });
+                console.log(`DEBUG: Disaster ${mission.disaster} auto-resolved.`);
+            }
+        }
+
         res.json({ message: "Mission status updated", mission });
     } catch (error) {
         console.error("DEBUG: Error in changeMissionStatus:", error);

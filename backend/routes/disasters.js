@@ -66,6 +66,19 @@ router.get("/", async (req, res) => {
   }
 });
 
+// Get MY disasters (any logged-in user — all statuses including pending/rejected)
+router.get("/mine", auth, async (req, res) => {
+  try {
+    const disasters = await Disaster.find({ reportedBy: req.user.id })
+      .sort({ createdAt: -1 });
+    res.json(disasters);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+
 // Create AI Disaster (Admin only)
 router.post("/ai", auth, adminOnly, async (req, res) => {
   try {
@@ -184,6 +197,9 @@ router.patch("/:id/verify", auth, adminOnly, async (req, res) => {
     if (!disaster) return res.status(404).json({ message: "Disaster not found" });
 
     disaster.status = "active";
+    if (req.body.dangerRadius !== undefined) {
+      disaster.dangerRadius = req.body.dangerRadius;
+    }
     await disaster.save();
     res.json(disaster);
   } catch (err) {

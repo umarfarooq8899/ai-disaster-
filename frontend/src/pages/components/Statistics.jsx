@@ -1,10 +1,8 @@
-import { useEffect, useState, useContext } from "react";
+import { useEffect, useState } from "react";
 import axios from "../../api/axios";
-import { AuthContext } from "../../context/AuthContext";
 import { Users, Shield, Building2, AlertTriangle, CheckCircle2, Siren, Activity, BarChart3 } from "lucide-react";
 
 export default function Statistics() {
-  const { user } = useContext(AuthContext);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -24,10 +22,8 @@ export default function Statistics() {
       }
     };
 
-    if (user) {
-      fetchStats();
-    }
-  }, [user]);
+    fetchStats();
+  }, []);
 
   if (loading) {
     return (
@@ -197,7 +193,7 @@ function StatCard({ title, value, icon, color, size = "large" }) {
             {title}
           </p>
           <p className={`${size === 'large' ? 'text-4xl' : 'text-2xl'} font-black text-slate-900 tabular-nums`}>
-            {value.toLocaleString()}
+            {(value ?? 0).toLocaleString()}
           </p>
         </div>
       </div>

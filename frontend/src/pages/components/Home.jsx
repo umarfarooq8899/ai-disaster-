@@ -113,6 +113,14 @@ export default function Home() {
               title="Coordination"
               desc="Volunteer and resource management"
             />
+
+            {/* AI ANALYSIS */}
+            <FeatureCard
+              to="/dashboard/user/ai-analysis"
+              icon={<Brain />}
+              title="AI Analysis"
+              desc="Predict and detect disasters using AI models"
+            />
           </>
         )}
 

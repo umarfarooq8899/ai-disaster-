@@ -6,6 +6,11 @@ export async function getAllDisasters(isAI) {
   return data;
 }
 
+export async function getMyDisasters() {
+  const { data } = await api.get("/disasters/mine");
+  return data;
+}
+
 export async function createDisaster(payload) {
   const { data } = await api.post("/disasters", payload);
   return data;

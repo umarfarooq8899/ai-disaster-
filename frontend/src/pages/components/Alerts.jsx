@@ -69,7 +69,7 @@ export default function Alerts() {
                   </div>
                 </div>
                 <p className="text-slate-600 text-sm line-clamp-3 mb-6 flex-1 italic">
-                  "{d.description}"
+                  {d.description}
                 </p>
 
                 <div className="space-y-3 pt-4 border-t border-slate-50">
@@ -112,7 +112,7 @@ export default function Alerts() {
               >
                 <X className="w-5 h-5" />
               </button>
-              
+
               <div className="flex flex-wrap items-center justify-between gap-4 mb-6 pr-12">
                 <div>
                   <h2 className="text-3xl font-extrabold text-slate-900 capitalize">

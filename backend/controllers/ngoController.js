@@ -226,6 +226,17 @@ exports.updateAidStatus = async (req, res) => {
             );
         }
 
+        // Auto-resolve Disaster if all assignments are completed
+        const Mission = require("../models/Mission");
+        const pendingMissions = await Mission.countDocuments({ disaster: assignment.disaster, status: { $ne: "completed" } });
+        const pendingAid = await AidAssignment.countDocuments({ disaster: assignment.disaster, status: { $ne: "distributed" } });
+
+        if (pendingMissions === 0 && pendingAid === 0) {
+            const Disaster = require("../models/Disaster");
+            await Disaster.findByIdAndUpdate(assignment.disaster, { status: "resolved" });
+            console.log(`DEBUG: Disaster ${assignment.disaster} auto-resolved.`);
+        }
+
         res.json(assignment);
     } catch (err) {
         res.status(500).json({ message: "Failed to update status" });

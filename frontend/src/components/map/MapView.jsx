@@ -7,6 +7,7 @@ import {
   ZoomControl,
   Circle,
   useMapEvents,
+  useMap,
 } from "react-leaflet";
 import useSupercluster from "use-supercluster";
 import L from "leaflet";

@@ -73,6 +73,9 @@ const runPythonScript = (scriptName, arg = '') => {
             }
             try {
                 const result = JSON.parse(dataString);
+                if (result.error) {
+                    return reject(new Error(result.error));
+                }
                 resolve(result);
             } catch (e) {
                 reject(new Error(`Failed to parse Python output: ${dataString}`));

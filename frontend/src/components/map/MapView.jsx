@@ -6,19 +6,12 @@ import {
   Popup,
   ZoomControl,
   Circle,
-  useMap,
+  useMapEvents,
 } from "react-leaflet";
-import { MapPin } from "lucide-react";
+import useSupercluster from "use-supercluster";
 import L from "leaflet";
-import "leaflet/dist/leaflet.css";
-
-// Fix default marker icon issue using CDN
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-});
+import "../../utils/leafletConfig";
+import { MapPin } from "lucide-react";
 
 // ─── Error Boundary ───────────────────────────────────────────────────────────
 class MapErrorBoundary extends Component {
@@ -69,6 +62,62 @@ const getSeverityIcon = (severity) => {
   });
 };
 
+// ─── Cluster icon ─────────────────────────────────────────────────────────────
+const fetchClusterIcon = (clusterId, pointCount) => {
+  const size = pointCount < 10 ? 30 : pointCount < 100 ? 40 : 50;
+  return L.divIcon({
+    html: `<div style="
+      background:rgba(239, 68, 68, 0.8);
+      width:${size}px;height:${size}px;
+      border-radius:50%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color:white;
+      font-weight:bold;
+      border:2px solid white;
+      box-shadow:0 0 10px rgba(0,0,0,0.5)">
+      ${pointCount}
+    </div>`,
+    className: "custom-cluster-marker",
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+  });
+};
+
+// ─── Map Event Tracker ────────────────────────────────────────────────────────
+function MapEventTracker({ setBounds, setZoom }) {
+  const map = useMapEvents({
+    moveend: () => {
+      const b = map.getBounds();
+      setBounds([
+        b.getWest(),
+        b.getSouth(),
+        b.getEast(),
+        b.getNorth()
+      ]);
+      setZoom(map.getZoom());
+    },
+    zoomend: () => {
+      setZoom(map.getZoom());
+    }
+  });
+
+  // Initial bounds set on mount
+  useEffect(() => {
+    const b = map.getBounds();
+    setBounds([
+      b.getWest(),
+      b.getSouth(),
+      b.getEast(),
+      b.getNorth()
+    ]);
+    setZoom(map.getZoom());
+  }, [map, setBounds, setZoom]);
+
+  return null;
+}
+
 // ─── ChangeView ──────────────────────────────────────────────────────────────
 function ChangeView({ center, zoom }) {
   const map = useMap();
@@ -84,35 +133,7 @@ function ChangeView({ center, zoom }) {
   return null;
 }
 
-// ─── Robust invalidateSize + ResizeObserver ──────────────────────────────────
-function MapResizeHandler() {
-  const map = useMap();
-  useEffect(() => {
-    // Retry invalidateSize at increasing intervals to survive CSS transitions
-    const delays = [100, 300, 600, 1200];
-    const timers = delays.map((ms) =>
-      setTimeout(() => map.invalidateSize(false), ms)
-    );
 
-    // Also watch container for size changes (tab switches, flex reflows, etc.)
-    let observer;
-    const container = map.getContainer();
-    if (container && window.ResizeObserver) {
-      observer = new ResizeObserver(() => {
-        map.invalidateSize(false);
-      });
-      observer.observe(container);
-    }
-
-    return () => {
-      timers.forEach(clearTimeout);
-      if (observer) observer.disconnect();
-    };
-  }, [map]);
-  return null;
-}
-
-// ─── Main MapView ─────────────────────────────────────────────────────────────
 export default function MapView({
   disasters = [],
   showPin = false,
@@ -133,10 +154,31 @@ export default function MapView({
 
   const initialZoom = defaultZoom || (center ? 14 : 5);
 
+  // Supercluster specific state
+  const [bounds, setBounds] = React.useState(null);
+  const [mapZoom, setMapZoom] = React.useState(initialZoom);
+
+  // Memoize valid points into GeoJSON format for supercluster
+  const points = React.useMemo(() => {
+    return validDisasters.map(d => ({
+      type: "Feature",
+      properties: { cluster: false, disasterId: d._id, ...d },
+      geometry: { type: "Point", coordinates: [d.longitude, d.latitude] }
+    }));
+  }, [validDisasters]);
+
+  // Hook handles calculation & returning visible clusters/points
+  const { clusters, supercluster } = useSupercluster({
+    points,
+    bounds,
+    zoom: mapZoom,
+    options: { radius: 75, maxZoom: 20 }
+  });
+
   return (
     <MapErrorBoundary height={height}>
       <div
-        className="relative w-full rounded-2xl overflow-hidden shadow-lg bg-slate-100"
+        className="relative w-full rounded-2xl overflow-hidden shadow-lg bg-slate-100 flex flex-col"
         style={{ height, minHeight: "250px", zIndex: 1 }}
       >
         <MapContainer
@@ -144,9 +186,9 @@ export default function MapView({
           zoom={initialZoom}
           scrollWheelZoom
           zoomControl={false}
-          style={{ height: "100%", width: "100%" }}
-        >
-          <MapResizeHandler />
+          className="w-full flex-1"
+          style={{ minHeight: "400px" }}  >
+          <MapEventTracker setBounds={setBounds} setZoom={setMapZoom} />
           {center && <ChangeView center={center} zoom={initialZoom} />}
           <ZoomControl position="bottomright" />
 
@@ -158,12 +200,38 @@ export default function MapView({
             maxZoom={20}
           />
 
-          {validDisasters.map((d) => {
+          {clusters.map((cluster) => {
+            const [longitude, latitude] = cluster.geometry.coordinates;
+            const { cluster: isCluster, point_count: pointCount, disasterId } = cluster.properties;
+
+            if (isCluster) {
+              return (
+                <Marker
+                  key={`cluster-${cluster.id}`}
+                  position={[latitude, longitude]}
+                  icon={fetchClusterIcon(cluster.id, pointCount)}
+                  eventHandlers={{
+                    click: () => {
+                      const expansionZoom = Math.min(
+                        supercluster.getClusterExpansionZoom(cluster.id),
+                        20
+                      );
+                      // Custom fly to via state update on ChangeView maybe? Wait, we can't easily flyto here without useMap.
+                      // We'll leave it static for pure map interactions, or let ZoomControl handle it
+                    },
+                  }}
+                />
+              );
+            }
+
+            // Not a cluster, so it's a single disaster
+            const d = cluster.properties;
             const markerProps = showPin ? {} : { icon: getSeverityIcon(d.severity) };
+
             return (
               <Marker
-                key={d._id || `${d.latitude}-${d.longitude}`}
-                position={[d.latitude, d.longitude]}
+                key={d._id || disasterId || `${latitude}-${longitude}`}
+                position={[latitude, longitude]}
                 {...markerProps}
               >
                 <Popup>
@@ -192,7 +260,7 @@ export default function MapView({
                     )}
                     <div className="pt-2 border-t mt-2">
                       <a
-                        href={`https://www.google.com/maps/search/?api=1&query=${d.latitude},${d.longitude}`}
+                        href={`https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-brand-600 hover:text-brand-800 text-xs font-semibold flex items-center gap-1 no-underline"

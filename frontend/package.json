@@ -24,6 +24,8 @@
     "react-router-dom": "^7.10.1",
     "react-select": "^5.10.2",
     "react-simple-maps": "^3.0.0",
+    "supercluster": "^8.0.1",
+    "use-supercluster": "^1.2.0",
     "uuid": "^13.0.0",
     "vite-plugin-compression": "^0.5.1"
   },

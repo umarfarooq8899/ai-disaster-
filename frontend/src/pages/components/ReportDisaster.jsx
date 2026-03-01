@@ -4,20 +4,8 @@ import { AuthContext } from "../../context/AuthContext";
 import { createDisaster } from "../../api/disasters";
 import { FaImage, FaVideo } from "react-icons/fa";
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from "react-leaflet";
-import L from "leaflet";
 import toast, { Toaster } from "react-hot-toast";
-import "leaflet/dist/leaflet.css";
-
-/* ================= LEAFLET MARKER FIX ================= */
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl:
-    "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-  iconUrl:
-    "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  shadowUrl:
-    "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-});
+import "../../utils/leafletConfig";
 
 /* ================= REVERSE GEOCODING ================= */
 const getAddressFromCoords = async (lat, lng) => {
@@ -172,7 +160,6 @@ export default function ReportDisaster() {
   const navigate = useNavigate();
 
   const formRef = useRef(null);
-  const [mapHeight, setMapHeight] = useState(395); // default height
 
   const [form, setForm] = useState({
     title: "",
@@ -206,18 +193,7 @@ export default function ReportDisaster() {
     }
   }, [user, loading, navigate]);
 
-  useEffect(() => {
-    if (!formRef.current) return;
 
-    const resizeObserver = new ResizeObserver(() => {
-      if (formRef.current) {
-        setMapHeight(formRef.current.offsetHeight);
-      }
-    });
-
-    resizeObserver.observe(formRef.current);
-    return () => resizeObserver.disconnect();
-  }, []);
 
   const handleChange = (e) =>
     setForm((s) => ({ ...s, [e.target.name]: e.target.value }));
@@ -363,13 +339,11 @@ export default function ReportDisaster() {
 
         {/* RIGHT: MAP */}
         <div className="md:w-1/2 w-full p-4">
-          <label className="block font-medium mb-2">Select Location on Map</label>
-
           <MapContainer
             center={[30.3753, 69.3451]}
             zoom={6}
             className="w-full rounded-lg"
-            style={{ height: `${mapHeight}px` }} // map height matches full form
+            style={{ minHeight: "400px", height: "100%" }}
           >
             <TileLayer
               url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"

@@ -7,7 +7,8 @@ const {
   updateMissionStatus,
   assignVolunteersToMission,
   changeMissionStatus,
-  getDashboardStats
+  getDashboardStats,
+  verifyMission
 } = require("../controllers/rescueController");
 
 // Use existing volunteer controller for resource/volunteer data if needed, 
@@ -24,6 +25,9 @@ router.post("/missions/:missionId/assign-volunteers", auth, assignVolunteersToMi
 
 // Update Mission Status (for coordinators)
 router.patch("/missions/:missionId/status", auth, changeMissionStatus);
+
+// Verify Mission Proof (Coordinator)
+router.post("/missions/:missionId/verify", auth, verifyMission);
 
 // Get Dashboard Stats
 router.get("/stats", auth, getDashboardStats);

@@ -25,7 +25,7 @@ const statusLogSchema = new mongoose.Schema(
         },
         updateType: {
             type: String,
-            enum: ["rescued", "cleared", "food", "medical", "shelter", "logistics", "other", "admin_broadcast"],
+            enum: ["rescued", "cleared", "food", "medical", "shelter", "logistics", "other", "admin_broadcast", "evidence_uploaded", "volunteer_verified", "mission_completed", "volunteer_rejected", "volunteer_assigned", "mission_verified", "aid_verified"],
             required: true,
         },
         description: {

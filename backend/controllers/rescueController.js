@@ -51,7 +51,7 @@ exports.updateMissionStatus = async (req, res) => {
 // Assign Volunteers to Mission
 exports.assignVolunteersToMission = async (req, res) => {
     const { missionId } = req.params;
-    const { volunteerIds } = req.body;
+    const { volunteerIds, taskDescription } = req.body;
 
     try {
         console.log(`DEBUG: assignVolunteersToMission called for mission: ${missionId}`);
@@ -69,10 +69,13 @@ exports.assignVolunteersToMission = async (req, res) => {
             return res.status(403).json({ message: "Not authorized" });
         }
 
-        await Mission.findByIdAndUpdate(missionId, {
+        const updateData = {
             assignedVolunteers: volunteerIds,
             status: "ongoing"
-        });
+        };
+        if (taskDescription !== undefined) updateData.taskDescription = taskDescription;
+
+        await Mission.findByIdAndUpdate(missionId, updateData);
 
         res.json({ message: "Volunteers assigned successfully", mission });
     } catch (error) {
@@ -124,29 +127,153 @@ exports.changeMissionStatus = async (req, res) => {
     }
 };
 
+// Verify Proof & Complete Mission (Coordinator)
+exports.verifyMission = async (req, res) => {
+    const { missionId } = req.params;
+    const { volunteerId } = req.body;
+
+    try {
+        console.log(`DEBUG: verifyMission called for mission: ${missionId}, volunteer: ${volunteerId} by user: ${req.user._id}`);
+        const mission = await Mission.findById(missionId);
+        if (!mission) {
+            return res.status(404).json({ message: "Mission not found" });
+        }
+
+        // Verify mission belongs to coordinator's organization
+        if (!mission.organization || !req.user.organization || mission.organization.toString() !== req.user.organization.toString()) {
+            return res.status(403).json({ message: "Not authorized" });
+        }
+
+        if (volunteerId) {
+            // Verify a specific volunteer's proof
+            console.log(`DEBUG: looking for volunteerId=${volunteerId} in volunteerCompletions:`, JSON.stringify(mission.volunteerCompletions.map(c => ({ id: c.volunteerId, status: c.status }))));
+            let comp = mission.volunteerCompletions.find(c => c.volunteerId.toString() === volunteerId.toString());
+            if (!comp) {
+                return res.status(400).json({ message: `Volunteer completion record not found. Received: ${volunteerId}` });
+            }
+            console.log(`DEBUG: found comp status=${comp.status}`);
+            if (comp.status !== "pending_verification") {
+                return res.status(400).json({ message: `Volunteer is not awaiting verification (status: ${comp.status})` });
+            }
+            comp.status = "verified";
+            await mission.save();
+
+            // Create a status log entry (non-blocking — don't let log failure abort the response)
+            const StatusLog = require("../models/StatusLog");
+            StatusLog.create({
+                disaster: mission.disaster,
+                mission: missionId,
+                organization: req.user.organization,
+                organizationType: "RescueOrganization",
+                updateType: "volunteer_verified",
+                description: `Coordinator verified proof for a volunteer on mission "${mission.title}".`
+            }).catch(e => console.error("StatusLog error (non-fatal):", e.message));
+
+            // Check if all assigned volunteers have been verified
+            const allVerified = mission.assignedVolunteers.every(id => {
+                const volComp = mission.volunteerCompletions.find(c => c.volunteerId.toString() === id.toString());
+                return volComp && volComp.status === "verified";
+            });
+
+            if (allVerified) {
+                mission.status = "completed";
+                await mission.save();
+
+                StatusLog.create({
+                    disaster: mission.disaster,
+                    mission: missionId,
+                    organization: req.user.organization,
+                    organizationType: "RescueOrganization",
+                    updateType: "mission_verified",
+                    description: `All volunteer proofs verified. Mission "${mission.title}" is now fully completed.`
+                }).catch(e => console.error("StatusLog error (non-fatal):", e.message));
+            }
+
+            return res.json({ message: allVerified ? "All volunteers verified! Mission completed." : "Volunteer proof verified", mission });
+        } else {
+            // Fallback for legacy global verification (if needed)
+            if (mission.status !== "pending_verification") {
+                return res.status(400).json({ message: "Mission is not awaiting verification" });
+            }
+            mission.status = "completed";
+            await mission.save();
+
+            const StatusLog = require("../models/StatusLog");
+            await StatusLog.create({
+                disaster: mission.disaster,
+                mission: missionId,
+                organization: req.user.organization,
+                organizationType: "RescueOrganization",
+                updateType: "mission_verified",
+                description: `Coordinator verified volunteer proof and marked mission "${mission.title}" as completed.`
+            });
+
+            return res.json({ message: "Mission verified and marked as completed", mission });
+        }
+    } catch (error) {
+        console.error("DEBUG: Error in verifyMission:", error);
+        res.status(500).json({ message: error.message });
+    }
+};
+
 // Get stats for rescue dashboard
 exports.getDashboardStats = async (req, res) => {
     try {
         const Volunteer = require("../models/Volunteer");
         const Mission = require("../models/Mission");
         const Alert = require("../models/Alert");
+        const Disaster = require("../models/Disaster");
+        const mongoose = require("mongoose");
 
         const orgId = req.user.organization;
         if (!orgId) return res.status(400).json({ message: "Organization not found for this user" });
 
-        const [activeVolunteers, ongoingMissions, pendingMissions, resolvedMissions, activeAlerts] = await Promise.all([
+        // Use aggregation to only count missions that are linked to an existing, active disaster
+        // This prevents orphan missions (deleted/resolved disasters) from inflating the stats
+        const missionStats = await Mission.aggregate([
+            {
+                $match: {
+                    organization: new mongoose.Types.ObjectId(orgId),
+                    status: { $in: ["ongoing", "pending", "completed"] }
+                }
+            },
+            {
+                $lookup: {
+                    from: "disasters",
+                    localField: "disaster",
+                    foreignField: "_id",
+                    as: "disasterData"
+                }
+            },
+            {
+                // Only count missions where the disaster exists AND is still active
+                $match: {
+                    "disasterData.0": { $exists: true },
+                    "disasterData.0.status": { $in: ["active"] }
+                }
+            },
+            {
+                $group: {
+                    _id: "$status",
+                    count: { $sum: 1 }
+                }
+            }
+        ]);
+
+        // Map aggregation results to readable keys
+        const statsMap = { ongoing: 0, pending: 0, completed: 0 };
+        missionStats.forEach(s => { statsMap[s._id] = s.count; });
+
+        const [activeVolunteers, activeAlerts] = await Promise.all([
             Volunteer.countDocuments({ organization: orgId, available: true }),
-            Mission.countDocuments({ organization: orgId, status: "ongoing" }),
-            Mission.countDocuments({ organization: orgId, status: "pending" }),
-            Mission.countDocuments({ organization: orgId, status: "completed" }),
             Alert.countDocuments({ status: "Active" })
         ]);
 
         res.json({
             activeVolunteers,
-            ongoingMissions,
-            pendingMissions,
-            resolvedMissions,
+            ongoingMissions: statsMap.ongoing,
+            pendingMissions: statsMap.pending,
+            resolvedMissions: statsMap.completed,
             activeAlerts,
         });
     } catch (err) {
@@ -154,6 +281,7 @@ exports.getDashboardStats = async (req, res) => {
         res.status(500).json({ message: "Failed to load rescue dashboard data" });
     }
 };
+
 
 // Get Recent Activity for Rescue
 exports.getRecentActivity = async (req, res) => {

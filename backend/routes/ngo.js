@@ -9,7 +9,8 @@ const {
     getAidAssignments,
     createAidAssignment,
     updateAidStatus,
-    assignVolunteers
+    assignVolunteers,
+    verifyAidAssignment
 } = require("../controllers/ngoController");
 
 router.use(protect);
@@ -24,6 +25,7 @@ router.get("/volunteers", require("../controllers/volunteerController").getOrgVo
 router.post("/assignments", createAidAssignment);
 router.patch("/assignments/:id/status", updateAidStatus);
 router.patch("/assignments/:id/volunteers", assignVolunteers);
+router.post("/assignments/:id/verify", verifyAidAssignment);
 router.post("/updates", require("../controllers/ngoController").postStatusUpdate);
 router.get("/assignment-history", require("../controllers/ngoController").getAidHistory);
 

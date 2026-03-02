@@ -124,7 +124,7 @@ exports.getAidAssignments = async (req, res) => {
     try {
         const assignments = await AidAssignment.find({
             ngo: req.user.organization,
-            status: { $ne: "distributed" }
+            status: { $in: ["pending", "assigned", "pending_verification"] }
         })
             .populate("disaster", "title location")
             .populate("volunteers", "name email")
@@ -245,19 +245,19 @@ exports.updateAidStatus = async (req, res) => {
 
 // Assign Volunteers to Aid Assignment
 exports.assignVolunteers = async (req, res) => {
-    const { volunteerIds } = req.body;
+    const { volunteerIds, taskDescription } = req.body;
     try {
         const assignment = await AidAssignment.findById(req.params.id);
         if (!assignment) return res.status(404).json({ message: "Assignment not found" });
 
         // Update assignment with volunteers (APPENDING new ones, ensuring uniqueness)
-        // If volunteerIds is null/empty, we don't change anything unless explicit removal is intended (not covered here)
         let updatedVolunteerList = assignment.volunteers.map(v => v.toString());
         if (volunteerIds && volunteerIds.length > 0) {
             updatedVolunteerList = [...new Set([...updatedVolunteerList, ...volunteerIds])];
         }
 
         const updateData = { volunteers: updatedVolunteerList };
+        if (taskDescription !== undefined) updateData.taskDescription = taskDescription;
 
         // Update status to 'assigned' only if it's currently 'pending' and we have volunteers
         if (assignment.status === "pending" && updatedVolunteerList.length > 0) {
@@ -300,6 +300,104 @@ exports.assignVolunteers = async (req, res) => {
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: "Failed to assign volunteers" });
+    }
+};
+
+// Verify Proof & Complete Aid Assignment (NGO Coordinator)
+exports.verifyAidAssignment = async (req, res) => {
+    const { volunteerId } = req.body;
+
+    try {
+        const assignment = await AidAssignment.findById(req.params.id);
+        if (!assignment) return res.status(404).json({ message: "Assignment not found" });
+
+        // Verify assignment belongs to coordinator's NGO
+        if (!req.user.organization || assignment.ngo.toString() !== req.user.organization.toString()) {
+            return res.status(403).json({ message: "Not authorized" });
+        }
+
+        if (volunteerId) {
+            // Verify a specific volunteer's proof
+            let comp = assignment.volunteerCompletions.find(c => c.volunteerId.toString() === volunteerId);
+            if (!comp) {
+                return res.status(400).json({ message: "Volunteer completion record not found" });
+            }
+            if (comp.status !== "pending_verification") {
+                return res.status(400).json({ message: "Volunteer is not awaiting verification" });
+            }
+            comp.status = "verified";
+            await assignment.save();
+
+            // Release the specific volunteer
+            await Volunteer.findOneAndUpdate(
+                { user: volunteerId },
+                { available: true, currentTask: null, currentTaskType: null }
+            );
+
+            // Create a status log entry (non-blocking)
+            const StatusLog = require("../models/StatusLog");
+            StatusLog.create({
+                disaster: assignment.disaster,
+                aidAssignment: assignment._id,
+                organization: req.user.organization,
+                organizationType: "NgoOrganization",
+                updateType: "volunteer_verified",
+                description: `NGO coordinator verified proof for a volunteer.`
+            }).catch(e => console.error("StatusLog error (non-fatal):", e.message));
+
+            // Check if all assigned volunteers have been verified
+            const allVerified = assignment.volunteers.every(id => {
+                const volComp = assignment.volunteerCompletions.find(c => c.volunteerId.toString() === id.toString());
+                return volComp && volComp.status === "verified";
+            });
+
+            if (allVerified) {
+                assignment.status = "completed";
+                await assignment.save();
+
+                StatusLog.create({
+                    disaster: assignment.disaster,
+                    aidAssignment: assignment._id,
+                    organization: req.user.organization,
+                    organizationType: "NgoOrganization",
+                    updateType: "aid_verified",
+                    description: `All volunteer proofs verified. Aid assignment is now fully completed.`
+                }).catch(e => console.error("StatusLog error (non-fatal):", e.message));
+            }
+
+            return res.json({ message: allVerified ? "All volunteers verified! Aid assignment completed." : "Volunteer proof verified", assignment });
+        } else {
+            // Fallback for legacy global verification (if needed)
+            if (assignment.status !== "pending_verification") {
+                return res.status(400).json({ message: "Assignment is not awaiting verification" });
+            }
+
+            await AidAssignment.findByIdAndUpdate(req.params.id, { status: "completed" });
+
+            // Release volunteers
+            if (assignment.volunteers && assignment.volunteers.length > 0) {
+                await Volunteer.updateMany(
+                    { user: { $in: assignment.volunteers } },
+                    { available: true, currentTask: null, currentTaskType: null }
+                );
+            }
+
+            // Create a status log entry (non-blocking)
+            const StatusLog = require("../models/StatusLog");
+            StatusLog.create({
+                disaster: assignment.disaster,
+                aidAssignment: assignment._id,
+                organization: req.user.organization,
+                organizationType: "NgoOrganization",
+                updateType: "aid_verified",
+                description: `NGO coordinator verified volunteer proof and marked aid assignment as completed.`
+            }).catch(e => console.error("StatusLog error (non-fatal):", e.message));
+
+            return res.json({ message: "Aid assignment verified and marked as completed" });
+        }
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Failed to verify aid assignment" });
     }
 };
 

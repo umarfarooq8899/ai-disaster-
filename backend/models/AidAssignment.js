@@ -25,13 +25,20 @@ const aidAssignmentSchema = new mongoose.Schema(
                 ref: "User"
             }
         ],
+        taskDescription: { type: String }, // Detailed task assigned by coordinator to volunteers
         status: {
             type: String,
-            enum: ["pending", "assigned", "distributed", "in_transit"], // Adding in_transit for realistic flow
+            enum: ["pending", "assigned", "pending_verification", "completed", "distributed", "in_transit"],
             default: "pending"
         },
         notes: String,
-        evidenceUrls: [{ type: String }], // Array of image URLs/paths
+        evidenceUrls: [{ type: String }], // Global evidence (if needed or left for backwards compatibility)
+        volunteerCompletions: [{
+            volunteerId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+            status: { type: String, enum: ["assigned", "pending_verification", "verified"], default: "assigned" },
+            evidenceUrls: [{ type: String }],
+            submittedAt: { type: Date }
+        }],
     },
     { timestamps: true }
 );

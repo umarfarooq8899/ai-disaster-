@@ -487,7 +487,7 @@ exports.getMyMissions = async (req, res) => {
     const userId = req.user.id;
 
     // 1. Fetch Missions
-    const missions = await Mission.find({
+    const missionsData = await Mission.find({
       assignedVolunteers: userId
     })
       .populate("disaster", "title location latitude longitude severity")
@@ -495,8 +495,25 @@ exports.getMyMissions = async (req, res) => {
       .sort({ createdAt: -1 })
       .lean();
 
+    const missions = missionsData.map(m => {
+      const userCompletion = (m.volunteerCompletions || []).find(vc => vc.volunteerId.toString() === userId);
+      let fallbackStatus = m.status;
+      if (!userCompletion) {
+        // Only prevent pending_verification from leaking to volunteers who haven't submitted yet.
+        // Leave 'completed' as-is — old completed missions should still show as completed (history).
+        if (fallbackStatus === "pending_verification") {
+          fallbackStatus = "assigned";
+        }
+      }
+      return {
+        ...m,
+        status: userCompletion ? userCompletion.status : fallbackStatus,
+        evidenceUrls: userCompletion ? userCompletion.evidenceUrls : []
+      };
+    });
+
     // 2. Fetch Aid Assignments
-    const aidAssignments = await AidAssignment.find({
+    const aidAssignmentsData = await AidAssignment.find({
       volunteers: userId
     })
       .populate("disaster", "title location latitude longitude severity")
@@ -504,12 +521,33 @@ exports.getMyMissions = async (req, res) => {
       .sort({ createdAt: -1 })
       .lean();
 
+    const aidAssignments = aidAssignmentsData.map(a => {
+      const userCompletion = (a.volunteerCompletions || []).find(vc => vc.volunteerId.toString() === userId);
+      let fallbackStatus = a.status;
+      if (!userCompletion) {
+        // Only block pending_verification from leaking; preserve completed/distributed as-is.
+        if (fallbackStatus === "pending_verification") {
+          fallbackStatus = "assigned";
+        } else if (fallbackStatus === "assigned") {
+          fallbackStatus = "ongoing"; // map aid 'assigned' → 'ongoing' for display
+        } else if (fallbackStatus === "distributed") {
+          fallbackStatus = "completed";
+        }
+      }
+      return {
+        ...a,
+        status: userCompletion ? userCompletion.status : fallbackStatus,
+        evidenceUrls: userCompletion ? userCompletion.evidenceUrls : []
+      };
+    });
+
     // 3. Normalize Aid Assignments to look like Missions for the frontend
     const normalizedAid = aidAssignments.map(a => ({
       _id: a._id,
       title: `Aid Delivery: ${a.disaster?.title || "Disaster Relief"}`,
       description: `Deliver items: ${a.items?.map(i => `${i.quantity} ${i.name}`).join(", ")}. Notes: ${a.notes || ""}`,
-      status: (a.status === "assigned" || a.status === "distributed") ? (a.status === "distributed" ? "completed" : "ongoing") : a.status, // Map 'assigned' to 'ongoing', 'distributed' to 'completed'
+      status: a.status,
+      evidenceUrls: a.evidenceUrls,
       disaster: a.disaster,
       location: a.disaster?.location,
       organization: a.ngo, // Use NGO as organization
@@ -527,8 +565,7 @@ exports.getMyMissions = async (req, res) => {
   }
 };
 
-// Mark Mission as Complete (Volunteer)
-// Mark Mission/Task as Complete (Volunteer)
+// Mark Mission/Task as Complete (Volunteer) — sets to pending_verification for coordinator review
 exports.completeMission = async (req, res) => {
   const { missionId } = req.params;
   const userId = req.user.id;
@@ -542,74 +579,88 @@ exports.completeMission = async (req, res) => {
       if (!mission.assignedVolunteers.some(v => v.toString() === userId)) {
         return res.status(403).json({ message: "Not authorized" });
       }
-      // Update Mission
-      const updateData = { status: "completed" };
-      if (evidenceUrls && evidenceUrls.length > 0) {
-        updateData.evidenceUrls = evidenceUrls;
-      }
-      await Mission.findByIdAndUpdate(missionId, updateData);
-
-      // Update volunteer availability and increment total tasks completed
-      const volunteer = await Volunteer.findOneAndUpdate(
-        { user: userId },
-        { currentTask: null, currentTaskType: null, available: true, $inc: { tasksCompleted: 1 } }
-      );
-
-      // Create Status Log if evidence was uploaded
-      if (evidenceUrls && evidenceUrls.length > 0) {
-        const StatusLog = require("../models/StatusLog");
-        await StatusLog.create({
-          disaster: mission.disaster,
-          mission: mission._id,
-          organization: mission.organization, // Rescue Org
-          organizationType: 'RescueOrganization',
-          updateType: 'evidence_uploaded',
-          description: `Volunteer ${req.user.name || 'A volunteer'} uploaded field evidence upon task completion.`,
-          images: evidenceUrls
+      // Update the specific volunteer's completion record
+      let comp = mission.volunteerCompletions.find(c => c.volunteerId.toString() === userId);
+      if (!comp) {
+        mission.volunteerCompletions.push({
+          volunteerId: userId,
+          status: "pending_verification",
+          evidenceUrls: evidenceUrls || [],
+          submittedAt: new Date()
         });
+      } else {
+        comp.status = "pending_verification";
+        if (evidenceUrls) comp.evidenceUrls = evidenceUrls;
+        comp.submittedAt = new Date();
       }
 
-      return res.json({ message: "Mission marked as complete", mission: await Mission.findById(missionId) });
+      // Also set the global mission status to pending_verification if it's currently pending/ongoing
+      // This helps the coordinator see that *some* verification is needed
+      if (mission.status === "pending" || mission.status === "ongoing") {
+        mission.status = "pending_verification";
+      }
+
+      await mission.save();
+
+      // Create Status Log (non-blocking — log failure must not abort the response)
+      const StatusLog = require("../models/StatusLog");
+      StatusLog.create({
+        disaster: mission.disaster,
+        mission: mission._id,
+        organization: mission.organization,
+        organizationType: 'RescueOrganization',
+        updateType: 'evidence_uploaded',
+        description: `Volunteer ${req.user.name || 'A volunteer'} completed the task and submitted proof for coordinator verification.`,
+        images: evidenceUrls || []
+      }).catch(e => console.error("StatusLog error (non-fatal):", e.message));
+
+      return res.json({ message: "Proof submitted. Awaiting coordinator verification.", mission: await Mission.findById(missionId) });
     }
 
     // Try AidAssignment
     const aidAssignment = await AidAssignment.findById(missionId);
     if (aidAssignment) {
       // Verify volunteer assignment
-      // AidAssignment uses 'volunteers' array of ObjectIds
       const isAssigned = aidAssignment.volunteers.some(id => id.toString() === userId);
       if (!isAssigned) {
         return res.status(403).json({ message: "Not authorized" });
       }
 
-      // Update Aid Assignment
-      const updateData = { status: "distributed" };
-      if (evidenceUrls && evidenceUrls.length > 0) {
-        updateData.evidenceUrls = evidenceUrls;
-      }
-      await AidAssignment.findByIdAndUpdate(missionId, updateData);
-
-      // Update volunteer availability and increment total tasks completed
-      const volunteer = await Volunteer.findOneAndUpdate(
-        { user: userId },
-        { currentTask: null, currentTaskType: null, available: true, $inc: { tasksCompleted: 1 } }
-      );
-
-      // Create Status Log if evidence was uploaded
-      if (evidenceUrls && evidenceUrls.length > 0) {
-        const StatusLog = require("../models/StatusLog");
-        await StatusLog.create({
-          disaster: aidAssignment.disaster,
-          aidAssignment: aidAssignment._id,
-          organization: aidAssignment.ngo,
-          organizationType: 'NgoOrganization',
-          updateType: 'evidence_uploaded',
-          description: `Volunteer ${req.user.name || 'A volunteer'} uploaded field evidence upon aid distribution.`,
-          images: evidenceUrls
+      // Update the specific volunteer's completion record
+      let comp = aidAssignment.volunteerCompletions.find(c => c.volunteerId.toString() === userId);
+      if (!comp) {
+        aidAssignment.volunteerCompletions.push({
+          volunteerId: userId,
+          status: "pending_verification",
+          evidenceUrls: evidenceUrls || [],
+          submittedAt: new Date()
         });
+      } else {
+        comp.status = "pending_verification";
+        if (evidenceUrls) comp.evidenceUrls = evidenceUrls;
+        comp.submittedAt = new Date();
       }
 
-      return res.json({ message: "Aid assignment marked as complete", mission: await AidAssignment.findById(missionId) });
+      // Also set the global aid assignment status to pending_verification if it's currently pending/assigned
+      if (aidAssignment.status === "pending" || aidAssignment.status === "assigned") {
+        aidAssignment.status = "pending_verification";
+      }
+
+      await aidAssignment.save();
+
+      // Create Status Log (non-blocking)
+      const StatusLog = require("../models/StatusLog");
+      StatusLog.create({
+        disaster: aidAssignment.disaster,
+        aidAssignment: aidAssignment._id,
+        organization: aidAssignment.ngo,
+        organizationType: 'NgoOrganization',
+        updateType: 'evidence_uploaded',
+        description: `Volunteer ${req.user.name || 'A volunteer'} completed the aid task and submitted proof for NGO coordinator verification.`,
+        images: evidenceUrls || []
+      }).catch(e => console.error("StatusLog error (non-fatal):", e.message));
+
+      return res.json({ message: "Proof submitted. Awaiting coordinator verification.", mission: await AidAssignment.findById(missionId) });
     }
 
     return res.status(404).json({ message: "Task not found" });
@@ -777,3 +828,5 @@ exports.toggleAvailability = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+

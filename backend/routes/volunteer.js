@@ -27,7 +27,7 @@ router.post("/upload-evidence", auth, upload.array("evidence", 5), (req, res) =>
         if (!req.files || req.files.length === 0) {
             return res.status(400).json({ message: "No files uploaded" });
         }
-        const processUrls = req.files.map(file => `/uploads/evidence/${file.filename}`);
+        const processUrls = req.files.map(file => `uploads/evidence/${file.filename}`);
         res.json({ success: true, urls: processUrls });
     } catch (error) {
         console.error("Upload error:", error);

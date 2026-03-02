@@ -24,7 +24,7 @@ exports.verifyDisaster = async (req, res) => {
 
 // Assign Rescue Mission
 exports.assignRescueMission = async (req, res) => {
-    const { disasterId, organizationId, title, description, skillsRequired } = req.body;
+    const { disasterId, organizationId, title, description, skillsRequired, volunteersRequired, ambulancesRequired, firefightersRequired } = req.body;
 
     try {
         const disaster = await Disaster.findById(disasterId);
@@ -39,6 +39,9 @@ exports.assignRescueMission = async (req, res) => {
             organization: organizationId,
             disaster: disasterId,
             skillsRequired,
+            volunteersRequired: volunteersRequired || 0,
+            ambulancesRequired: ambulancesRequired || 0,
+            firefightersRequired: firefightersRequired || 0,
             status: "pending"
         });
 

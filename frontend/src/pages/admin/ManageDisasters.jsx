@@ -11,7 +11,6 @@ import {
   Ambulance,
   Package,
   History,
-  Activity,
   X
 } from "lucide-react";
 import MapView from "../../components/map/MapView";
@@ -60,7 +59,6 @@ export default function ManageDisasters() {
   const [assignModal, setAssignModal] = useState(null); // { type: 'rescue' | 'ngo', disasterId: string }
   const [assignmentDetails, setAssignmentDetails] = useState({ missions: [], aidAssignments: [] });
   const [auditTrail, setAuditTrail] = useState([]);
-  const [impactData, setImpactData] = useState(null);
   const [activeTab, setActiveTab] = useState("info"); // 'info' | 'assignments' | 'audit'
 
   // Form States
@@ -69,6 +67,9 @@ export default function ManageDisasters() {
     title: "", // For Rescue Mission
     description: "", // For Rescue Mission
     skills: [], // For Rescue Mission
+    volunteersRequired: 0, // For Rescue Mission
+    ambulancesRequired: 0, // For Rescue Mission
+    firefightersRequired: 0, // For Rescue Mission
     items: [], // For NGO: [{ name, quantity }]
     notes: "", // For NGO
   });
@@ -105,23 +106,20 @@ export default function ManageDisasters() {
 
   const fetchAssignmentDetails = async (disasterId) => {
     try {
-      const [missionsRes, aidRes, auditRes, impactRes] = await Promise.all([
+      const [missionsRes, aidRes, auditRes] = await Promise.all([
         api.get(`/admin/missions?disaster=${disasterId}`, { headers: { Authorization: `Bearer ${token}` } }).catch(() => ({ data: [] })),
         api.get(`/admin/aid-assignments?disaster=${disasterId}`, { headers: { Authorization: `Bearer ${token}` } }).catch(() => ({ data: [] })),
-        api.get(`/admin/disasters/${disasterId}/audit-trail`, { headers: { Authorization: `Bearer ${token}` } }).catch(() => ({ data: [] })),
-        api.get(`/admin/disasters/${disasterId}/impact`, { headers: { Authorization: `Bearer ${token}` } }).catch(() => ({ data: null }))
+        api.get(`/admin/disasters/${disasterId}/audit-trail`, { headers: { Authorization: `Bearer ${token}` } }).catch(() => ({ data: [] }))
       ]);
       setAssignmentDetails({
         missions: missionsRes.data || [],
         aidAssignments: aidRes.data || []
       });
       setAuditTrail(auditRes.data || []);
-      setImpactData(impactRes.data || null);
     } catch (err) {
       console.error("Failed to fetch assignment details", err);
       setAssignmentDetails({ missions: [], aidAssignments: [] });
       setAuditTrail([]);
-      setImpactData(null);
     }
   };
 
@@ -165,25 +163,7 @@ export default function ManageDisasters() {
     }
   };
 
-  const [broadcasting, setBroadcasting] = useState(false);
-  const broadcastAlert = async () => {
-    if (!selectedDisaster) return;
-    try {
-      setBroadcasting(true);
-      const res = await api.post(
-        `/admin/disasters/${selectedDisaster._id}/broadcast`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      toast.success(res.data.message || `Alert broadcasted successfully!`);
-      // Refresh audit trail to show the broadcast log
-      fetchAssignmentDetails(selectedDisaster._id);
-    } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to broadcast alert");
-    } finally {
-      setBroadcasting(false);
-    }
-  };
+
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -218,22 +198,16 @@ export default function ManageDisasters() {
 
       toast.success(`Assigned to ${assignModal.type === 'rescue' ? 'Rescue Team' : 'NGO'} successfully`);
 
-      // Refresh data
+      // Bug 3+4 fix: Refresh both the full list and the assignment details panel
       fetchDisasters();
       fetchAssignmentDetails(assignModal.disasterId);
 
-      // Update current modal view if open
-      if (selectedDisaster && selectedDisaster._id === assignModal.disasterId) {
-        setSelectedDisaster(prev => ({
-          ...prev,
-          rescueMissions: assignModal.type === 'rescue' ? (prev.rescueMissions || 0) + 1 : prev.rescueMissions,
-          ngoAssignments: assignModal.type === 'ngo' ? (prev.ngoAssignments || 0) + 1 : prev.ngoAssignments
-        }));
-      }
+      // Switch to assignments tab so user sees the newly assigned org immediately
+      setActiveTab("assignments");
 
       setAssignModal(null);
       // Reset form
-      setAssignForm({ organizationId: "", title: "", description: "", skills: [], items: [], notes: "" });
+      setAssignForm({ organizationId: "", title: "", description: "", skills: [], volunteersRequired: 0, ambulancesRequired: 0, firefightersRequired: 0, items: [], notes: "" });
     } catch (err) {
       console.error("DEBUG ASSIGNMENT ERROR:", err?.response?.data || err);
       toast.error(err.response?.data?.message || "Assignment failed");
@@ -289,9 +263,8 @@ export default function ManageDisasters() {
                   key={d._id}
                   onClick={() => {
                     setSelectedDisaster(d);
-                    if (d.rescueMissions > 0 || d.ngoAssignments > 0) {
-                      fetchAssignmentDetails(d._id);
-                    }
+                    setActiveTab("info"); // Bug 4 fix: reset tab when switching disasters
+                    fetchAssignmentDetails(d._id); // Bug 1 fix: always fetch so Assignments tab has fresh data
                   }}
                   className="border-t hover:bg-gray-50 cursor-pointer"
                 >
@@ -374,49 +347,7 @@ export default function ManageDisasters() {
                   />
                 </div>
 
-                {/* IMPACT ANALYSIS DASHBOARD */}
-                {impactData && (
-                  <div className="bg-white p-4 rounded-xl border border-red-100 shadow-sm relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-red-50 rounded-bl-full -z-10 opacity-50" />
-                    <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
-                      <Activity className="w-4 h-4 text-red-500" /> Impact Analysis
-                    </h3>
 
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="bg-red-50 p-3 rounded-lg border border-red-100">
-                        <p className="text-xs text-red-600 font-semibold mb-1 uppercase tracking-wide">Danger Zone</p>
-                        <p className="text-xl font-bold text-red-700">{impactData.radiusInKm} <span className="text-sm font-medium">km</span></p>
-                      </div>
-                      <div className="bg-orange-50 p-3 rounded-lg border border-orange-100">
-                        <p className="text-xs text-orange-600 font-semibold mb-1 uppercase tracking-wide">Total Impacted</p>
-                        <p className="text-xl font-bold text-orange-700">{impactData.totalImpacted}</p>
-                      </div>
-                    </div>
-
-                    <div className="mt-3 flex gap-2">
-                      <span className="flex-1 bg-gray-50 border px-3 py-2 rounded-lg text-sm flex items-center justify-between">
-                        <span className="text-gray-500">Citizens</span>
-                        <strong className="text-gray-800">{impactData.citizensInDanger}</strong>
-                      </span>
-                      <span className="flex-1 bg-gray-50 border px-3 py-2 rounded-lg text-sm flex items-center justify-between">
-                        <span className="text-gray-500">Volunteers</span>
-                        <strong className="text-gray-800">{impactData.volunteersNearby}</strong>
-                      </span>
-                    </div>
-
-                    {/* Broadcast Button */}
-                    <div className="mt-4 pt-4 border-t border-red-100 flex justify-end">
-                      <button
-                        onClick={broadcastAlert}
-                        disabled={broadcasting || impactData.totalImpacted === 0}
-                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-red-600 hover:bg-red-700 disabled:bg-red-300 text-white text-sm font-bold rounded-xl transition shadow-sm"
-                      >
-                        <AlertTriangle className="w-4 h-4" />
-                        {broadcasting ? "Broadcasting..." : "Broadcast Panic Alert"}
-                      </button>
-                    </div>
-                  </div>
-                )}
 
                 <div className="bg-gray-50 p-4 rounded-lg border">
                   <h3 className="font-semibold text-gray-700 mb-2 flex items-center gap-2">
@@ -442,7 +373,10 @@ export default function ManageDisasters() {
                     Details
                   </button>
                   <button
-                    onClick={() => setActiveTab("assignments")}
+                    onClick={() => {
+                      setActiveTab("assignments");
+                      fetchAssignmentDetails(selectedDisaster._id); // Bug 1+5 fix: refresh on tab click
+                    }}
                     className={`px-4 py-2 text-sm font-semibold border-b-2 transition ${activeTab === 'assignments' ? 'border-brand-600 text-brand-700' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
                   >
                     Assignments
@@ -526,13 +460,28 @@ export default function ManageDisasters() {
                                         <p className="text-gray-600 text-xs mt-0.5">{mission.title}</p>
                                       </div>
                                       <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${mission.status === 'completed' ? 'bg-green-100 text-green-700' :
-                                        mission.status === "ongoing" ? "bg-brand-100 text-brand-700" :
-                                          mission.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
-                                            'bg-gray-100 text-gray-700'
+                                          mission.status === 'pending_verification' ? 'bg-amber-100 text-amber-700' :
+                                            mission.status === "ongoing" ? "bg-brand-100 text-brand-700" :
+                                              mission.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+                                                'bg-gray-100 text-gray-700'
                                         }`}>
-                                        {mission.status}
+                                        {mission.status === 'pending_verification' ? 'Awaiting Verify' : mission.status}
                                       </span>
                                     </div>
+                                    {/* Resource requirements */}
+                                    {(mission.volunteersRequired > 0 || mission.ambulancesRequired > 0 || mission.firefightersRequired > 0) && (
+                                      <div className="mt-2 flex flex-wrap gap-2">
+                                        {mission.volunteersRequired > 0 && (
+                                          <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-semibold">👥 {mission.volunteersRequired} volunteers</span>
+                                        )}
+                                        {mission.ambulancesRequired > 0 && (
+                                          <span className="text-[10px] bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-semibold">🚑 {mission.ambulancesRequired} ambulances</span>
+                                        )}
+                                        {mission.firefightersRequired > 0 && (
+                                          <span className="text-[10px] bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full font-semibold">🚒 {mission.firefightersRequired} firefighters</span>
+                                        )}
+                                      </div>
+                                    )}
                                     {mission.assignedVolunteers && mission.assignedVolunteers.length > 0 && (
                                       <div className="mt-3 pt-3 border-t border-blue-100 flex items-center justify-between">
                                         <p className="text-xs font-medium text-gray-500">
@@ -541,6 +490,20 @@ export default function ManageDisasters() {
                                         <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-xs font-bold">
                                           {mission.assignedVolunteers.length}
                                         </span>
+                                      </div>
+                                    )}
+                                    {/* Evidence proof (pending verification) */}
+                                    {mission.status === 'pending_verification' && mission.evidenceUrls?.length > 0 && (
+                                      <div className="mt-2 pt-2 border-t border-amber-100">
+                                        <p className="text-[10px] font-bold text-amber-600 mb-1">📎 Evidence submitted by volunteer</p>
+                                        <div className="flex gap-1 flex-wrap">
+                                          {mission.evidenceUrls.map((url, i) => (
+                                            <a key={i} href={`/${url}`} target="_blank" rel="noopener noreferrer"
+                                              className="text-[10px] text-brand-600 underline">
+                                              File {i + 1}
+                                            </a>
+                                          ))}
+                                        </div>
                                       </div>
                                     )}
                                   </div>
@@ -560,11 +523,12 @@ export default function ManageDisasters() {
                                         <Package className="w-4 h-4 text-orange-600" />
                                         {assignment.ngo?.name || 'NGO'}
                                       </p>
-                                      <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${assignment.status === 'delivered' ? 'bg-green-100 text-green-700' :
-                                        assignment.status === "in_transit" ? "bg-brand-100 text-brand-700" :
-                                          'bg-yellow-100 text-yellow-700'
+                                      <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${assignment.status === 'completed' ? 'bg-green-100 text-green-700' :
+                                          assignment.status === 'pending_verification' ? 'bg-amber-100 text-amber-700' :
+                                            assignment.status === "in_transit" || assignment.status === "assigned" ? "bg-brand-100 text-brand-700" :
+                                              'bg-yellow-100 text-yellow-700'
                                         }`}>
-                                        {assignment.status}
+                                        {assignment.status === 'pending_verification' ? 'Awaiting Verify' : assignment.status}
                                       </span>
                                     </div>
                                     {assignment.items && assignment.items.length > 0 && (
@@ -575,6 +539,20 @@ export default function ManageDisasters() {
                                             <span key={idx} className="bg-white border border-gray-200 text-gray-600 text-[10px] px-2 py-1 rounded-md flex items-center gap-1">
                                               <strong>{item.quantity}x</strong> {item.name}
                                             </span>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
+                                    {/* Evidence proof (pending verification) */}
+                                    {assignment.status === 'pending_verification' && assignment.evidenceUrls?.length > 0 && (
+                                      <div className="mt-2 pt-2 border-t border-amber-100">
+                                        <p className="text-[10px] font-bold text-amber-600 mb-1">📎 Evidence submitted by volunteer</p>
+                                        <div className="flex gap-1 flex-wrap">
+                                          {assignment.evidenceUrls.map((url, i) => (
+                                            <a key={i} href={`/${url}`} target="_blank" rel="noopener noreferrer"
+                                              className="text-[10px] text-brand-600 underline">
+                                              File {i + 1}
+                                            </a>
                                           ))}
                                         </div>
                                       </div>
@@ -683,28 +661,21 @@ export default function ManageDisasters() {
 
                   {selectedDisaster.status === "active" && (
                     <div className="grid grid-cols-2 gap-3">
+                      {/* Bug 2+3 fix: removed single-assignment restriction — allow multiple teams */}
                       <button
                         onClick={() => setAssignModal({ type: 'rescue', disasterId: selectedDisaster._id })}
-                        disabled={selectedDisaster.rescueMissions > 0}
-                        className={`flex items-center justify-center gap-2 py-2 rounded-lg transition
-                        ${selectedDisaster.rescueMissions > 0
-                            ? "bg-brand-100 text-brand-600 cursor-not-allowed"
-                            : "bg-brand-600 text-white hover:bg-brand-700"}`}
+                        className="flex items-center justify-center gap-2 py-2 rounded-lg transition bg-brand-600 text-white hover:bg-brand-700"
                       >
                         <Ambulance className="w-4 h-4" />
-                        {selectedDisaster.rescueMissions > 0 ? "Rescue Assigned" : "Assign Rescue"}
+                        {selectedDisaster.rescueMissions > 0 ? "+ Add Rescue" : "Assign Rescue"}
                       </button>
 
                       <button
                         onClick={() => setAssignModal({ type: 'ngo', disasterId: selectedDisaster._id })}
-                        disabled={selectedDisaster.ngoAssignments > 0}
-                        className={`flex items-center justify-center gap-2 py-2 rounded-lg transition
-                        ${selectedDisaster.ngoAssignments > 0
-                            ? 'bg-orange-100 text-orange-600 cursor-not-allowed'
-                            : 'bg-orange-500 text-white hover:bg-orange-600'}`}
+                        className="flex items-center justify-center gap-2 py-2 rounded-lg transition bg-orange-500 text-white hover:bg-orange-600"
                       >
                         <Package className="w-4 h-4" />
-                        {selectedDisaster.ngoAssignments > 0 ? "NGO Assigned" : "Assign NGO"}
+                        {selectedDisaster.ngoAssignments > 0 ? "+ Add NGO" : "Assign NGO"}
                       </button>
 
                       <button
@@ -779,6 +750,39 @@ export default function ManageDisasters() {
                     value={assignForm.description}
                     onChange={(e) => setAssignForm({ ...assignForm, description: e.target.value })}
                   />
+                  {/* Resource Requirements */}
+                  <div className="bg-blue-50 p-3 rounded-lg border border-blue-100">
+                    <label className="block text-sm font-semibold text-blue-800 mb-3">Resource Requirements</label>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div>
+                        <label className="block text-xs text-gray-600 mb-1">👥 Volunteers</label>
+                        <input
+                          type="number" min="0"
+                          className="w-full border rounded p-1.5 text-sm"
+                          value={assignForm.volunteersRequired}
+                          onChange={(e) => setAssignForm({ ...assignForm, volunteersRequired: parseInt(e.target.value) || 0 })}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-600 mb-1">🚑 Ambulances</label>
+                        <input
+                          type="number" min="0"
+                          className="w-full border rounded p-1.5 text-sm"
+                          value={assignForm.ambulancesRequired}
+                          onChange={(e) => setAssignForm({ ...assignForm, ambulancesRequired: parseInt(e.target.value) || 0 })}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-600 mb-1">🚒 Firefighters</label>
+                        <input
+                          type="number" min="0"
+                          className="w-full border rounded p-1.5 text-sm"
+                          value={assignForm.firefightersRequired}
+                          onChange={(e) => setAssignForm({ ...assignForm, firefightersRequired: parseInt(e.target.value) || 0 })}
+                        />
+                      </div>
+                    </div>
+                  </div>
                   <div>
                     <label className="block text-sm font-medium mb-1">Skills Required</label>
                     <div className="flex flex-wrap gap-2">

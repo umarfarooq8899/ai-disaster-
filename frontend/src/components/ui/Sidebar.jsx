@@ -105,15 +105,17 @@ export default function Sidebar({ role = "general", collapsed, mobileOpen, setMo
                 NGO
               </div>
               <NavItem to="/dashboard/ngo" exact onClick={() => setMobileOpen(false)}>Overview</NavItem>
-              <NavItem to="/dashboard/ngo/volunteers" onClick={() => setMobileOpen(false)}>
-                Manage Volunteers
+              <NavItem to="/dashboard/ngo/assignments" onClick={() => setMobileOpen(false)}>
+                Aid Assignments
               </NavItem>
               <NavItem to="/dashboard/ngo/resources" onClick={() => setMobileOpen(false)}>
                 Manage Resources
               </NavItem>
-              <NavItem to="/dashboard/ngo/assignments" onClick={() => setMobileOpen(false)}>
-                Aid Assignments
+              <NavItem to="/dashboard/ngo/volunteers" onClick={() => setMobileOpen(false)}>
+                Manage Volunteers
               </NavItem>
+
+
               <NavItem to="/dashboard/ngo/history" onClick={() => setMobileOpen(false)}>
                 Aid History
               </NavItem>
@@ -128,15 +130,15 @@ export default function Sidebar({ role = "general", collapsed, mobileOpen, setMo
               </div>
               <NavItem to="/dashboard/rescue" exact onClick={() => setMobileOpen(false)}>Home</NavItem>
               <NavItem to="/dashboard/rescue/missions" exact onClick={() => setMobileOpen(false)}>Missions</NavItem>
-              <NavItem to="/dashboard/rescue/history" onClick={() => setMobileOpen(false)}>History</NavItem>
-              <NavItem to="/dashboard/rescue/missions/new" onClick={() => setMobileOpen(false)}>
-                Create Mission
-              </NavItem>
+
+
+
               {role === "rescue_coordinator" && (
                 <NavItem to="/dashboard/rescue/volunteers" onClick={() => setMobileOpen(false)}>
                   Manage Volunteers
                 </NavItem>
               )}
+              <NavItem to="/dashboard/rescue/history" onClick={() => setMobileOpen(false)}>History</NavItem>
             </>
           )}
 

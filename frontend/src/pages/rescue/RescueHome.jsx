@@ -21,9 +21,9 @@ function StatCard({ icon: Icon, label, value, color }) {
         <div className={`p-3 rounded-lg ${colors[color] || colors.blue}`}>
           <Icon className="w-6 h-6" />
         </div>
-        <div>
-          <p className="text-sm text-gray-500">{label}</p>
-          <p className="text-2xl font-bold text-gray-800">{value}</p>
+        <div className="flex flex-col flex-1 h-full min-h-[50px] justify-between">
+          <p className="text-sm text-gray-500 leading-tight mb-1">{label}</p>
+          <p className="text-2xl font-bold text-gray-800 leading-none">{value}</p>
         </div>
       </div>
     </div>

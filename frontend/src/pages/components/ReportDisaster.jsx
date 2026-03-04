@@ -340,10 +340,10 @@ export default function ReportDisaster() {
         {/* RIGHT: MAP */}
         <div className="md:w-1/2 w-full p-4">
           <MapContainer
-            center={[30.3753, 69.3451]}
+            center={[27.3753, 69.345]}
             zoom={6}
             className="w-full rounded-lg"
-            style={{ minHeight: "400px", height: "100%" }}
+            style={{ minHeight: "400px", height: "84%" }}
           >
             <TileLayer
               attribution="&copy; OpenStreetMap contributors"

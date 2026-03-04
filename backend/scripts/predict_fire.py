@@ -79,15 +79,15 @@ def train_and_predict(features_input=None):
         prediction_area = np.expm1(log_prediction)
         
         # The AI predicts the impacted area directly based heavily on temps, wind, and RH.
-        # Due to dataset skewness (mostly 0s), even a predicted log-transformed area of > 2.0 represents extreme fire conditions
-        if prediction_area > 2.5:
+        # Adjusted thresholds to prevent false positives and keep baseline risk low
+        if prediction_area > 50.0:
             risk = "High Risk"
             desc += " (Critical: High spread potential based on atmospheric conditions)"
-        elif prediction_area > 1.0:
+        elif prediction_area > 25.0:
             risk = "Medium Risk"
         else:
             risk = "Low Risk"
-            if len(features_input.split(',')) == 4 and float(features_input.split(',')[3]) > 0.5:
+            if features_input and isinstance(features_input, str) and len(features_input.split(',')) == 4 and float(features_input.split(',')[3]) > 0.5:
                 desc += " (Rain actively suppressing risk)"
                 
         # Threat Zones

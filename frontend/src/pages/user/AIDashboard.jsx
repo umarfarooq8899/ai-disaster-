@@ -200,23 +200,23 @@ const AIDashboard = () => {
                             }`} />
 
                         <div className="p-10">
-                            <header className="flex justify-between items-start mb-8 text-left">
-                                <div>
-                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Latest Updates</span>
-                                    <h2 className="text-2xl font-black text-slate-900 tracking-tight">{tabs.find(t => t.id === activeTab).name} Situation</h2>
-                                </div>
-                                <button
-                                    onClick={handleManualScan}
-                                    disabled={loading}
-                                    className="p-4 bg-slate-50 border rounded-2xl text-slate-600 hover:text-brand-600 hover:border-brand-200 transition-all active:scale-95 shadow-sm"
-                                >
-                                    <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
-                                </button>
-                            </header>
-
                             <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
                                 {/* --- LEFT COLUMN: WATCH SITUATION --- */}
                                 <div className="lg:col-span-5 flex flex-col gap-8">
+                                    <header className="flex justify-between items-start text-left">
+                                        <div>
+                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Latest Updates</span>
+                                            <h2 className="text-2xl font-black text-slate-900 tracking-tight">{tabs.find(t => t.id === activeTab).name} Situation</h2>
+                                        </div>
+                                        <button
+                                            onClick={handleManualScan}
+                                            disabled={loading}
+                                            className="p-4 bg-slate-50 border rounded-2xl text-slate-600 hover:text-brand-600 hover:border-brand-200 transition-all active:scale-95 shadow-sm"
+                                        >
+                                            <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+                                        </button>
+                                    </header>
+
                                     <div className="flex flex-col sm:flex-row items-center gap-6">
                                         {/* Status Meter */}
                                         <div className="relative group shrink-0">
@@ -273,7 +273,7 @@ const AIDashboard = () => {
                                                 </button>
                                                 <button onClick={handleCallRescue} className="w-full py-4 bg-brand-600 text-white rounded-2xl font-black text-[13px] uppercase tracking-wider hover:bg-brand-700 shadow-lg shadow-brand-100 transition-all flex items-center justify-center gap-2">
                                                     <Target className="w-4 h-4 shrink-0" />
-                                                    <span className="truncate">Dispatch Rescue</span>
+                                                    <span className="truncate">Manage</span>
                                                 </button>
                                             </div>
                                         </div>

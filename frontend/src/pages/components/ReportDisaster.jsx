@@ -21,6 +21,17 @@ const getAddressFromCoords = async (lat, lng) => {
     return "Location selected (Address unavailable)";
   }
 };
+/* ================= MAP RESIZER ================= */
+function MapResizer() {
+  const map = useMap();
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      map.invalidateSize();
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [map]);
+  return null;
+}
 
 /* ================= MAP CLICK HANDLER ================= */
 function LocationPicker({ setLocation, setAddress }) {
@@ -256,17 +267,17 @@ export default function ReportDisaster() {
   if (!user) return null;
 
   return (
-    <div className="w-full h-screen flex justify-center items-center p-4">
+    <div className="w-full min-h-screen bg-gray-50 flex justify-center items-center p-4 py-8">
       <Toaster position="top-right" />
 
-      <div className="bg-white shadow-xl rounded-xl w-full max-w-5xl h-full flex md:flex-row flex-col overflow-hidden">
+      <div className="bg-white shadow-xl rounded-xl w-full max-w-5xl flex md:flex-row flex-col overflow-hidden">
         {/* LEFT: FORM */}
         <form
           ref={formRef}
           onSubmit={submit}
-          className="md:w-1/2 w-full flex flex-col p-6 space-y-4"
+          className="md:w-1/2 w-full flex flex-col p-6 md:p-8 space-y-4 justify-center"
         >
-          <h1 className="text-2xl md:text-3xl font-extrabold mb-2">
+          <h1 className="text-2xl md:text-3xl font-extrabold mb-2 text-brand-900">
             Report a Disaster
           </h1>
 
@@ -338,13 +349,14 @@ export default function ReportDisaster() {
         </form>
 
         {/* RIGHT: MAP */}
-        <div className="md:w-1/2 w-full p-4">
+        <div className="md:w-1/2 w-full bg-gray-100 flex flex-col min-h-[400px] md:min-h-auto relative">
           <MapContainer
             center={[27.3753, 69.345]}
             zoom={6}
-            className="w-full rounded-lg"
-            style={{ minHeight: "400px", height: "84%" }}
+            className="w-full h-full flex-grow z-0"
+            style={{ minHeight: "400px" }}
           >
+            <MapResizer />
             <TileLayer
               attribution="&copy; OpenStreetMap contributors"
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -360,9 +372,9 @@ export default function ReportDisaster() {
           </MapContainer>
 
           {address && (
-            <div className="mt-3 rounded-lg border bg-gray-50 px-4 py-2 text-sm text-gray-700">
-              <strong>Selected Location:</strong>
-              <div>{address}</div>
+            <div className="absolute top-4 left-4 right-4 z-[400] bg-white/90 backdrop-blur rounded-lg border shadow-sm px-4 py-2 text-sm text-gray-800">
+              <strong className="text-brand-700">Selected Location:</strong>
+              <div className="truncate">{address}</div>
             </div>
           )}
 

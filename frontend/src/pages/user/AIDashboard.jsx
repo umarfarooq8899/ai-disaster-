@@ -281,54 +281,52 @@ const AIDashboard = () => {
                                 </div>
 
                                 {/* --- RIGHT COLUMN: THREAT MAP --- */}
-                                < div className="lg:col-span-7 flex flex-col" >
-                                    {(currentLive.threatZones) && (
-                                        <div className="flex-1 flex flex-col">
-                                            <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-6 flex items-center gap-2">
-                                                <MapPin className="w-4 h-4 text-brand-600" />
-                                                Geographic Threat Map
-                                            </h3>
+                                <div className="lg:col-span-7 flex flex-col">
+                                    <div className="flex-1 flex flex-col">
+                                        <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-6 flex items-center gap-2">
+                                            <MapPin className="w-4 h-4 text-brand-600" />
+                                            Geographic Threat Map
+                                        </h3>
 
-                                            <div className="flex flex-col gap-6 h-full">
-                                                <div className="flex-1 min-h-[350px] rounded-3xl overflow-hidden border shadow-soft bg-slate-50">
-                                                    <MapView
-                                                        disasters={currentLive.threatZones || []}
-                                                        center={[30.3753, 69.3451]} // Always center on Pakistan initially
-                                                        defaultZoom={5} // Custom prop to ensure map zooms out
-                                                        showRadius={true}
-                                                        height="100%"
-                                                    />
-                                                </div>
-
-                                                {currentLive.threatZones.length > 0 && (
-                                                    <div className="flex gap-4 overflow-x-auto pb-2 custom-scrollbar">
-                                                        {currentLive.threatZones.map((zone, idx) => (
-                                                            <div key={idx} className="bg-slate-50 border rounded-2xl p-4 flex flex-col gap-1 relative overflow-hidden shrink-0 w-64">
-                                                                <div className={`absolute left-0 top-0 bottom-0 w-1 ${zone.severity === 'high' ? 'bg-red-500' : 'bg-orange-500'}`} />
-                                                                <div className="flex justify-between items-start mb-1">
-                                                                    <h4 className="font-black text-slate-800 text-sm truncate pr-2">{zone.title}</h4>
-                                                                    <span className={`text-[8px] uppercase font-black px-1.5 py-0.5 rounded-lg tracking-widest ${zone.severity === 'high' ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'}`}>
-                                                                        {zone.severity}
-                                                                    </span>
-                                                                </div>
-                                                                <p className="text-[10px] text-slate-500 font-medium line-clamp-2">{zone.description}</p>
-                                                                <div className="mt-auto pt-2 text-[9px] text-slate-400 font-bold tracking-tight">
-                                                                    Radius: {zone.dangerRadius}km
-                                                                </div>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                )}
-                                                {currentLive.threatZones.length === 0 && (
-                                                    <div className="bg-safe-50 border border-safe-200 rounded-2xl p-5 flex flex-col gap-2 items-center justify-center text-center">
-                                                        <MapPin className="w-6 h-6 text-safe-400 mb-1" />
-                                                        <h4 className="font-black text-slate-800 text-sm">No Active Threats</h4>
-                                                        <p className="text-xs text-slate-500 font-medium">Map is clear.</p>
-                                                    </div>
-                                                )}
+                                        <div className="flex flex-col gap-6 h-full">
+                                            <div className="flex-1 min-h-[350px] rounded-3xl overflow-hidden border shadow-soft bg-slate-50">
+                                                <MapView
+                                                    disasters={currentLive.threatZones || []}
+                                                    center={[30.3753, 69.3451]} // Always center on Pakistan initially
+                                                    defaultZoom={5} // Custom prop to ensure map zooms out
+                                                    showRadius={true}
+                                                    height="100%"
+                                                />
                                             </div>
+
+                                            {(currentLive.threatZones && currentLive.threatZones.length > 0) && (
+                                                <div className="flex gap-4 overflow-x-auto pb-2 custom-scrollbar">
+                                                    {currentLive.threatZones.map((zone, idx) => (
+                                                        <div key={idx} className="bg-slate-50 border rounded-2xl p-4 flex flex-col gap-1 relative overflow-hidden shrink-0 w-64">
+                                                            <div className={`absolute left-0 top-0 bottom-0 w-1 ${zone.severity === 'high' ? 'bg-red-500' : 'bg-orange-500'}`} />
+                                                            <div className="flex justify-between items-start mb-1">
+                                                                <h4 className="font-black text-slate-800 text-sm truncate pr-2">{zone.title}</h4>
+                                                                <span className={`text-[8px] uppercase font-black px-1.5 py-0.5 rounded-lg tracking-widest ${zone.severity === 'high' ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'}`}>
+                                                                    {zone.severity}
+                                                                </span>
+                                                            </div>
+                                                            <p className="text-[10px] text-slate-500 font-medium line-clamp-2">{zone.description}</p>
+                                                            <div className="mt-auto pt-2 text-[9px] text-slate-400 font-bold tracking-tight">
+                                                                Radius: {zone.dangerRadius}km
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                            {(!currentLive.threatZones || currentLive.threatZones.length === 0) && (
+                                                <div className="bg-safe-50 border border-safe-200 rounded-2xl p-5 flex flex-col gap-2 items-center justify-center text-center">
+                                                    <MapPin className="w-6 h-6 text-safe-400 mb-1" />
+                                                    <h4 className="font-black text-slate-800 text-sm">No Active Threats</h4>
+                                                    <p className="text-xs text-slate-500 font-medium">Map is clear.</p>
+                                                </div>
+                                            )}
                                         </div>
-                                    )}
+                                    </div>
                                 </div>
                             </div>
                         </div>

@@ -7,18 +7,21 @@ from sklearn.ensemble import IsolationForest
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-def generate_baseline_data():
-    # Simulate normal background tectonic activity features for Pakistan region
-    # Features: [weekly_count, max_magnitude, mean_magnitude]
-    np.random.seed(42)
-    normal_counts = np.random.normal(15, 5, 200) # ~15 quakes a week
-    normal_max_mags = np.random.normal(3.5, 0.5, 200) # Max mag ~3.5
-    normal_mean_mags = np.random.normal(2.5, 0.3, 200) # Mean mag ~2.5
-    
-    data = np.column_stack((normal_counts, normal_max_mags, normal_mean_mags))
-    # Ensure no negative counts or unrealistic things
-    data = np.clip(data, [0, 1.0, 1.0], [50, 7.0, 5.0])
-    return data
+DATA_PATH = os.path.join(BASE_DIR, 'backend', 'data', 'pakistan_historical_earthquakes.csv')
+
+def load_historical_baseline():
+    if os.path.exists(DATA_PATH):
+        df = pd.read_csv(DATA_PATH)
+        return df[['count', 'max_mag', 'mean_mag']].values
+    else:
+        # Fallback to simulation if CSV doesn't exist
+        np.random.seed(42)
+        normal_counts = np.random.normal(15, 5, 200) # ~15 quakes a week
+        normal_max_mags = np.random.normal(3.5, 0.5, 200) # Max mag ~3.5
+        normal_mean_mags = np.random.normal(2.5, 0.3, 200) # Mean mag ~2.5
+        
+        data = np.column_stack((normal_counts, normal_max_mags, normal_mean_mags))
+        return np.clip(data, [0, 1.0, 1.0], [50, 7.0, 5.0])
 
 def predict_from_telemetry(usgs_mag_string):
     try:
@@ -45,7 +48,7 @@ def predict_from_telemetry(usgs_mag_string):
         loc_desc = "Pakistan Regional Fault Zones (Live USGS Monitoring)"
 
         # Train Isolation Forest on normal baseline tectonic behavior
-        baseline_X = generate_baseline_data()
+        baseline_X = load_historical_baseline()
         
         # Adjust contamination (expected anomaly rate)
         clf = IsolationForest(n_estimators=100, contamination=0.05, random_state=42)
@@ -58,15 +61,23 @@ def predict_from_telemetry(usgs_mag_string):
         
         # Combine model anomaly detection with threshold heuristics for earthquake safety
         # Anomaly score < 0 means it's an outlier.
-        if anomaly_score < -0.1 or max_mag >= 5.5 or count > 40:
+        if count < 10 and max_mag < 4.0:
+            # Low event count and low magnitude means seismic quiet, not a high risk anomaly.
+            prediction_label = "Low Risk"
+            est_ttf = 999.0
+            confidence_score = min(99.0, 85.0 + (10 - count))
+        elif anomaly_score < -0.1 or max_mag >= 5.5 or count > 40:
             prediction_label = "High Risk"
             est_ttf = max(0.5, 24.0 / (weight * (max_mag + 0.1)))
+            confidence_score = min(99.0, 75.0 + abs(anomaly_score) * 50)
         elif anomaly_score < 0.05 or max_mag >= 4.5 or count > 25:
             prediction_label = "Medium Risk"
             est_ttf = max(12.0, 72.0 / weight)
+            confidence_score = min(88.0, 60.0 + abs(anomaly_score) * 100)
         else:
             prediction_label = "Low Risk"
             est_ttf = 999.0
+            confidence_score = min(95.0, 70.0 + anomaly_score * 50)
             
         # Threat Zones
         threat_zones = []
@@ -95,6 +106,7 @@ def predict_from_telemetry(usgs_mag_string):
         
         result = {
             "prediction": prediction_label,
+            "confidence_score": round(float(confidence_score), 2),
             "anomaly_score": round(float(anomaly_score), 3),
             "time_to_failure": round(float(est_ttf), 2) if prediction_label != "Low Risk" else None,
             "unit": "hours",

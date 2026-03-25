@@ -60,8 +60,7 @@ const AIDashboard = () => {
         try {
             if (activeTab === 'earthquake') {
                 const res = await axios.post('http://localhost:5001/api/ai/fetch-live');
-                const pred = await axios.get('http://localhost:5001/api/ai/earthquake');
-                setResult({ ...res.data.data, prediction: pred.data.prediction, time_to_failure: pred.data.time_to_failure });
+                setResult({ ...res.data.data });
                 fetchLiveStatus();
             } else if (activeTab === 'flood') {
                 const res = await axios.get('http://localhost:5001/api/ai/flood');
@@ -243,6 +242,12 @@ const AIDashboard = () => {
                                                         activeTab === 'flood' ? 'Sector: Indus River Basin' :
                                                             activeTab === 'fire' ? 'Sector: Margalla Hills' :
                                                                 'Sector: Coastal Tectonic'}
+                                                </p>
+                                            </div>
+                                            <div className="flex items-center gap-3 px-2 mb-3">
+                                                <Target className="w-4 h-4 text-brand-600" />
+                                                <p className="text-[11px] font-bold text-brand-700 uppercase tracking-tight">
+                                                    AI Confidence: {currentLive.confidence ? `${currentLive.confidence}%` : 'CALCULATING...'}
                                                 </p>
                                             </div>
                                         </div>

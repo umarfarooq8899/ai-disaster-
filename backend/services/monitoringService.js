@@ -113,6 +113,11 @@ const checkEarthquakeRisk = async () => {
 
         // Run AI prediction using real USGS data
         const result = await runPythonScript('predict_earthquake.py', bufferString);
+        
+        // Pass prediction and time_to_failure to liveStatus for frontend
+        liveStatus.earthquake.prediction = result.prediction;
+        liveStatus.earthquake.time_to_failure = result.time_to_failure;
+        liveStatus.earthquake.confidence = result.confidence_score;
 
         if (result.prediction.toLowerCase().includes('high')) {
             liveStatus.earthquake.risk = 'high';
@@ -198,6 +203,7 @@ const checkFloodRisk = async () => {
         liveStatus.flood.lastChecked = new Date();
         const isHighRisk = result.prediction.toLowerCase().includes('high');
         liveStatus.flood.risk = isHighRisk ? 'high' : (result.prediction.toLowerCase().includes('medium') ? 'medium' : 'low');
+        liveStatus.flood.confidence = result.confidence_score;
 
         const detail = `AI Regional Analysis (${forecast.cities} PMD cities): ${result.prediction}. ${result.description}`;
         liveStatus.flood.detail = detail;
@@ -222,6 +228,7 @@ const checkFireRisk = async () => {
         liveStatus.fire.lastChecked = new Date();
         const isHighRisk = result.prediction.toLowerCase().includes('high');
         liveStatus.fire.risk = isHighRisk ? 'high' : (result.prediction.toLowerCase().includes('medium') ? 'medium' : 'low');
+        liveStatus.fire.confidence = result.confidence_score;
 
         const detail = `AI Forestry Scan (${forecast.cities} PMD cities): ${result.prediction} Risk (${result.impact_index} impact). Conditions: ${forecast.temp}°C avg, ${forecast.wind}km/h wind.`;
         liveStatus.fire.detail = detail;

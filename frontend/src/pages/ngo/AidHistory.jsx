@@ -17,7 +17,7 @@ export default function AidHistory() {
             setAidHistory(res.data);
         } catch (err) {
             console.error(err);
-            toast.error("Failed to fetch aid history");
+            toast.error(err.response?.data?.error || err.response?.data?.message || err.message || "Failed to fetch aid history");
         } finally {
             setLoading(false);
         }

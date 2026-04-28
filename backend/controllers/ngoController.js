@@ -466,8 +466,8 @@ exports.getAidHistory = async (req, res) => {
 
         res.json(history);
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: "Failed to fetch aid history" });
+        console.error("Aid History Error:", err);
+        res.status(500).json({ message: "Failed to fetch aid history", error: err.message });
     }
 };
 

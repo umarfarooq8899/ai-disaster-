@@ -19,7 +19,7 @@ export default function MissionHistory() {
             setMissions(completedMissions);
         } catch (err) {
             console.error(err);
-            toast.error("Failed to fetch mission history");
+            toast.error(err.response?.data?.error || err.response?.data?.message || err.message || "Failed to fetch mission history");
         } finally {
             setLoading(false);
         }

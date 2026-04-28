@@ -8,8 +8,9 @@ import toast from "react-hot-toast";
 import MapView from "../../components/map/MapView";
 
 export default function VolunteerTasks() {
-  // Normalise evidence URL — handles both old "/uploads/..." and new "uploads/..." storage
-  const mediaUrl = (url) => url?.startsWith("/") ? url : `/${url}`;
+  // Normalize evidence URL — handles both old "/uploads/..." and new "uploads/..." storage
+  const backendUrl = import.meta.env.VITE_API_URL || "";
+  const mediaUrl = (url) => url?.startsWith("/") ? `${backendUrl}${url}` : `${backendUrl}/${url}`;
   const [tasks, setTasks] = useState([]);
   const [completedTasks, setCompleted] = useState([]);
   const [loading, setLoading] = useState(true);

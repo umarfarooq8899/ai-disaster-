@@ -1,7 +1,8 @@
 import axios from "axios";
 
 const instance = axios.create({
-  baseURL: "/api",
+  // Use VITE_API_URL for production (Vercel), fallback to /api proxy for local development
+  baseURL: import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "/api",
 });
 
 // Add a request interceptor

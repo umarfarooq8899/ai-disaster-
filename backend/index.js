@@ -30,6 +30,9 @@ app.use(morgan("dev"));
 // ================= RATE LIMITING =================
 const rateLimit = require("express-rate-limit");
 
+// Trust proxy for Railway reverse proxy
+app.set("trust proxy", 1);
+
 // Global Rate Limiter
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes

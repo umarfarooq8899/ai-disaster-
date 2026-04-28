@@ -35,7 +35,9 @@ const triggerAutomatedAlert = async (type, detail) => {
 };
 
 // Path to Python and Scripts
-const PYTHON_PATH = path.join(__dirname, '..', '..', 'venv', 'Scripts', 'python.exe');
+// If in production, use global python3 or python. If local, use the local Windows venv.
+const isProduction = process.env.NODE_ENV === 'production';
+const PYTHON_PATH = process.env.PYTHON_PATH || (isProduction ? 'python3' : path.join(__dirname, '..', '..', 'venv', 'Scripts', 'python.exe'));
 const PREDICT_EARTHQUAKE_SCRIPT = path.join(__dirname, '..', 'scripts', 'predict_earthquake.py');
 
 const NodeCache = require('node-cache');

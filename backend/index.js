@@ -15,7 +15,7 @@ monitoringService.startMonitoring();
 // ================= MIDDLEWARE =================
 app.use(
   cors({
-    origin: "http://localhost:5173", // frontend URL
+    origin: true, // Allow any origin dynamically (required for Vercel deployment)
     methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,

@@ -1,11 +1,11 @@
 import axios from "axios";
 
-// Normalize the URL by stripping trailing slashes to prevent //api 404 errors
-const apiUrl = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace(/\/+$/, '') : "";
-
 const instance = axios.create({
-  // Use VITE_API_URL for production (Vercel), fallback to /api proxy for local development
-  baseURL: apiUrl ? `${apiUrl}/api` : "/api",
+  // Vercel proxies /api/* to Railway backend (see vercel.json)
+  // This works for both local dev (via vite proxy) and production (via Vercel rewrite)
+  baseURL: import.meta.env.VITE_API_URL
+    ? `${import.meta.env.VITE_API_URL.replace(/\/+$/, "")}/api`
+    : "/api",
 });
 
 // Add a request interceptor

@@ -9,7 +9,8 @@ import MapView from "../../components/map/MapView";
 
 export default function VolunteerTasks() {
   // Normalize evidence URL — handles both old "/uploads/..." and new "uploads/..." storage
-  const backendUrl = import.meta.env.VITE_API_URL || "";
+  const rawUrl = import.meta.env.VITE_API_URL || "";
+  const backendUrl = rawUrl.replace(/\/+$/, '');
   const mediaUrl = (url) => url?.startsWith("/") ? `${backendUrl}${url}` : `${backendUrl}/${url}`;
   const [tasks, setTasks] = useState([]);
   const [completedTasks, setCompleted] = useState([]);

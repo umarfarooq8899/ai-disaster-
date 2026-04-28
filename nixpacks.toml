@@ -1,0 +1,12 @@
+[providers]
+node = true
+python = true
+
+[phases.setup]
+nixPkgs = ["nodejs_20", "python3", "python311Packages.pip"]
+
+[phases.install]
+cmds = ["cd backend && npm install", "cd backend && pip install --break-system-packages -r requirements.txt"]
+
+[start]
+cmd = "cd backend && npm start"

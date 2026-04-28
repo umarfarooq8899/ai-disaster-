@@ -680,6 +680,23 @@ export default function ManageDisasters() {
 
                       <button
                         onClick={async () => {
+                          if (!window.confirm("Are you sure you want to broadcast a panic alert to all users in the danger zone?")) return;
+                          try {
+                            const res = await api.post(`/admin/disasters/${selectedDisaster._id}/broadcast`, {}, {
+                              headers: { Authorization: `Bearer ${token}` }
+                            });
+                            toast.success(res.data.message || `Alert broadcasted successfully`);
+                          } catch (err) {
+                            toast.error(err.response?.data?.message || "Failed to broadcast alert");
+                          }
+                        }}
+                        className="col-span-2 flex items-center justify-center gap-2 bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 transition font-bold"
+                      >
+                        <AlertTriangle className="w-4 h-4" /> Broadcast Panic Alert
+                      </button>
+
+                      <button
+                        onClick={async () => {
                           try {
                             await api.patch(`/disasters/${selectedDisaster._id}/resolve`, {}, {
                               headers: { Authorization: `Bearer ${token}` }

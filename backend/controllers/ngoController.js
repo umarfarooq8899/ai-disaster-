@@ -17,7 +17,7 @@ exports.getDashboardStats = async (req, res) => {
             {
                 $match: {
                     ngo: new mongoose.Types.ObjectId(orgId),
-                    status: { $in: ["pending", "assigned"] }
+                    status: { $in: ["pending", "assigned", "pending_verification"] }
                 }
             },
             {
@@ -43,10 +43,16 @@ exports.getDashboardStats = async (req, res) => {
         const resources = await Resource.find({ organization: orgId });
         const totalItemsInStock = resources.reduce((acc, curr) => acc + curr.quantity, 0);
 
-        const totalDistributed = await AidAssignment.countDocuments({
+        // Calculate total distributed items (sum of quantities from completed/distributed assignments)
+        const distributedAssignments = await AidAssignment.find({
             ngo: orgId,
-            status: "distributed"
+            status: { $in: ["distributed", "completed"] }
         });
+        
+        const totalDistributed = distributedAssignments.reduce((acc, assignment) => {
+            const assignmentTotal = assignment.items.reduce((sum, item) => sum + item.quantity, 0);
+            return acc + assignmentTotal;
+        }, 0);
 
         res.json({
             volunteers: volunteersCount,
@@ -164,27 +170,39 @@ exports.getAidAssignments = async (req, res) => {
 // Create Aid Assignment
 exports.createAidAssignment = async (req, res) => {
     const { disasterId, items, volunteerIds, notes } = req.body;
+    
+    // Start a Mongoose session for transaction
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
     try {
         // Validation: check if disaster exists and is approved
-        const disaster = await Disaster.findById(disasterId);
+        const disaster = await Disaster.findById(disasterId).session(session);
         if (!disaster || disaster.status !== "active") {
+            await session.abortTransaction();
+            session.endSession();
             return res.status(400).json({ message: "Disaster not found or not currently active" });
         }
 
-        const assignment = await AidAssignment.create({
+        const assignment = await AidAssignment.create([{
             disaster: disasterId,
             ngo: req.user.organization,
             items,
             volunteers: volunteerIds,
             status: (volunteerIds && volunteerIds.length > 0) ? "assigned" : "pending",
             notes
-        });
+        }], { session });
 
-        // Deduct quantities from Resource inventory (Simple logic for now)
+        // Deduct quantities from Resource inventory
         for (const item of items) {
-            await Resource.findByIdAndUpdate(item.resource, {
-                $inc: { quantity: -item.quantity }
-            });
+            const resource = await Resource.findById(item.resource).session(session);
+            if (!resource || resource.quantity < item.quantity) {
+                await session.abortTransaction();
+                session.endSession();
+                return res.status(400).json({ message: `Insufficient stock for resource: ${item.name}` });
+            }
+            resource.quantity -= item.quantity;
+            await resource.save({ session });
         }
 
         // Update volunteer status if assigned
@@ -193,15 +211,22 @@ exports.createAidAssignment = async (req, res) => {
                 { user: { $in: volunteerIds } },
                 {
                     available: false,
-                    currentTask: assignment._id,
+                    currentTask: assignment[0]._id,
                     currentTaskType: "AidAssignment"
-                }
+                },
+                { session }
             );
         }
 
-        res.status(201).json(assignment);
+        // Commit transaction
+        await session.commitTransaction();
+        session.endSession();
+
+        res.status(201).json(assignment[0]);
     } catch (err) {
-        console.error(err);
+        await session.abortTransaction();
+        session.endSession();
+        console.error("DEBUG: Transaction failed in createAidAssignment", err);
         res.status(500).json({ message: "Failed to create aid assignment" });
     }
 };
@@ -432,7 +457,7 @@ exports.getAidHistory = async (req, res) => {
     try {
         const history = await AidAssignment.find({
             ngo: req.user.organization,
-            status: "distributed"
+            status: { $in: ["distributed", "completed"] }
         })
             .populate("disaster", "title location severity")
             .populate("volunteers", "name email")

@@ -38,6 +38,9 @@ const triggerAutomatedAlert = async (type, detail) => {
 const PYTHON_PATH = path.join(__dirname, '..', '..', 'venv', 'Scripts', 'python.exe');
 const PREDICT_EARTHQUAKE_SCRIPT = path.join(__dirname, '..', 'scripts', 'predict_earthquake.py');
 
+const NodeCache = require('node-cache');
+const predictionCache = new NodeCache({ stdTTL: 600 }); // 10 minutes default TTL
+
 // Cache for live status
 let liveStatus = {
     earthquake: { risk: 'low', lastChecked: null, detail: 'Systems scanning Pakistan seismic zones (Quetta, Islamabad, etc).', threatZones: [] },
@@ -50,7 +53,14 @@ let liveStatus = {
 // Accuracy Enhancements: Data Buffers
 let rainfallBuffer = []; // Last 7 readings
 
-const runPythonScript = (scriptName, arg = '') => {
+const runPythonScript = async (scriptName, arg = '') => {
+    const cacheKey = `${scriptName}_${arg}`;
+    const cachedResult = predictionCache.get(cacheKey);
+    if (cachedResult) {
+        console.log(`[Monitoring] Using cached prediction for ${scriptName}`);
+        return cachedResult;
+    }
+
     return new Promise((resolve, reject) => {
         const scriptPath = path.join(__dirname, '..', 'scripts', scriptName);
         const pythonProcess = spawn(PYTHON_PATH, [scriptPath, arg]);
@@ -76,6 +86,7 @@ const runPythonScript = (scriptName, arg = '') => {
                 if (result.error) {
                     return reject(new Error(result.error));
                 }
+                predictionCache.set(cacheKey, result); // Cache the successful result
                 resolve(result);
             } catch (e) {
                 reject(new Error(`Failed to parse Python output: ${dataString}`));
@@ -94,14 +105,19 @@ const checkEarthquakeRisk = async () => {
 
         const url = `https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime=${startTime.toISOString()}&endtime=${endTime.toISOString()}&minlatitude=23.6&maxlatitude=37.1&minlongitude=60.8&maxlongitude=77.8`;
 
-        const response = await axios.get(url, { timeout: 10000 });
-        const events = response.data.features;
+        let events = predictionCache.get("usgs_events");
+        if (!events) {
+            const response = await axios.get(url, { timeout: 10000 });
+            events = response.data.features;
+            predictionCache.set("usgs_events", events, 900); // Cache USGS for 15 mins
+        } else {
+            console.log('[Monitoring] Using cached USGS earthquake data.');
+        }
 
         const count = events.length;
         const maxMag = events.reduce((max, eq) => Math.max(max, eq.properties.mag || 0), 0);
 
         // Pass recent magnitudes to Python as a buffer
-        // If empty, pass '0' to avoid errors
         let bufferString = '0';
         if (events.length > 0) {
             const mags = events.map(e => parseFloat(e.properties.mag || 0).toFixed(1));
@@ -152,7 +168,13 @@ const PMD_CITY_POINTS = [
     { name: 'Gilgit', lat: 35.92, lon: 74.31 },
 ];
 
+let weatherCache = { data: null, fetchedAt: null };
+const WEATHER_CACHE_TTL = 10 * 60 * 1000; // 10 minutes
+
 const getPMDWeatherData = async () => {
+    if (weatherCache.data && weatherCache.fetchedAt && (Date.now() - weatherCache.fetchedAt < WEATHER_CACHE_TTL)) {
+        return weatherCache.data;
+    }
     try {
         console.log('[Monitoring] Fetching PMD-equivalent multi-city weather (6 grid-points)...');
         const fetchCity = ({ lat, lon }) =>
@@ -174,16 +196,24 @@ const getPMDWeatherData = async () => {
         // Regional average of today's values
         const avg = (key) => valid.reduce((sum, d) => sum + (d[key][0] || 0), 0) / valid.length;
 
-        return {
+        const result = {
             temp: parseFloat(avg('temperature_2m_max').toFixed(1)),
             humidity: parseFloat(avg('relative_humidity_2m_max').toFixed(1)) || 50,
             wind: parseFloat(avg('wind_speed_10m_max').toFixed(1)),
             rain: parseFloat(avg('precipitation_sum').toFixed(2)),
             cities: valid.length
         };
+        weatherCache = { data: result, fetchedAt: Date.now() };
+        return result;
     } catch (error) {
-        console.error('[Monitoring] PMD weather fetch failed:', error.message);
-        return null;
+        if (error.response && error.response.status === 429) {
+            // Suppress verbose error on 429
+            console.log('[Monitoring] PMD weather fetch rate-limited (429). Using fallback.');
+        } else {
+            console.error('[Monitoring] PMD weather fetch failed:', error.message);
+        }
+        if (weatherCache.data) return weatherCache.data;
+        return { temp: 30, humidity: 50, wind: 10, rain: 0, cities: PMD_CITY_POINTS.length }; // Absolute fallback
     }
 };
 
@@ -240,13 +270,21 @@ const checkFireRisk = async () => {
     }
 };
 
+let cycloneCache = { data: null, fetchedAt: null };
+const CYCLONE_CACHE_TTL = 15 * 60 * 1000; // 15 mins
+
 const checkCycloneRisk = async () => {
     try {
-        console.log('[Monitoring] Fetching coastal weather for cyclone analysis...');
-        // Karachi coordinates for coastal monitoring
-        const response = await axios.get('https://api.open-meteo.com/v1/forecast?latitude=24.86&longitude=67.00&current=surface_pressure,wind_speed_10m&timezone=auto');
-
-        const current = response.data.current;
+        let current;
+        if (cycloneCache.data && cycloneCache.fetchedAt && (Date.now() - cycloneCache.fetchedAt < CYCLONE_CACHE_TTL)) {
+            current = cycloneCache.data;
+        } else {
+            console.log('[Monitoring] Fetching coastal weather for cyclone analysis...');
+            const response = await axios.get('https://api.open-meteo.com/v1/forecast?latitude=24.86&longitude=67.00&current=surface_pressure,wind_speed_10m&timezone=auto', { timeout: 8000 });
+            current = response.data.current;
+            cycloneCache = { data: current, fetchedAt: Date.now() };
+        }
+        
         const inputData = `${current.wind_speed_10m},${current.surface_pressure}`;
         const result = await runPythonScript('predict_cyclone.py', inputData);
 
@@ -260,7 +298,11 @@ const checkCycloneRisk = async () => {
 
         if (isHighRisk) triggerAutomatedAlert('Cyclone', liveStatus.slr.detail);
     } catch (error) {
-        console.error('[Monitoring] Error in cyclone analysis:', error.message);
+        if (error.response && error.response.status === 429) {
+            console.log('[Monitoring] Cyclone analysis fetch rate-limited (429). Will retry later.');
+        } else {
+            console.error('[Monitoring] Error in cyclone analysis:', error.message);
+        }
     }
 };
 

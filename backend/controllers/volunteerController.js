@@ -130,21 +130,70 @@ exports.updateTaskStatus = async (req, res) => {
 // Get stats for volunteer dashboard
 exports.getDashboardStats = async (req, res) => {
   try {
-    const assignedMissionsCount = await Mission.countDocuments({
-      assignedVolunteers: req.user.id,
-      status: { $in: ["ongoing", "pending"] },
+    const userId = req.user.id;
+
+    // Fetch Missions to resolve exact status for assigned count
+    const missionsData = await Mission.find({ assignedVolunteers: userId }).lean();
+    let assignedTasksCount = 0;
+
+    missionsData.forEach(m => {
+      const userCompletion = (m.volunteerCompletions || []).find(vc => vc.volunteerId.toString() === userId);
+      let fallbackStatus = m.status;
+      if (!userCompletion && fallbackStatus === "pending_verification") {
+        fallbackStatus = "assigned";
+      }
+      const finalStatus = userCompletion 
+        ? (userCompletion.status === "verified" ? "completed" : userCompletion.status) 
+        : fallbackStatus;
+      
+      if (finalStatus !== "completed" && finalStatus !== "cancelled") {
+        assignedTasksCount++;
+      }
     });
 
-    const assignedAidCount = await AidAssignment.countDocuments({
-      volunteers: req.user.id,
-      status: { $in: ["assigned", "pending"] },
+    // Fetch Aid Assignments
+    const aidAssignmentsData = await AidAssignment.find({ volunteers: userId }).lean();
+    aidAssignmentsData.forEach(a => {
+      const userCompletion = (a.volunteerCompletions || []).find(vc => vc.volunteerId.toString() === userId);
+      let fallbackStatus = a.status;
+      if (!userCompletion) {
+        if (fallbackStatus === "pending_verification") fallbackStatus = "assigned";
+        else if (fallbackStatus === "assigned") fallbackStatus = "ongoing";
+        else if (fallbackStatus === "distributed") fallbackStatus = "completed";
+      }
+      const finalStatus = userCompletion 
+        ? (userCompletion.status === "verified" ? "completed" : userCompletion.status) 
+        : fallbackStatus;
+      
+      if (finalStatus !== "completed" && finalStatus !== "cancelled") {
+        assignedTasksCount++;
+      }
     });
 
-    const assignedTasksCount = assignedMissionsCount + assignedAidCount;
+    // Dynamically calculate completed tasks
+    const completedMissionsCount = await Mission.countDocuments({
+      "volunteerCompletions": {
+        $elemMatch: { volunteerId: userId, status: "verified" }
+      }
+    });
 
-    const volunteer = await Volunteer.findOne({ user: req.user.id });
+    const completedAidCount = await AidAssignment.countDocuments({
+      "volunteerCompletions": {
+        $elemMatch: { volunteerId: userId, status: "verified" }
+      }
+    });
+
+    const dynamicTasksCompleted = completedMissionsCount + completedAidCount;
+
+    const volunteer = await Volunteer.findOne({ user: userId });
+    
+    // Update volunteer record if it doesn't match
+    if (volunteer && volunteer.tasksCompleted !== dynamicTasksCompleted) {
+      volunteer.tasksCompleted = dynamicTasksCompleted;
+      await volunteer.save();
+    }
+
     const nearbyAlertsCount = await Alert.countDocuments({
-      // Simple logic: same city
       location: { $regex: volunteer?.city || "", $options: "i" },
       status: "active",
     });
@@ -153,7 +202,7 @@ exports.getDashboardStats = async (req, res) => {
       assignedTasks: assignedTasksCount,
       nearbyAlerts: nearbyAlertsCount,
       isAvailable: volunteer?.available || false,
-      tasksCompleted: volunteer?.tasksCompleted || 0,
+      tasksCompleted: dynamicTasksCompleted,
     });
   } catch (err) {
     console.error(err);
@@ -507,7 +556,9 @@ exports.getMyMissions = async (req, res) => {
       }
       return {
         ...m,
-        status: userCompletion ? userCompletion.status : fallbackStatus,
+        status: userCompletion 
+          ? (userCompletion.status === "verified" ? "completed" : userCompletion.status) 
+          : fallbackStatus,
         evidenceUrls: userCompletion ? userCompletion.evidenceUrls : []
       };
     });
@@ -536,7 +587,9 @@ exports.getMyMissions = async (req, res) => {
       }
       return {
         ...a,
-        status: userCompletion ? userCompletion.status : fallbackStatus,
+        status: userCompletion 
+          ? (userCompletion.status === "verified" ? "completed" : userCompletion.status) 
+          : fallbackStatus,
         evidenceUrls: userCompletion ? userCompletion.evidenceUrls : []
       };
     });

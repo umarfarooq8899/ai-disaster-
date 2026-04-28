@@ -241,7 +241,19 @@ router.patch("/:id/resolve", auth, adminOnly, async (req, res) => {
 // Admin: delete disaster
 router.delete("/:id", auth, adminOnly, async (req, res) => {
   try {
-    await Disaster.findByIdAndDelete(req.params.id);
+    const disasterId = req.params.id;
+    await Disaster.findByIdAndDelete(disasterId);
+    
+    const Mission = require("../models/Mission");
+    const AidAssignment = require("../models/AidAssignment");
+    const Alert = require("../models/Alert");
+    const StatusLog = require("../models/StatusLog");
+
+    await Mission.deleteMany({ disaster: disasterId });
+    await AidAssignment.deleteMany({ disaster: disasterId });
+    await Alert.deleteMany({ disaster: disasterId });
+    await StatusLog.deleteMany({ disaster: disasterId });
+
     res.json({ message: "Disaster deleted" });
   } catch (err) {
     console.error(err);

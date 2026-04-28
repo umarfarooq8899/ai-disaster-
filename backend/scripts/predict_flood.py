@@ -23,7 +23,7 @@ def train_and_predict(input_data=None):
         model = RandomForestClassifier(n_estimators=100, random_state=42, class_weight="balanced")
         model.fit(X, y)
         
-        if not input_data:
+        if not input_data or input_data.strip() == "":
             latest_data = X.iloc[-1].values.reshape(1, -1)
             desc = "Historical baseline"
         else:

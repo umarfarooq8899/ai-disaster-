@@ -26,6 +26,28 @@ app.use(compression()); // Enable gzip compression
 
 app.use(express.json());
 app.use(morgan("dev"));
+
+// ================= RATE LIMITING =================
+const rateLimit = require("express-rate-limit");
+
+// Global Rate Limiter
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 1000, // Limit each IP to 1000 requests per windowMs
+  message: "Too many requests from this IP, please try again after 15 minutes",
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use("/api/", globalLimiter);
+
+// Stricter Rate Limiter for Auth Routes
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 50, // Limit each IP to 50 login/register requests per windowMs
+  message: "Too many authentication attempts, please try again later",
+});
+app.use("/api/auth", authLimiter);
+
 app.use("/uploads", express.static("uploads", {
   maxAge: "1d", // Cache static assets for 1 day
   setHeaders: (res, path) => {

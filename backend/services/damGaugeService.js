@@ -151,7 +151,11 @@ const getDamGaugeData = async () => {
         return result;
 
     } catch (err) {
-        console.error('[DamGauge] Failed to fetch catchment data:', err.message);
+        if (err.response && err.response.status === 429) {
+            console.log('[DamGauge] Catchment data fetch rate-limited (429). Using fallback.');
+        } else {
+            console.error('[DamGauge] Failed to fetch catchment data:', err.message);
+        }
         // Return last cached data even if stale, or a fallback
         if (cache.data) return cache.data;
         return {

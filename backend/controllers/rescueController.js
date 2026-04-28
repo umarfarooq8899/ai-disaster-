@@ -228,13 +228,13 @@ exports.getDashboardStats = async (req, res) => {
         const orgId = req.user.organization;
         if (!orgId) return res.status(400).json({ message: "Organization not found for this user" });
 
-        // Use aggregation to only count missions that are linked to an existing, active disaster
-        // This prevents orphan missions (deleted/resolved disasters) from inflating the stats
+        // Use aggregation to only count missions that are linked to an existing disaster
+        // This prevents true orphan missions from inflating the stats, but allows resolved disasters.
         const missionStats = await Mission.aggregate([
             {
                 $match: {
                     organization: new mongoose.Types.ObjectId(orgId),
-                    status: { $in: ["ongoing", "pending", "completed"] }
+                    status: { $in: ["ongoing", "pending", "pending_verification", "completed"] }
                 }
             },
             {
@@ -246,10 +246,9 @@ exports.getDashboardStats = async (req, res) => {
                 }
             },
             {
-                // Only count missions where the disaster exists AND is still active
+                // Only count missions where the disaster exists
                 $match: {
-                    "disasterData.0": { $exists: true },
-                    "disasterData.0.status": { $in: ["active"] }
+                    "disasterData.0": { $exists: true }
                 }
             },
             {
@@ -261,7 +260,7 @@ exports.getDashboardStats = async (req, res) => {
         ]);
 
         // Map aggregation results to readable keys
-        const statsMap = { ongoing: 0, pending: 0, completed: 0 };
+        const statsMap = { ongoing: 0, pending: 0, pending_verification: 0, completed: 0 };
         missionStats.forEach(s => { statsMap[s._id] = s.count; });
 
         const [activeVolunteers, activeAlerts] = await Promise.all([
@@ -272,7 +271,7 @@ exports.getDashboardStats = async (req, res) => {
         res.json({
             activeVolunteers,
             ongoingMissions: statsMap.ongoing,
-            pendingMissions: statsMap.pending,
+            pendingMissions: (statsMap.pending || 0) + (statsMap.pending_verification || 0),
             resolvedMissions: statsMap.completed,
             activeAlerts,
         });

@@ -23,17 +23,24 @@ def train_and_predict(features_input=None):
         model = RandomForestRegressor(n_estimators=100, random_state=42)
         model.fit(X, y)
         
-        if not features_input:
+        if not features_input or features_input.strip() == "":
             latest_data = X.iloc[-1].values.reshape(1, -1)
             desc = "Historical baseline fallback"
         else:
-            # features_input from monitoringService: "temp,humidity,wind,rain"
-            temp, humidity, wind, rain = [float(x) for x in features_input.split(',')]
-            # Estimate days since last rain (if raining today it's 0, else assume a typical dry period of 10 days for worst case logic or neutral 5)
-            days_dry = 0 if rain >= 1.0 else 10 
-            
-            latest_data = np.array([[temp, humidity, wind, days_dry]])
-            desc = f"AI evaluating real-time atmospheric conditions: {temp}°C, {humidity}% RH, {wind}km/h Wind"
+            try:
+                parts = [float(x) for x in features_input.split(',')]
+                if len(parts) != 4:
+                    raise ValueError("Expected 4 feature values")
+                temp, humidity, wind, rain = parts
+                
+                # Estimate days since last rain (if raining today it's 0, else assume a typical dry period of 10 days for worst case logic or neutral 5)
+                days_dry = 0 if rain >= 1.0 else 10 
+                
+                latest_data = np.array([[temp, humidity, wind, days_dry]])
+                desc = f"AI evaluating real-time atmospheric conditions: {temp}°C, {humidity}% RH, {wind}km/h Wind"
+            except Exception as e:
+                latest_data = X.iloc[-1].values.reshape(1, -1)
+                desc = f"Historical baseline fallback (parsing error: {str(e)})"
 
         log_prediction = model.predict(latest_data)[0]
         prediction_area = np.expm1(log_prediction)

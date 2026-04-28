@@ -72,9 +72,15 @@ export function AuthProvider({ children }) {
 
       return { success: false, message: data?.message || "Invalid credentials" };
     } catch (err) {
+      const serverError = err?.response?.data?.error || "";
+      const serverMsg = err?.response?.data?.message || "";
+      const networkMsg = err?.message || "";
+      const status = err?.response?.status || "";
       return {
         success: false,
-        message: err?.response?.data?.message || "Login failed",
+        message: serverError
+          ? `[${status}] ${serverMsg}: ${serverError}`
+          : serverMsg || networkMsg || "Login failed",
       };
     }
   };

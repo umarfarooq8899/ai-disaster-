@@ -210,6 +210,39 @@ exports.getDashboardStats = async (req, res) => {
   }
 };
 
+// Get Recent Activity for Volunteer
+exports.getRecentActivity = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const StatusLog = require("../models/StatusLog");
+    
+    // Find missions and assignments for this volunteer
+    const [missions, aid] = await Promise.all([
+        Mission.find({ assignedVolunteers: userId }).select("_id"),
+        AidAssignment.find({ volunteers: userId }).select("_id")
+    ]);
+    
+    const missionIds = missions.map(m => m._id);
+    const aidIds = aid.map(a => a._id);
+    
+    // Find logs for these tasks
+    const logs = await StatusLog.find({
+        $or: [
+            { mission: { $in: missionIds } },
+            { aidAssignment: { $in: aidIds } }
+        ]
+    })
+    .populate("disaster", "title")
+    .sort({ createdAt: -1 })
+    .limit(10);
+    
+    res.json(logs);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to fetch activity logs" });
+  }
+};
+
 // Get volunteers for a specific organization (Coordinator View)
 // Get volunteers for a specific organization (Coordinator View)
 exports.getOrgVolunteers = async (req, res) => {

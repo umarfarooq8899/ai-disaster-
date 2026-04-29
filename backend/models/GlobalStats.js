@@ -23,12 +23,38 @@ globalStatsSchema.statics.incrementCounter = async function (field, amount = 1) 
     );
 };
 
+// Static method to sync stats with actual counts
+globalStatsSchema.statics.syncStats = async function () {
+    const Disaster = mongoose.model("Disaster");
+    const Alert = mongoose.model("Alert");
+    const Mission = mongoose.model("Mission");
+    const AidAssignment = mongoose.model("AidAssignment");
+
+    const [disasters, alerts, missions, aid] = await Promise.all([
+        Disaster.countDocuments(),
+        Alert.countDocuments(),
+        Mission.countDocuments(),
+        AidAssignment.countDocuments(),
+    ]);
+
+    return this.findByIdAndUpdate(
+        "global",
+        {
+            totalDisastersReported: disasters,
+            totalAlertsCreated: alerts,
+            totalMissionsCreated: missions,
+            totalAidAssignmentsCreated: aid,
+        },
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+};
+
 // Static method to get current stats
 globalStatsSchema.statics.getStats = async function () {
     let stats = await this.findById("global");
     if (!stats) {
         // Initialize if doesn't exist
-        stats = await this.create({ _id: "global" });
+        stats = await this.syncStats(); // Sync on first creation
     }
     return stats;
 };

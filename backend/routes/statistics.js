@@ -63,6 +63,24 @@ router.get("/public", auth, async (req, res) => {
 });
 
 /* ==============================
+   PUBLIC ACTIVITY FEED
+================================ */
+router.get("/public/activity", auth, async (req, res) => {
+  try {
+    const StatusLog = require("../models/StatusLog");
+    const logs = await StatusLog.find()
+      .populate("disaster", "title")
+      .sort({ createdAt: -1 })
+      .limit(10);
+
+    res.json(logs);
+  } catch (err) {
+    console.error("Public Activity Error:", err);
+    res.status(500).json({ message: "Failed to load activity feed" });
+  }
+});
+
+/* ==============================
    DASHBOARD STATISTICS (ADMIN)
 ================================ */
 router.get("/dashboard", auth, adminOnly, async (req, res) => {
@@ -78,6 +96,7 @@ router.get("/dashboard", auth, adminOnly, async (req, res) => {
       totalUsers,
       totalVolunteers,
       totalNGOs,
+      totalDisasters,
       activeDisasters,
       activeAlerts,
       totalCompletedMissions,
@@ -86,6 +105,7 @@ router.get("/dashboard", auth, adminOnly, async (req, res) => {
       User.countDocuments(),
       User.countDocuments({ role: "volunteer" }),
       NgoOrganization.countDocuments(),
+      Disaster.countDocuments(), // Use live count instead of globalStats for accuracy
       Disaster.countDocuments({ status: "active" }),
       Alert.countDocuments({ status: "active" }),
       Mission.countDocuments({ status: "completed" }),
@@ -96,7 +116,7 @@ router.get("/dashboard", auth, adminOnly, async (req, res) => {
       totalUsers,
       totalVolunteers,
       totalNGOs,
-      totalDisasters: globalStats.totalDisastersReported, // Cumulative all-time count
+      totalDisasters,
       activeDisasters,
       activeAlerts,
       totalCompletedMissions,
@@ -105,6 +125,41 @@ router.get("/dashboard", auth, adminOnly, async (req, res) => {
   } catch (err) {
     console.error("Dashboard Stats Error:", err);
     res.status(500).json({ message: "Failed to load dashboard statistics" });
+  }
+});
+
+/* ==============================
+   GLOBAL ACTIVITY FEED (ADMIN)
+================================ */
+router.get("/activity", auth, adminOnly, async (req, res) => {
+  try {
+    const StatusLog = require("../models/StatusLog");
+    const logs = await StatusLog.find()
+      .populate("disaster", "title")
+      .populate("organization", "name")
+      .populate("mission", "title")
+      .populate("aidAssignment", "items")
+      .sort({ createdAt: -1 })
+      .limit(20);
+
+    res.json(logs);
+  } catch (err) {
+    console.error("Global Activity Error:", err);
+    res.status(500).json({ message: "Failed to load activity feed" });
+  }
+});
+
+/* ==============================
+   SYNC STATISTICS (ADMIN)
+================================ */
+router.get("/sync", auth, adminOnly, async (req, res) => {
+  try {
+    const GlobalStats = mongoose.model("GlobalStats");
+    const stats = await GlobalStats.syncStats();
+    res.json({ success: true, stats });
+  } catch (err) {
+    console.error("Sync Stats Error:", err);
+    res.status(500).json({ message: "Failed to sync statistics" });
   }
 });
 

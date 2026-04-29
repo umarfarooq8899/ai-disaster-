@@ -44,6 +44,9 @@ router.put("/tasks/:id", auth, require("../controllers/volunteerController").upd
 // Get dashboard stats
 router.get("/stats", auth, require("../controllers/volunteerController").getDashboardStats);
 
+// Get recent activity
+router.get("/activity", auth, require("../controllers/volunteerController").getRecentActivity);
+
 // Admin: Auto-assign volunteers
 router.post("/admin/auto-assign", auth, require("../controllers/volunteerController").autoAssignVolunteers);
 

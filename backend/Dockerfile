@@ -31,7 +31,3 @@ EXPOSE 5001
 # Command to run the backend
 CMD ["node", "index.js"]
 
-# Cloudinary Credentials
- CLOUDINARY_CLOUD_NAME=umarf
- CLOUDINARY_API_KEY=517423457888399
- CLOUDINARY_API_SECRET=oRfIyMoPohO_fze6vAq0dA7d7R8

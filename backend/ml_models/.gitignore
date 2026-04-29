@@ -1,0 +1,2 @@
+# ML model pickle files (regenerate with: python scripts/train_all_models.py)
+*.pkl

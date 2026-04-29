@@ -118,6 +118,10 @@ const AIDashboard = () => {
                 latitude: primaryThreat ? primaryThreat.latitude : 30.3753,
                 longitude: primaryThreat ? primaryThreat.longitude : 69.3451,
                 dangerRadius: primaryThreat ? primaryThreat.dangerRadius : 50,
+                isAI: true,
+                confidence_score: currentLive.confidence || null,
+                ml_probability: currentLive.ml_probability || null,
+                threatZones: currentLive.threatZones || [],
             };
 
             await createAIDisaster(payload, token);

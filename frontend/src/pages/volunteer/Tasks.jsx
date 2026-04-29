@@ -412,6 +412,38 @@ export default function VolunteerTasks() {
                             {selectedTask.disaster.severity} severity
                           </span>
                         )}
+
+                        {selectedTask.disaster.isAI && (
+                          <div className="mt-3 pt-3 border-t border-red-200">
+                             <h4 className="text-[10px] font-bold text-red-600 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                               <Shield className="w-3 h-3" /> AI Analysis
+                             </h4>
+                             <div className="grid grid-cols-2 gap-2 mb-2">
+                                <div className="bg-white/50 p-2 rounded-lg border border-red-100">
+                                   <p className="text-[9px] text-gray-500 uppercase font-bold">ML Prob.</p>
+                                   <p className="text-sm font-black text-red-700">
+                                      {selectedTask.disaster.ml_probability ? (selectedTask.disaster.ml_probability * 100).toFixed(1) + "%" : "N/A"}
+                                   </p>
+                                </div>
+                                <div className="bg-white/50 p-2 rounded-lg border border-red-100">
+                                   <p className="text-[9px] text-gray-500 uppercase font-bold">Confidence</p>
+                                   <p className="text-sm font-black text-red-700">
+                                      {selectedTask.disaster.confidence_score ? selectedTask.disaster.confidence_score.toFixed(1) + "%" : "N/A"}
+                                   </p>
+                                </div>
+                             </div>
+                             {selectedTask.disaster.threatZones && selectedTask.disaster.threatZones.length > 0 && (
+                                <div className="text-xs text-red-800 bg-white/50 p-2 rounded-lg border border-red-100">
+                                   <p className="font-bold text-[9px] uppercase mb-1 text-gray-500">Threat Zones</p>
+                                   <ul className="list-disc pl-4 space-y-0.5">
+                                      {selectedTask.disaster.threatZones.map((z, i) => (
+                                         <li key={i}>{z.title}</li>
+                                      ))}
+                                   </ul>
+                                </div>
+                             )}
+                          </div>
+                        )}
                       </div>
                     )}
 

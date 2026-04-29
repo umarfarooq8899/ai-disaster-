@@ -21,6 +21,9 @@ RUN pip3 install --no-cache-dir -r requirements.txt
 # Copy all the rest of the backend files
 COPY . .
 
+# Pre-train ML models at build time (saves as .pkl files)
+RUN python3 scripts/train_all_models.py
+
 # Set environment variables for production and AI scripts
 ENV NODE_ENV=production
 ENV PYTHON_PATH=python3

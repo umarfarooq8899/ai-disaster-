@@ -1,0 +1,20 @@
+{
+  "model": "PolynomialRegression(degree=2) + Bootstrap CI",
+  "n_samples": 31,
+  "r2_polynomial": 0.9949,
+  "r2_linear": 0.9891,
+  "rmse_polynomial_mm": 2.43,
+  "rmse_linear_mm": 3.54,
+  "annual_rate_mm": 3.78,
+  "projection_2050_mm": 235.9,
+  "projection_2050_ci90": [
+    220.9,
+    259.9
+  ],
+  "projection_2100_mm": 666.6,
+  "projection_2100_ci90": [
+    590.9,
+    786.3
+  ],
+  "trained_at": "2026-04-30T04:39:31.621940"
+}

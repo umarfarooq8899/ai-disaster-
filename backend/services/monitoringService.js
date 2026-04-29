@@ -136,6 +136,7 @@ const checkEarthquakeRisk = async () => {
         liveStatus.earthquake.prediction = result.prediction;
         liveStatus.earthquake.time_to_failure = result.time_to_failure;
         liveStatus.earthquake.confidence = result.confidence_score;
+        liveStatus.earthquake.ml_probability = result.ml_probability;
 
         if (result.prediction.toLowerCase().includes('high')) {
             liveStatus.earthquake.risk = 'high';
@@ -236,6 +237,7 @@ const checkFloodRisk = async () => {
         const isHighRisk = result.prediction.toLowerCase().includes('high');
         liveStatus.flood.risk = isHighRisk ? 'high' : (result.prediction.toLowerCase().includes('medium') ? 'medium' : 'low');
         liveStatus.flood.confidence = result.confidence_score;
+        liveStatus.flood.ml_probability = result.probability;
 
         const detail = `AI Regional Analysis (${forecast.cities} PMD cities): ${result.prediction}. ${result.description}`;
         liveStatus.flood.detail = detail;
@@ -261,6 +263,7 @@ const checkFireRisk = async () => {
         const isHighRisk = result.prediction.toLowerCase().includes('high');
         liveStatus.fire.risk = isHighRisk ? 'high' : (result.prediction.toLowerCase().includes('medium') ? 'medium' : 'low');
         liveStatus.fire.confidence = result.confidence_score;
+        liveStatus.fire.ml_probability = result.fire_probability;
 
         const detail = `AI Forestry Scan (${forecast.cities} PMD cities): ${result.prediction} Risk (${result.impact_index} impact). Conditions: ${forecast.temp}°C avg, ${forecast.wind}km/h wind.`;
         liveStatus.fire.detail = detail;
@@ -295,6 +298,8 @@ const checkCycloneRisk = async () => {
         // Note: We don't have a cyclone card in liveStatus initially, but let's map it or add it
         // Since the UI uses 'slr' tab for sea level, we can combine them or stick to what's there
         liveStatus.slr.risk = isHighRisk ? 'high' : (result.prediction.toLowerCase().includes('medium') ? 'medium' : 'low');
+        liveStatus.slr.confidence = result.confidence_score || result.risk_score * 100;
+        liveStatus.slr.ml_probability = result.risk_score;
         liveStatus.slr.detail = `Coastal Analysis: ${result.prediction} (${result.message})`;
         liveStatus.slr.threatZones = result.threat_zones || [];
 

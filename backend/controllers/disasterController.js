@@ -3,7 +3,7 @@ const Disaster = require("../models/Disaster");
 // Citizen reports disaster
 exports.createDisaster = async (req, res) => {
   try {
-    const { title, description, severity, latitude, longitude, address } = req.body;
+    const { title, description, severity, latitude, longitude, address, isAI, ml_probability, confidence_score, threatZones } = req.body;
 
     // Construct image URL if file uploaded
     const imageUrl =
@@ -31,6 +31,10 @@ exports.createDisaster = async (req, res) => {
       image: imageUrl,
       video: videoUrl,
       reportedBy: req.user._id,
+      isAI: isAI || false,
+      ml_probability: ml_probability || null,
+      confidence_score: confidence_score || null,
+      threatZones: threatZones || [],
     });
 
     res.status(201).json(disaster);

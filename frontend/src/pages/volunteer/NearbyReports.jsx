@@ -275,6 +275,44 @@ export default function VolunteerNearby() {
                   </p>
                 </div>
 
+                {/* AI Insights */}
+                {selectedDisaster.isAI && (
+                  <div className="space-y-3">
+                    <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                      <ShieldCheck size={16} className="text-blue-500" /> AI Threat Analysis
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl">
+                        <p className="text-[10px] font-bold text-blue-400 uppercase tracking-wider mb-1">ML Probability</p>
+                        <p className="text-xl font-black text-blue-700">
+                          {selectedDisaster.ml_probability ? (selectedDisaster.ml_probability * 100).toFixed(1) + "%" : "N/A"}
+                        </p>
+                      </div>
+                      <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-xl">
+                        <p className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider mb-1">Confidence Score</p>
+                        <p className="text-xl font-black text-emerald-700">
+                          {selectedDisaster.confidence_score ? selectedDisaster.confidence_score.toFixed(1) + "%" : "N/A"}
+                        </p>
+                      </div>
+                    </div>
+                    {selectedDisaster.threatZones && selectedDisaster.threatZones.length > 0 && (
+                      <div className="mt-3 bg-red-50 border border-red-100 p-4 rounded-xl">
+                         <p className="text-[10px] font-bold text-red-500 uppercase tracking-wider mb-2">Identified Threat Zones</p>
+                         <ul className="space-y-2">
+                            {selectedDisaster.threatZones.map((zone, idx) => (
+                               <li key={idx} className="flex items-start gap-2 text-sm text-red-800">
+                                  <MapPin size={16} className="mt-0.5 shrink-0" />
+                                  <div>
+                                     <span className="font-bold">{zone.title}</span> - {zone.description}
+                                  </div>
+                               </li>
+                            ))}
+                         </ul>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Status Indicator */}
                 <div className="flex items-center gap-4 py-4 px-5 bg-gray-50 rounded-2xl border border-gray-100 border-dashed">
                   <div className={`p-3 rounded-xl ${selectedDisaster.status === 'resolved' ? 'bg-green-100 text-green-600' : 'bg-brand-100 text-brand-600'}`}>

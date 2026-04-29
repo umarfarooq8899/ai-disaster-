@@ -1,0 +1,20 @@
+{
+  "model": "CalibratedXGBClassifier + RF Regressor",
+  "n_samples": 5113,
+  "n_features": 10,
+  "feature_names": [
+    "temp_max",
+    "humidity_mean",
+    "wind_speed",
+    "days_since_rain",
+    "month",
+    "is_fire_season",
+    "heat_index",
+    "dryness_score",
+    "wind_drought",
+    "fwi_proxy"
+  ],
+  "test_f1": 1.0,
+  "test_auc": 1.0,
+  "trained_at": "2026-04-30T04:39:17.234750"
+}

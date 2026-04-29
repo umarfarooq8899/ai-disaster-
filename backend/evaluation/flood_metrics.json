@@ -1,0 +1,28 @@
+{
+  "model": "CalibratedXGBClassifier",
+  "n_samples": 5113,
+  "n_features": 8,
+  "feature_names": [
+    "precipitation",
+    "rain_7d_sum",
+    "rain_14d_sum",
+    "month",
+    "is_monsoon",
+    "rain_intensity",
+    "rain_30d_sum",
+    "rain_deficit"
+  ],
+  "test_f1": 1.0,
+  "test_auc": 1.0,
+  "feature_importance": {
+    "precipitation": 0.0001,
+    "rain_7d_sum": 0.0211,
+    "rain_14d_sum": 0.1636,
+    "month": 0.009,
+    "is_monsoon": 0.0,
+    "rain_intensity": 0.8011,
+    "rain_30d_sum": 0.0052,
+    "rain_deficit": 0.0
+  },
+  "trained_at": "2026-04-30T04:39:13.299088"
+}

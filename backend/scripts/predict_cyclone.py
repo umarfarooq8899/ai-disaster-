@@ -1,63 +1,91 @@
 import sys
+import os
 import json
 import numpy as np
-from sklearn.neighbors import KNeighborsClassifier
+import joblib
 
-def get_cyclone_baseline_data():
-    # Saffir-Simpson Hurricane Wind Scale mappings for Wind (km/h) and typical pressures
-    # Classes: 0: Low Risk/Depression, 1: Medium Risk/Cat 1-2, 2: High Risk/Cat 3+
-    
-    # [wind_speed, pressure]
-    X = np.array([
-        [20, 1010], [40, 1005], [55, 1000],  # Tropical Depression (Low Risk)
-        [75, 995], [95, 985], [110, 980],    # Tropical Storm (Medium-Low)
-        [130, 975], [145, 965],              # Cat 1 (Medium Risk)
-        [165, 955],                          # Cat 2 (Medium Risk)
-        [190, 945], [200, 935],              # Cat 3 (High Risk)
-        [220, 920], [240, 910],              # Cat 4 (High Risk)
-        [260, 890], [300, 880]               # Cat 5 (High Risk)
-    ])
-    
-    y = np.array([0, 0, 0, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2])
-    return X, y
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+MODEL_DIR = os.path.join(BASE_DIR, 'backend', 'ml_models')
 
 def predict_cyclone(input_data=None):
-    # Train the basic classification model
-    X_train, y_train = get_cyclone_baseline_data()
-    knn = KNeighborsClassifier(n_neighbors=3)
-    knn.fit(X_train, y_train)
-
+    clf_path = os.path.join(MODEL_DIR, 'cyclone_clf.pkl')
+    use_pretrained = os.path.exists(clf_path)
+    
     if input_data and ',' in input_data:
         try:
-            wind_speed, pressure = [float(x) for x in input_data.split(',')]
+            parts = [float(x) for x in input_data.split(',')]
+            wind_speed = parts[0]
+            pressure = parts[1]
             
-            # Predict using the model
-            current_conditions = np.array([[wind_speed, pressure]])
-            risk_class = knn.predict(current_conditions)[0]
-            probabilities = knn.predict_proba(current_conditions)[0]
+            # Estimate SST from pressure (rough proxy if not available)
+            # Lower pressure typically correlates with warmer SST in cyclone-forming regions
+            sst_est = max(24, min(32, 35 - (pressure - 960) * 0.05))
+            
+            from datetime import datetime
+            current_month = datetime.now().month
+            
+            # Is the storm strengthening? Check if pressure is below climatological mean
+            is_strengthening = 1 if pressure < 1005 and wind_speed > 50 else 0
+            
+            if use_pretrained:
+                model = joblib.load(clf_path)
+                # 5-feature vector matching training
+                current_conditions = np.array([[wind_speed, pressure, sst_est, current_month, is_strengthening]])
+                
+                risk_class = model.predict(current_conditions)[0]
+                probabilities = model.predict_proba(current_conditions)[0]
+                
+                if risk_class == 2:
+                    prediction = "High Risk"
+                    intensity = "Category 3+"
+                    risk_score = round(float(probabilities[2]), 2)
+                elif risk_class == 1:
+                    prediction = "Medium Risk"
+                    intensity = "Tropical Storm / Cat 1-2"
+                    risk_score = round(float(probabilities[1]), 2)
+                else:
+                    prediction = "Low Risk"
+                    intensity = "Tropical Depression / Normal"
+                    risk_score = round(float(probabilities[0]) * 0.3, 2)
+            else:
+                # Legacy KNN fallback
+                from sklearn.neighbors import KNeighborsClassifier
+                X_train = np.array([
+                    [20, 1010], [40, 1005], [55, 1000],
+                    [75, 995], [95, 985], [110, 980],
+                    [130, 975], [145, 965], [165, 955],
+                    [190, 945], [200, 935], [220, 920],
+                    [240, 910], [260, 890], [300, 880]
+                ])
+                y_train = np.array([0, 0, 0, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2])
+                knn = KNeighborsClassifier(n_neighbors=3)
+                knn.fit(X_train, y_train)
+                
+                current_conditions = np.array([[wind_speed, pressure]])
+                risk_class = knn.predict(current_conditions)[0]
+                probabilities = knn.predict_proba(current_conditions)[0]
+                
+                if risk_class == 2:
+                    prediction = "High Risk"
+                    intensity = "Category 3+"
+                    risk_score = probabilities[2]
+                elif risk_class == 1:
+                    prediction = "Medium Risk"
+                    intensity = "Tropical Storm / Cat 1-2"
+                    risk_score = 0.4 + (probabilities[1] * 0.3)
+                else:
+                    prediction = "Low Risk"
+                    intensity = "Tropical Depression / Normal"
+                    risk_score = 0.1 + (probabilities[0] * 0.2)
+                risk_score = round(risk_score, 2)
             
             status = "actual"
-            msg = f"AI analysis of live coastal telemetry (Wind: {wind_speed}km/h, Pressure: {pressure}hPa)"
-            
-            # Mapping class to output
-            if risk_class == 2:
-                prediction = "High Risk"
-                intensity = "Category 3+"
-                risk_score = probabilities[2]
-            elif risk_class == 1:
-                prediction = "Medium Risk"
-                intensity = "Tropical Storm / Cat 1-2"
-                risk_score = 0.4 + (probabilities[1] * 0.3)
-            else:
-                prediction = "Low Risk"
-                intensity = "Tropical Depression / Normal"
-                risk_score = 0.1 + (probabilities[0] * 0.2)
+            msg = f"AI analysis of live coastal telemetry (Wind: {wind_speed}km/h, Pressure: {pressure}hPa, Est. SST: {sst_est}°C)"
                 
         except Exception as e:
             msg = f"Error evaluating data: {str(e)}"
             return {"error": msg, "status": "error"}
     else:
-        # Default baseline
         risk_score = 0.1
         prediction = "Low Risk"
         intensity = "Tropical Depression / Normal"
@@ -93,7 +121,7 @@ def predict_cyclone(input_data=None):
         "estimated_intensity": intensity,
         "status": status,
         "message": msg,
-        "model": "K-Nearest Neighbors Classifier (AI)",
+        "model": "CalibratedGBM (5-feature)" if use_pretrained else "KNN (Legacy)",
         "threat_zones": threat_zones
     }
     return result

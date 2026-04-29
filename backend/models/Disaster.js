@@ -14,6 +14,9 @@ const disasterSchema = new mongoose.Schema(
     dangerRadius: { type: Number, default: 5 }, // Radius in kilometers
     reportedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     isAI: { type: Boolean, default: false },
+    ml_probability: { type: Number },
+    confidence_score: { type: Number },
+    threatZones: { type: Array, default: [] },
   },
   { timestamps: true }
 );

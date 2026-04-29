@@ -12,6 +12,10 @@ const app = express();
 // Start AI Monitoring Service
 monitoringService.startMonitoring();
 
+// Start Cron Jobs (e.g. Model retraining)
+const cronService = require("./services/cronService");
+cronService.setupCronJobs();
+
 // ================= MIDDLEWARE =================
 app.use(
   cors({

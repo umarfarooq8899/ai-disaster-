@@ -1,0 +1,21 @@
+{
+  "model": "IsolationForest + CalibratedXGBClassifier",
+  "n_samples": 522,
+  "n_features": 9,
+  "feature_names": [
+    "count",
+    "max_mag",
+    "mean_mag",
+    "std_mag",
+    "count_norm",
+    "rate_change",
+    "rolling_4wk_avg",
+    "mag_range",
+    "energy_proxy"
+  ],
+  "test_f1": 0.8,
+  "test_auc": 0.5743,
+  "class_positive": 347,
+  "class_negative": 175,
+  "trained_at": "2026-04-30T04:39:12.122747"
+}

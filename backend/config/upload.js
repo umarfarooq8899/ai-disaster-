@@ -1,31 +1,24 @@
 const multer = require("multer");
-const path = require("path");
-const fs = require("fs");
+const { CloudinaryStorage } = require("multer-storage-cloudinary");
+const cloudinary = require("./cloudinary");
 
-// Ensure upload directory exists
-const uploadDir = path.join(__dirname, "../uploads/evidence");
-if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, uploadDir);
+const storage = new CloudinaryStorage({
+    cloudinary: cloudinary,
+    params: {
+        folder: "ai-disaster-evidence",
+        allowed_formats: ["jpg", "jpeg", "png", "webp"],
+        resource_type: "image"
     },
-    filename: (req, file, cb) => {
-        cb(null, `${Date.now()}-${file.originalname}`);
-    }
 });
 
 const upload = multer({
-    storage,
+    storage: storage,
     limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit per file
     fileFilter: (req, file, cb) => {
         const filetypes = /jpeg|jpg|png|webp/;
-        const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
         const mimetype = filetypes.test(file.mimetype);
 
-        if (mimetype && extname) {
+        if (mimetype) {
             return cb(null, true);
         } else {
             cb(new Error("Only images are allowed (jpeg, jpg, png, webp)"));

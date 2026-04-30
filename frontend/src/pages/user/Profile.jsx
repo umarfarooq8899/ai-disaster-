@@ -31,7 +31,12 @@ export default function Profile() {
     profilePicture: null // To hold the new file being uploaded
   });
 
-  const [previewUrl, setPreviewUrl] = useState(user?.profilePicture ? `http://localhost:5000/${user.profilePicture}` : null);
+  const getProfilePicUrl = (pic) => {
+    if (!pic) return null;
+    return pic.startsWith("http") ? pic : `http://localhost:5000/${pic}`;
+  };
+
+  const [previewUrl, setPreviewUrl] = useState(getProfilePicUrl(user?.profilePicture));
   const [orgs, setOrgs] = useState([]);
   const [pwdData, setPwdData] = useState({
     oldPassword: "",
@@ -263,7 +268,7 @@ export default function Profile() {
                 <button
                   onClick={() => {
                     setIsEditing(false);
-                    setPreviewUrl(user?.profilePicture ? `http://localhost:5000/${user.profilePicture}` : null);
+                    setPreviewUrl(getProfilePicUrl(user?.profilePicture));
                   }}
                   className="w-full py-5 bg-white text-rose-500 rounded-2xl font-bold uppercase tracking-widest text-xs border border-rose-100 hover:bg-rose-50 transition-all flex items-center justify-center gap-3"
                 >

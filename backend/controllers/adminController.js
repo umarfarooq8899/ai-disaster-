@@ -4,6 +4,7 @@ const AidAssignment = require("../models/AidAssignment");
 const RescueOrganization = require("../models/RescueOrganization");
 const NgoOrganization = require("../models/NgoOrganization");
 const User = require("../models/User");
+const { pushToUser, pushToUsers, pushToRole } = require("../utils/notifyUsers");
 
 // Verify Disaster (pending -> active)
 exports.verifyDisaster = async (req, res) => {
@@ -16,6 +17,16 @@ exports.verifyDisaster = async (req, res) => {
         if (dangerRadius) disaster.dangerRadius = dangerRadius;
 
         await disaster.save();
+
+        // Notify the reporter their disaster was verified
+        if (disaster.reportedBy) {
+            pushToUser(
+                disaster.reportedBy,
+                `✅ Your disaster report "${disaster.title}" has been verified and is now active.`,
+                "success"
+            );
+        }
+
         res.json({ message: "Disaster verified successfully", disaster });
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -45,6 +56,20 @@ exports.assignRescueMission = async (req, res) => {
             status: "pending"
         });
 
+        // Notify all rescue coordinators in the assigned organization
+        const rescueCoords = await User.find({
+            organization: organizationId,
+            role: { $in: ["rescue", "rescue_coordinator"] }
+        }).select("_id");
+        const coordIds = rescueCoords.map(u => u._id);
+        if (coordIds.length > 0) {
+            pushToUsers(
+                coordIds,
+                `🚨 New rescue mission assigned: "${title}" for disaster "${disaster.title}" at ${disaster.location}.`,
+                "warning"
+            );
+        }
+
         res.status(201).json(mission);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -64,10 +89,24 @@ exports.assignAidTask = async (req, res) => {
         const assignment = await AidAssignment.create({
             disaster: disasterId,
             ngo: organizationId,
-            items, // Expecting array of { name: "Food", quantity: 100 } - Resource linkage might be dynamic or optional here for Admin
+            items,
             notes,
             status: "assigned"
         });
+
+        // Notify all NGO coordinators in the assigned organization
+        const ngoCoords = await User.find({
+            organization: organizationId,
+            role: { $in: ["ngo", "ngo_coordinator"] }
+        }).select("_id");
+        const coordIds = ngoCoords.map(u => u._id);
+        if (coordIds.length > 0) {
+            pushToUsers(
+                coordIds,
+                `📦 New aid assignment for disaster "${disaster.title}" at ${disaster.location}. Please review and deploy resources.`,
+                "info"
+            );
+        }
 
         res.status(201).json(assignment);
     } catch (error) {

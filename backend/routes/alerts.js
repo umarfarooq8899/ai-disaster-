@@ -39,7 +39,7 @@ router.post("/", auth, adminOnly, async (req, res) => {
 // Get active alerts (any user)
 router.get("/", async (req, res) => {
   try {
-    const alerts = await Alert.find({ status: "active" }).sort({ createdAt: -1 });
+    const alerts = await Alert.find({ status: "Active" }).sort({ createdAt: -1 });
     res.json(alerts);
   } catch (err) {
     console.error(err);
@@ -68,7 +68,7 @@ router.patch("/:id/deactivate", auth, adminOnly, async (req, res) => {
     const alert = await Alert.findById(req.params.id);
     if (!alert) return res.status(404).json({ message: "Alert not found" });
 
-    alert.status = "inactive";
+    alert.status = "Disabled";
     await alert.save();
     res.json(alert);
   } catch (err) {

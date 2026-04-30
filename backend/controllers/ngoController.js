@@ -4,6 +4,7 @@ const Volunteer = require("../models/Volunteer");
 const Disaster = require("../models/Disaster");
 const User = require("../models/User");
 const mongoose = require("mongoose");
+const { pushToUsers } = require("../utils/notifyUsers");
 
 // Get NGO Dashboard Stats
 exports.getDashboardStats = async (req, res) => {
@@ -234,7 +235,7 @@ exports.createAidAssignment = async (req, res) => {
 // Update status to distributed
 exports.updateAidStatus = async (req, res) => {
     try {
-        const assignment = await AidAssignment.findById(req.params.id);
+        const assignment = await AidAssignment.findById(req.params.id).populate("disaster", "title");
         if (!assignment) return res.status(404).json({ message: "Assignment not found" });
 
         await AidAssignment.findByIdAndUpdate(req.params.id, { status: "distributed" });
@@ -248,6 +249,12 @@ exports.updateAidStatus = async (req, res) => {
                     currentTask: null,
                     currentTaskType: null
                 }
+            );
+            // Notify volunteers their aid task is marked distributed
+            pushToUsers(
+                assignment.volunteers,
+                `✅ Your aid delivery task for "${assignment.disaster?.title || "a disaster"}" has been marked as distributed. Great work!`,
+                "success"
             );
         }
 
@@ -272,7 +279,7 @@ exports.updateAidStatus = async (req, res) => {
 exports.assignVolunteers = async (req, res) => {
     const { volunteerIds, taskDescription } = req.body;
     try {
-        const assignment = await AidAssignment.findById(req.params.id);
+        const assignment = await AidAssignment.findById(req.params.id).populate("disaster", "title");
         if (!assignment) return res.status(404).json({ message: "Assignment not found" });
 
         // Update assignment with volunteers (APPENDING new ones, ensuring uniqueness)
@@ -318,6 +325,12 @@ exports.assignVolunteers = async (req, res) => {
                     currentTask: assignment._id,
                     currentTaskType: "AidAssignment"
                 }
+            );
+            // Notify newly assigned volunteers
+            pushToUsers(
+                volunteerIds,
+                `📦 You have been assigned to an aid delivery task for "${assignment.disaster?.title || "a disaster"}" by your NGO coordinator.`,
+                "info"
             );
         }
 

@@ -25,7 +25,13 @@ const userSchema = new mongoose.Schema(
         read: { type: Boolean, default: false },
         createdAt: { type: Date, default: Date.now }
       }
-    ]
+    ],
+    notificationPreferences: {
+      disasters:   { type: Boolean, default: true },  // disaster verify/reject/resolve
+      missions:    { type: Boolean, default: true },  // mission/aid assignments
+      system:      { type: Boolean, default: true },  // role changes, broadcasts
+      roleUpdates: { type: Boolean, default: true },  // role changes specifically
+    }
   },
   { timestamps: true }
 );

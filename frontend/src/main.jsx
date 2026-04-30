@@ -5,8 +5,9 @@ import { BrowserRouter } from "react-router-dom";
 import "leaflet/dist/leaflet.css";
 import { Toaster } from "react-hot-toast";
 
-import AppRouter from "./router"; // your router file
+import AppRouter from "./router";
 import { AuthProvider } from "./context/AuthContext";
+import { SocketProvider } from "./context/SocketContext";
 
 import "./index.css";
 
@@ -16,7 +17,7 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       refetchOnWindowFocus: false,
-      staleTime: 1000 * 60 * 5, // 5 minutes
+      staleTime: 1000 * 60 * 5,
     },
   },
 });
@@ -26,8 +27,10 @@ ReactDOM.createRoot(document.getElementById("root")).render(
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <AuthProvider>
-          <Toaster position="top-right" />
-          <AppRouter />
+          <SocketProvider>
+            <Toaster position="top-right" />
+            <AppRouter />
+          </SocketProvider>
         </AuthProvider>
       </BrowserRouter>
     </QueryClientProvider>

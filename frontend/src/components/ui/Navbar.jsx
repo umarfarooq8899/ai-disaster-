@@ -1,13 +1,16 @@
 import React, { useContext, useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
-import { Menu, X, Bell, LayoutDashboard, User, LogOut, FileText, CheckCircle2 } from "lucide-react";
-import { getNotifications, markNotificationRead } from "../../api/users";
+import { Menu, X, Bell, LayoutDashboard, User, LogOut, FileText, CheckCircle2, Trash2, BellOff, ExternalLink } from "lucide-react";
+import { getNotifications, markNotificationRead, markAllNotificationsRead, deleteNotification, clearAllNotifications } from "../../api/users";
+import { useSocket } from "../../context/SocketContext";
 import toast from "react-hot-toast";
+
 
 export default function Navbar() {
   const { user, logout, token } = useContext(AuthContext);
   const navigate = useNavigate();
+  const { onNotification } = useSocket();
   const [open, setOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -45,6 +48,7 @@ export default function Navbar() {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
+
   // Fetch notifications
   const fetchMyNotifications = async () => {
     if (!token) return;
@@ -59,11 +63,25 @@ export default function Navbar() {
   useEffect(() => {
     if (user && token) {
       fetchMyNotifications();
-      // Optional: poll every 30s
-      const interval = setInterval(fetchMyNotifications, 30000);
-      return () => clearInterval(interval);
+      // Keep 60s poll as a heartbeat, but real-time is primary
+      const interval = setInterval(fetchMyNotifications, 60000);
+      
+      // Socket listener
+      const unsubscribe = onNotification((newNotif) => {
+        setNotifications(prev => [newNotif, ...prev]);
+        toast.success("New alert: " + newNotif.message.substring(0, 30) + "...", {
+          icon: '🔔',
+          duration: 4000
+        });
+      });
+
+      return () => {
+        clearInterval(interval);
+        unsubscribe();
+      };
     }
   }, [user, token]);
+
 
   const handleMarkRead = async (id, e) => {
     e.stopPropagation();
@@ -75,7 +93,38 @@ export default function Navbar() {
     }
   };
 
+  const handleMarkAllRead = async () => {
+    try {
+      await markAllNotificationsRead(token);
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+      toast.success("All notifications marked as read");
+    } catch (err) {
+      toast.error("Failed to mark all as read");
+    }
+  };
+
+  const handleDeleteNotification = async (id, e) => {
+    e.stopPropagation();
+    try {
+      await deleteNotification(token, id);
+      setNotifications(prev => prev.filter(n => n._id !== id));
+    } catch (err) {
+      toast.error("Failed to delete notification");
+    }
+  };
+
+  const handleClearAll = async () => {
+    try {
+      await clearAllNotifications(token);
+      setNotifications([]);
+      toast.success("All notifications cleared");
+    } catch (err) {
+      toast.error("Failed to clear notifications");
+    }
+  };
+
   const unreadCount = notifications.filter(n => !n.read).length;
+
 
   return (
     <nav
@@ -147,49 +196,94 @@ export default function Navbar() {
                   <div className="absolute right-0 mt-3 w-80 rounded-2xl bg-white border border-slate-100 shadow-2xl overflow-hidden z-[1001] animate-modal">
                     <div className="px-4 py-3 border-b border-slate-50 flex items-center justify-between bg-slate-50/50">
                       <h3 className="font-bold text-slate-900 text-sm">Notifications</h3>
-                      {unreadCount > 0 && (
-                        <span className="px-2 py-0.5 rounded-full bg-brand-100 text-brand-700 text-[10px] font-bold">
-                          {unreadCount} New
-                        </span>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {unreadCount > 0 && (
+                          <span className="px-2 py-0.5 rounded-full bg-brand-100 text-brand-700 text-[10px] font-bold">
+                            {unreadCount} New
+                          </span>
+                        )}
+                        {unreadCount > 0 && (
+                          <button
+                            onClick={handleMarkAllRead}
+                            className="text-[10px] font-semibold text-brand-600 hover:text-brand-800 transition"
+                            title="Mark all as read"
+                          >
+                            Mark all read
+                          </button>
+                        )}
+                      </div>
                     </div>
                     <div className="max-h-80 overflow-y-auto w-full p-2 space-y-1">
                       {notifications.length === 0 ? (
-                        <div className="p-4 text-center text-sm text-slate-500">
-                          No notifications yet.
+                        <div className="p-6 text-center">
+                          <BellOff className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                          <p className="text-sm text-slate-500">No notifications yet.</p>
                         </div>
                       ) : (
                         notifications.map((n) => (
                           <div
                             key={n._id}
-                            className={`p-3 rounded-xl flex items-start gap-3 w-full transition ${n.read ? 'opacity-60' : 'bg-red-50/50'}`}
+                            className={`p-3 rounded-xl flex items-start gap-3 w-full transition group ${n.read ? 'opacity-60' : n.type === 'panic' ? 'bg-red-50/70' : n.type === 'warning' ? 'bg-orange-50/60' : n.type === 'success' ? 'bg-green-50/60' : 'bg-brand-50/40'}`}
                           >
-                            <div className={`mt-0.5 p-1.5 rounded-full ${n.type === 'panic' ? 'bg-red-100 text-red-600' : 'bg-brand-100 text-brand-600'}`}>
-                              <Bell className="w-4 h-4" />
+                            <div className={`mt-0.5 p-1.5 rounded-full shrink-0 ${
+                              n.type === 'panic' ? 'bg-red-100 text-red-600' :
+                              n.type === 'warning' ? 'bg-orange-100 text-orange-600' :
+                              n.type === 'success' ? 'bg-green-100 text-green-600' :
+                              'bg-brand-100 text-brand-600'
+                            }`}>
+                              <Bell className="w-3.5 h-3.5" />
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className={`text-xs ${n.read ? 'text-slate-600' : 'text-slate-900 font-bold'} break-words whitespace-pre-wrap leading-relaxed`}>
+                              <p className={`text-xs ${n.read ? 'text-slate-500' : 'text-slate-900 font-semibold'} break-words whitespace-pre-wrap leading-relaxed`}>
                                 {n.message}
                               </p>
                               <span className="text-[10px] text-slate-400 mt-1 block">
-                                {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                {new Date(n.createdAt).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                               </span>
                             </div>
-                            {!n.read && (
+                            <div className="flex flex-col gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition">
+                              {!n.read && (
+                                <button
+                                  onClick={(e) => handleMarkRead(n._id, e)}
+                                  className="p-1 text-slate-400 hover:text-brand-600 hover:bg-white rounded-md transition"
+                                  title="Mark as read"
+                                >
+                                  <CheckCircle2 className="w-3.5 h-3.5" />
+                                </button>
+                              )}
                               <button
-                                onClick={(e) => handleMarkRead(n._id, e)}
-                                className="p-1 text-slate-400 hover:text-brand-600 hover:bg-white rounded-md transition shrink-0"
-                                title="Mark as read"
+                                onClick={(e) => handleDeleteNotification(n._id, e)}
+                                className="p-1 text-slate-400 hover:text-red-500 hover:bg-white rounded-md transition"
+                                title="Delete notification"
                               >
-                                <CheckCircle2 className="w-4 h-4" />
+                                <Trash2 className="w-3.5 h-3.5" />
                               </button>
-                            )}
+                            </div>
                           </div>
                         ))
                       )}
                     </div>
+                    {notifications.length > 0 && (
+                      <div className="border-t border-slate-50 px-4 py-3 bg-slate-50/30 flex flex-col gap-2">
+                        <Link
+                          to="/dashboard/notifications"
+                          onClick={() => setNotificationsOpen(false)}
+                          className="flex items-center justify-center gap-2 text-[11px] font-bold text-brand-600 hover:text-brand-800 transition"
+                        >
+                          View all history
+                          <ExternalLink className="w-3 h-3" />
+                        </Link>
+                        <button
+                          onClick={handleClearAll}
+                          className="text-[10px] font-semibold text-red-400 hover:text-red-600 transition text-center"
+                        >
+                          Clear all notifications
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
+
               </div>
 
               {/* USER PROFILE DROPDOWN */}

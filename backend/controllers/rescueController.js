@@ -1,6 +1,7 @@
 const Mission = require("../models/Mission");
 const StatusLog = require("../models/StatusLog");
 const Disaster = require("../models/Disaster");
+const { pushToUsers, pushToUser } = require("../utils/notifyUsers");
 
 // Get Assigned Missions
 exports.getAssignedMissions = async (req, res) => {
@@ -77,6 +78,15 @@ exports.assignVolunteersToMission = async (req, res) => {
 
         await Mission.findByIdAndUpdate(missionId, updateData);
 
+        // Notify each assigned volunteer
+        if (volunteerIds && volunteerIds.length > 0) {
+            pushToUsers(
+                volunteerIds,
+                `📌 You have been assigned to mission: "${mission.title}". Please check your tasks.`,
+                "info"
+            );
+        }
+
         res.json({ message: "Volunteers assigned successfully", mission });
     } catch (error) {
         console.error("DEBUG: Error in assignVolunteersToMission:", error);
@@ -106,6 +116,16 @@ exports.changeMissionStatus = async (req, res) => {
         }
 
         await Mission.findByIdAndUpdate(missionId, { status });
+
+        // Notify volunteers of status change
+        if (mission.assignedVolunteers && mission.assignedVolunteers.length > 0) {
+            const statusLabel = status === "completed" ? "completed ✅" : status;
+            pushToUsers(
+                mission.assignedVolunteers,
+                `📋 Mission "${mission.title}" has been marked as ${statusLabel} by your coordinator.`,
+                status === "completed" ? "success" : "info"
+            );
+        }
 
         // Auto-resolve Disaster if all assignments are completed
         if (status === "completed") {

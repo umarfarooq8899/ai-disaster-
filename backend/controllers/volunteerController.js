@@ -3,6 +3,7 @@ const User = require("../models/User");
 const Mission = require("../models/Mission");
 const Alert = require("../models/Alert");
 const AidAssignment = require("../models/AidAssignment");
+const { pushToUsers } = require("../utils/notifyUsers");
 
 // Create or update volunteer profile
 exports.createVolunteer = async (req, res) => {
@@ -700,6 +701,18 @@ exports.completeMission = async (req, res) => {
         images: evidenceUrls || []
       }).catch(e => console.error("StatusLog error (non-fatal):", e.message));
 
+      // Notify rescue coordinators in the assigned organization
+      User.find({ organization: mission.organization, role: { $in: ["rescue", "rescue_coordinator"] } }).select("_id")
+        .then(coords => {
+          if (coords.length > 0) {
+            pushToUsers(
+              coords.map(c => c._id),
+              `📋 Volunteer submitted proof for mission "${mission.title}". Review and verify in your dashboard.`,
+              "info"
+            );
+          }
+        }).catch(() => {});
+
       return res.json({ message: "Proof submitted. Awaiting coordinator verification.", mission: await Mission.findById(missionId) });
     }
 
@@ -745,6 +758,18 @@ exports.completeMission = async (req, res) => {
         description: `Volunteer ${req.user.name || 'A volunteer'} completed the aid task and submitted proof for NGO coordinator verification.`,
         images: evidenceUrls || []
       }).catch(e => console.error("StatusLog error (non-fatal):", e.message));
+
+      // Notify NGO coordinators
+      User.find({ organization: aidAssignment.ngo, role: { $in: ["ngo", "ngo_coordinator"] } }).select("_id")
+        .then(coords => {
+          if (coords.length > 0) {
+            pushToUsers(
+              coords.map(c => c._id),
+              `📦 Volunteer submitted proof for an aid delivery task. Review and verify in your dashboard.`,
+              "info"
+            );
+          }
+        }).catch(() => {});
 
       return res.json({ message: "Proof submitted. Awaiting coordinator verification.", mission: await AidAssignment.findById(missionId) });
     }

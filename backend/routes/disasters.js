@@ -15,6 +15,7 @@ const {
 // Model
 const Disaster = require("../models/Disaster");
 const upload = require("../middleware/fileUpload");
+const { pushToUser, pushToRole } = require("../utils/notifyUsers");
 
 // ================== Routes ==================
 
@@ -29,17 +30,25 @@ router.post("/", auth, upload.fields([{ name: "image", maxCount: 1 }, { name: "v
     const newDisaster = new Disaster({
       title: title,
       description: description,
-      location: location || address, // Use address if location is not provided
+      location: location || address,
       latitude: latitude,
       longitude: longitude,
       severity: severity,
       reportedBy: req.user.id,
-      status: "pending", // Explicitly set to pending
+      status: "pending",
       image: imagePath,
       video: videoPath,
     });
 
     const saved = await newDisaster.save();
+
+    // Notify all admins about the new report
+    pushToRole(
+      "admin",
+      `🚨 New disaster reported: "${title}" (${severity}) at ${location || address || "unknown location"}. Awaiting review.`,
+      "warning"
+    );
+
     res.status(201).json(saved);
   } catch (err) {
     console.error(err);
@@ -201,6 +210,16 @@ router.patch("/:id/verify", auth, adminOnly, async (req, res) => {
       disaster.dangerRadius = req.body.dangerRadius;
     }
     await disaster.save();
+
+    // Notify the reporter
+    if (disaster.reportedBy) {
+      pushToUser(
+        disaster.reportedBy,
+        `✅ Your disaster report "${disaster.title}" has been verified and is now active.`,
+        "success"
+      );
+    }
+
     res.json(disaster);
   } catch (err) {
     console.error(err);
@@ -216,6 +235,16 @@ router.patch("/:id/reject", auth, adminOnly, async (req, res) => {
 
     disaster.status = "rejected";
     await disaster.save();
+
+    // Notify the reporter
+    if (disaster.reportedBy) {
+      pushToUser(
+        disaster.reportedBy,
+        `❌ Your disaster report "${disaster.title}" was reviewed and could not be verified. No further action will be taken.`,
+        "info"
+      );
+    }
+
     res.json(disaster);
   } catch (err) {
     console.error(err);
@@ -231,6 +260,16 @@ router.patch("/:id/resolve", auth, adminOnly, async (req, res) => {
 
     disaster.status = "resolved";
     await disaster.save();
+
+    // Notify the reporter
+    if (disaster.reportedBy) {
+      pushToUser(
+        disaster.reportedBy,
+        `✨ The disaster "${disaster.title}" has been officially resolved. Thank you for reporting.`,
+        "success"
+      );
+    }
+
     res.json(disaster);
   } catch (err) {
     console.error(err);

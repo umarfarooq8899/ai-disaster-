@@ -1,13 +1,19 @@
 // index.js
 const express = require("express");
+const http = require("http");
 const dotenv = require("dotenv");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const morgan = require("morgan");
 const monitoringService = require("./services/monitoringService");
+const socketManager = require("./utils/socketManager");
 
 dotenv.config();
 const app = express();
+const server = http.createServer(app);
+
+// Initialize Socket.io
+socketManager.init(server);
 
 // Start AI Monitoring Service
 monitoringService.startMonitoring();
@@ -122,5 +128,5 @@ app.use((err, req, res, next) => {
 
 // ================= SERVER =================
 const PORT = process.env.PORT || 5001;
-app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT} 🚀`));
+server.listen(PORT, () => console.log(`Server running on http://localhost:${PORT} 🚀`));
 

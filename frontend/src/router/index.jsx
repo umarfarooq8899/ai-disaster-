@@ -33,6 +33,8 @@ const UserHome = lazy(() => import("../pages/user/UserHome"));
 const MyReports = lazy(() => import("../pages/user/Reports"));
 const SafeZones = lazy(() => import("../pages/user/SafeZones"));
 const AIDashboard = lazy(() => import("../pages/user/AIDashboard"));
+const Notifications = lazy(() => import("../pages/user/Notifications"));
+
 
 // Volunteer pages
 const VolunteerHome = lazy(() => import("../pages/volunteer/VolunteerHome"));
@@ -138,7 +140,11 @@ export default function Router() {
           <Route path="rescue/missions/new" element={<PageTransition><MissionForm /></PageTransition>} />
           <Route path="rescue/volunteers" element={<PageTransition><ManageVolunteers /></PageTransition>} />
 
+          {/* Shared */}
+          <Route path="notifications" element={<PageTransition><Notifications /></PageTransition>} />
+
           {/* Catch-all inside dashboard */}
+
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
 

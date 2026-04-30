@@ -122,7 +122,6 @@ exports.markNotificationRead = async (req, res) => {
   try {
     const { notificationId } = req.params;
 
-    // Using update to set single array element
     const result = await User.updateOne(
       { _id: req.user.id, "notifications._id": notificationId },
       { $set: { "notifications.$.read": true } }
@@ -138,3 +137,81 @@ exports.markNotificationRead = async (req, res) => {
     res.status(500).json({ message: "Failed to mark notification as read" });
   }
 };
+
+// Mark ALL notifications as read
+exports.markAllNotificationsRead = async (req, res) => {
+  try {
+    await User.updateOne(
+      { _id: req.user.id },
+      { $set: { "notifications.$[].read": true } }
+    );
+    res.json({ success: true, message: "All notifications marked as read" });
+  } catch (error) {
+    console.error("Mark all read error:", error);
+    res.status(500).json({ message: "Failed to mark all notifications as read" });
+  }
+};
+
+// Delete a single notification
+exports.deleteNotification = async (req, res) => {
+  try {
+    const { notificationId } = req.params;
+    const result = await User.updateOne(
+      { _id: req.user.id },
+      { $pull: { notifications: { _id: notificationId } } }
+    );
+    if (result.modifiedCount === 0) {
+      return res.status(404).json({ message: "Notification not found" });
+    }
+    res.json({ success: true, message: "Notification deleted" });
+  } catch (error) {
+    console.error("Delete notification error:", error);
+    res.status(500).json({ message: "Failed to delete notification" });
+  }
+};
+
+// Clear all notifications
+exports.clearAllNotifications = async (req, res) => {
+  try {
+    await User.updateOne({ _id: req.user.id }, { $set: { notifications: [] } });
+    res.json({ success: true, message: "All notifications cleared" });
+  } catch (error) {
+    console.error("Clear notifications error:", error);
+    res.status(500).json({ message: "Failed to clear notifications" });
+  }
+};
+
+// ================== NOTIFICATION PREFERENCES ==================
+
+// Get notification preferences
+exports.getNotificationPreferences = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select("notificationPreferences");
+    if (!user) return res.status(404).json({ message: "User not found" });
+    res.json(user.notificationPreferences || {});
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch preferences" });
+  }
+};
+
+// Update notification preferences
+exports.updateNotificationPreferences = async (req, res) => {
+  try {
+    const allowed = ["disasters", "missions", "system", "roleUpdates"];
+    const updates = {};
+    allowed.forEach((key) => {
+      if (typeof req.body[key] === "boolean") {
+        updates[`notificationPreferences.${key}`] = req.body[key];
+      }
+    });
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
+      { $set: updates },
+      { new: true }
+    ).select("notificationPreferences");
+    res.json(user.notificationPreferences);
+  } catch (error) {
+    res.status(500).json({ message: "Failed to update preferences" });
+  }
+};
+

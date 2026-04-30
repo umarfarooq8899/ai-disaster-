@@ -8,6 +8,7 @@ const adminOnly = require("../middleware/adminOnly"); // admin-only middleware
 // Models
 const User = require("../models/User");    // Make sure file is User.js
 const Alert = require("../models/Alert");  // Make sure file is Alert.js
+const { pushToUser, pushToAll } = require("../utils/notifyUsers");
 
 // ================== USERS ROUTES ==================
 
@@ -27,6 +28,14 @@ router.patch("/users/:id/role", auth, adminOnly, async (req, res) => {
   try {
     const { role } = req.body;
     const user = await User.findByIdAndUpdate(req.params.id, { role }, { new: true });
+    // Notify the user about their role change
+    if (user) {
+      pushToUser(
+        user._id,
+        `🔑 Your account role has been updated to "${role}" by an administrator.`,
+        "info"
+      );
+    }
     res.json(user);
   } catch (err) {
     console.error(err);
@@ -87,6 +96,23 @@ router.delete("/alerts/:id", auth, adminOnly, async (req, res) => {
   try {
     await Alert.findByIdAndDelete(req.params.id);
     res.json({ message: "Alert deleted" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server Error" });
+  }
+});
+
+// ================== BROADCAST ALL ==================
+
+// Broadcast a system-wide notification to all users (admin only)
+router.post("/broadcast-all", auth, adminOnly, async (req, res) => {
+  try {
+    const { message, type } = req.body;
+    if (!message) return res.status(400).json({ message: "Message is required" });
+    const validTypes = ["info", "warning", "panic", "success"];
+    const notifType = validTypes.includes(type) ? type : "info";
+    await pushToAll(message, notifType);
+    res.json({ success: true, message: `Broadcast sent to all users.` });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server Error" });

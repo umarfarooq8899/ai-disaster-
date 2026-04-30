@@ -33,7 +33,7 @@ export default function Profile() {
 
   const getProfilePicUrl = (pic) => {
     if (!pic) return null;
-    return pic.startsWith("http") ? pic : `http://localhost:5000/${pic}`;
+    return pic.startsWith("http") ? pic : `/${pic}`;
   };
 
   const [previewUrl, setPreviewUrl] = useState(getProfilePicUrl(user?.profilePicture));
@@ -59,7 +59,7 @@ export default function Profile() {
     async function fetchOrgs() {
       try {
         const type = formData.organizationType === "RescueOrganization" ? "rescue" : "ngo";
-        const res = await axios.get(`http://localhost:5000/api/organizations/${type}`, {
+        const res = await axios.get(`/api/organizations/${type}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setOrgs(res.data.map(o => ({ value: o._id, label: o.name })));
@@ -72,7 +72,7 @@ export default function Profile() {
 
   const fetchVolunteerProfile = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/api/volunteer/me", {
+      const res = await axios.get("/api/volunteer/me", {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.data.success) {
@@ -111,7 +111,7 @@ export default function Profile() {
         data.append("profilePicture", formData.profilePicture);
       }
 
-      const res = await axios.patch("http://localhost:5000/api/users/me", data, {
+      const res = await axios.patch("/api/users/me", data, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "multipart/form-data"
@@ -121,7 +121,7 @@ export default function Profile() {
       updateUser(res.data.user);
 
       if (user.role === "volunteer") {
-        await axios.post("http://localhost:5000/api/volunteer/create", {
+        await axios.post("/api/volunteer/create", {
           ...formData,
         }, {
           headers: { Authorization: `Bearer ${token}` },
@@ -143,7 +143,7 @@ export default function Profile() {
     }
     try {
       setLoading(true);
-      await axios.patch("http://localhost:5000/api/users/me/password", {
+      await axios.patch("/api/users/me/password", {
         oldPassword: pwdData.oldPassword,
         newPassword: pwdData.newPassword,
       }, {

@@ -6,7 +6,7 @@ const storage = new CloudinaryStorage({
     cloudinary: cloudinary,
     params: {
         folder: "ai-disaster",
-        allowed_formats: ["jpg", "jpeg", "png", "webp", "mp4", "mov", "avi"],
+        allowedFormats: ["jpg", "jpeg", "png", "webp", "mp4", "mov", "avi"],
         resource_type: "auto" // allows both image and video
     },
 });

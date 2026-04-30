@@ -6,7 +6,7 @@ const storage = new CloudinaryStorage({
     cloudinary: cloudinary,
     params: {
         folder: "ai-disaster-evidence",
-        allowed_formats: ["jpg", "jpeg", "png", "webp"],
+        allowedFormats: ["jpg", "jpeg", "png", "webp"],
         resource_type: "image"
     },
 });

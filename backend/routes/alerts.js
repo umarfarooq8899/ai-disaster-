@@ -7,6 +7,7 @@ const adminOnly = require("../middleware/adminOnly");
 
 // Model
 const Alert = require("../models/Alert");
+const { pushToAll } = require("../utils/notifyUsers");
 
 // ================== Routes ==================
 
@@ -29,6 +30,11 @@ router.post("/", auth, adminOnly, async (req, res) => {
     });
 
     const saved = await alert.save();
+    
+    // Notify all users about the new system alert
+    const notifType = severity === "panic" ? "panic" : severity === "high" ? "warning" : "info";
+    pushToAll(`🚨 NEW ALERT: ${title} - ${location}. Check the Alerts page for details.`, notifType);
+
     res.status(201).json(saved);
   } catch (err) {
     console.error(err);

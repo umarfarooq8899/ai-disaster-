@@ -41,7 +41,7 @@ const AIDashboard = () => {
 
     const fetchLiveStatus = useCallback(async () => {
         try {
-            const response = await axios.get('http://localhost:5001/api/ai/live-status');
+            const response = await axios.get('/api/ai/live-status');
             setLiveStatus(response.data);
         } catch (err) {
             console.error('Failed to fetch live status:', err);
@@ -59,15 +59,15 @@ const AIDashboard = () => {
         setLoading(true);
         try {
             if (activeTab === 'earthquake') {
-                const res = await axios.post('http://localhost:5001/api/ai/fetch-live');
+                const res = await axios.post('/api/ai/fetch-live');
                 setResult({ ...res.data.data });
                 fetchLiveStatus();
             } else if (activeTab === 'flood') {
-                const res = await axios.get('http://localhost:5001/api/ai/flood');
+                const res = await axios.get('/api/ai/flood');
                 setResult(res.data);
                 fetchLiveStatus();
             } else if (activeTab === 'fire') {
-                const res = await axios.get('http://localhost:5001/api/ai/fire');
+                const res = await axios.get('/api/ai/fire');
                 setResult(res.data);
                 fetchLiveStatus();
             } else {
@@ -81,6 +81,7 @@ const AIDashboard = () => {
             setTimeout(() => setIsScanning(false), 1000);
         }
     };
+
 
     const handleSendAlert = async () => {
         if (!currentLive || currentLive.risk === 'low') return;

@@ -259,17 +259,8 @@ exports.broadcastPanicAlert = async (req, res) => {
             return res.json({ message: "No users found in the danger zone.", count: 0 });
         }
 
-        // Create the notification object
-        const notification = {
-            message: `🚨 PANIC ALERT: You are within the danger zone (${radiusInKm}km) for ${disaster.title}. Please seek safety immediately.`,
-            type: "panic"
-        };
-
-        // Bulk update users to push notification
-        await User.updateMany(
-            { _id: { $in: affectedUserIds } },
-            { $push: { notifications: notification } }
-        );
+        const { pushToUsers } = require("../utils/notifyUsers");
+        await pushToUsers(affectedUserIds, `🚨 PANIC ALERT: You are within the danger zone (${radiusInKm}km) for ${disaster.title}. Please seek safety immediately.`, "panic");
 
         // Optionally, create a StatusLog for the audit trail
         const StatusLog = require("../models/StatusLog");

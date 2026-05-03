@@ -31,7 +31,8 @@ const AIDashboard = () => {
     const [result, setResult] = useState(null);
     const [liveStatus, setLiveStatus] = useState(null);
     const [isScanning, setIsScanning] = useState(false);
-    const [sentZones, setSentZones] = useState({}); // tracks { `${tab}-${idx}`: 'alert'|'rescue'|'both' }
+    const [sentZones, setSentZones] = useState({});
+    const [selectedZone, setSelectedZone] = useState(null); // null = overview, object = selected zone
 
     const tabs = [
         { id: 'earthquake', name: 'Earthquake Checker', icon: <Activity className="w-5 h-5" />, color: 'brand' },
@@ -237,7 +238,7 @@ const AIDashboard = () => {
                     {tabs.map((tab) => (
                         <button
                             key={tab.id}
-                            onClick={() => { setActiveTab(tab.id); setResult(null); }}
+                            onClick={() => { setActiveTab(tab.id); setResult(null); setSelectedZone(null); }}
                             className={`flex flex-1 flex-row items-center justify-center gap-3 px-6 py-3.5 rounded-2xl transition-all duration-200 border group shrink-0 min-w-[180px] ${activeTab === tab.id
                                 ? 'bg-brand-600 text-white border-brand-600 shadow-lg shadow-brand-200 -translate-y-1'
                                 : 'bg-white text-slate-600 border-slate-200 hover:border-brand-200 hover:text-brand-600 hover:-translate-y-0.5'
@@ -264,87 +265,153 @@ const AIDashboard = () => {
                             <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
                                 {/* --- LEFT COLUMN: WATCH SITUATION --- */}
                                 <div className="lg:col-span-5 flex flex-col gap-8">
+
+                                    {/* Back to overview link when a zone is selected */}
+                                    {selectedZone && (
+                                        <button
+                                            onClick={() => setSelectedZone(null)}
+                                            className="flex items-center gap-1.5 text-[10px] font-black text-brand-600 uppercase tracking-widest hover:text-brand-800 transition-colors self-start"
+                                        >
+                                            <ChevronRight className="w-3 h-3 rotate-180" />
+                                            Back to Overview
+                                        </button>
+                                    )}
+
                                     <header className="flex justify-between items-start text-left">
                                         <div>
-                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Latest Updates</span>
-                                            <h2 className="text-2xl font-black text-slate-900 tracking-tight">{tabs.find(t => t.id === activeTab).name} Situation</h2>
+                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">
+                                                {selectedZone ? 'Zone Detail' : 'Latest Updates'}
+                                            </span>
+                                            <h2 className="text-2xl font-black text-slate-900 tracking-tight">
+                                                {selectedZone ? selectedZone.title : `${tabs.find(t => t.id === activeTab).name} Situation`}
+                                            </h2>
                                         </div>
-                                        <button
-                                            onClick={handleManualScan}
-                                            disabled={loading}
-                                            className="p-4 bg-slate-50 border rounded-2xl text-slate-600 hover:text-brand-600 hover:border-brand-200 transition-all active:scale-95 shadow-sm"
-                                        >
-                                            <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
-                                        </button>
+                                        {!selectedZone && (
+                                            <button
+                                                onClick={handleManualScan}
+                                                disabled={loading}
+                                                className="p-4 bg-slate-50 border rounded-2xl text-slate-600 hover:text-brand-600 hover:border-brand-200 transition-all active:scale-95 shadow-sm"
+                                            >
+                                                <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+                                            </button>
+                                        )}
                                     </header>
 
                                     <div className="flex flex-col sm:flex-row items-center gap-6">
-                                        {/* Status Meter */}
-                                        <div className="relative group shrink-0">
-                                            <div className={`w-44 h-44 rounded-full border-2 flex items-center justify-center transition-all duration-700 ${riskStyle.bg} ${riskStyle.border} ${riskStyle.glow} shadow-2xl`}>
-                                                <div className="text-center">
-                                                    <div className={`flex justify-center mb-1 ${riskStyle.text}`}>
-                                                        <AlertCircle className="w-6 h-6" />
+                                        {/* Status Meter — reflects selected zone or overall */}
+                                        {(() => {
+                                            const displayRisk = selectedZone ? selectedZone.severity : currentLive.risk;
+                                            const ds = getRiskStyles(displayRisk);
+                                            return (
+                                                <div className="relative group shrink-0">
+                                                    <div className={`w-44 h-44 rounded-full border-2 flex items-center justify-center transition-all duration-700 ${ds.bg} ${ds.border} ${ds.glow} shadow-2xl`}>
+                                                        <div className="text-center">
+                                                            <div className={`flex justify-center mb-1 ${ds.text}`}>
+                                                                <AlertCircle className="w-6 h-6" />
+                                                            </div>
+                                                            <p className="text-[10px] uppercase font-black text-slate-400 tracking-tighter">Current Risk</p>
+                                                            <p className={`text-2xl font-black uppercase tracking-tight ${ds.text}`}>{displayRisk}</p>
+                                                        </div>
                                                     </div>
-                                                    <p className="text-[10px] uppercase font-black text-slate-400 tracking-tighter">Current Risk</p>
-                                                    <p className={`text-2xl font-black uppercase tracking-tight ${riskStyle.text}`}>{currentLive.risk}</p>
+                                                    {isScanning && (
+                                                        <div className="absolute inset-[-8px] border-2 border-brand-200 rounded-full animate-ping opacity-40" />
+                                                    )}
                                                 </div>
-                                            </div>
-                                            {isScanning && (
-                                                <div className="absolute inset-[-8px] border-2 border-brand-200 rounded-full animate-ping opacity-40" />
-                                            )}
-                                        </div>
+                                            );
+                                        })()}
 
-                                        {/* Predictive Note */}
+                                        {/* Location & Confidence */}
                                         <div className="flex-1">
                                             <div className="flex items-center gap-3 px-2 mb-3">
                                                 <MapPin className="w-4 h-4 text-slate-400" />
                                                 <p className="text-[11px] font-bold text-slate-400 uppercase tracking-tight">
-                                                    {activeTab === 'earthquake' ? 'Broad-scan: MBT Fault' :
-                                                        activeTab === 'flood' ? 'Sector: Indus River Basin' :
-                                                            activeTab === 'fire' ? 'Sector: Margalla Hills' :
-                                                                'Sector: Coastal Tectonic'}
+                                                    {selectedZone
+                                                        ? `Zone: ${selectedZone.title}`
+                                                        : activeTab === 'earthquake' ? 'Broad-scan: MBT Fault'
+                                                            : activeTab === 'flood' ? 'Sector: Indus River Basin'
+                                                                : activeTab === 'fire' ? 'Sector: Margalla Hills'
+                                                                    : 'Sector: Coastal Tectonic'}
                                                 </p>
                                             </div>
                                             <div className="flex items-center gap-3 px-2 mb-3">
                                                 <Target className="w-4 h-4 text-brand-600" />
                                                 <p className="text-[11px] font-bold text-brand-700 uppercase tracking-tight">
-                                                    AI Confidence: {currentLive.confidence ? `${currentLive.confidence}%` : 'CALCULATING...'}
+                                                    {selectedZone
+                                                        ? `Danger Radius: ${selectedZone.dangerRadius}km`
+                                                        : `AI Confidence: ${currentLive.confidence ? `${currentLive.confidence}%` : 'CALCULATING...'}`}
                                                 </p>
                                             </div>
                                         </div>
                                     </div>
 
-                                    {/* Status Details */}
+                                    {/* Telemetry / Description Box */}
                                     <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200 text-left">
                                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
                                             <Radio className="w-3 h-3 text-brand-500" />
-                                            Live Pakistan Regional Telemetry
+                                            {selectedZone ? 'Zone Intelligence' : 'Live Pakistan Regional Telemetry'}
                                         </p>
                                         <p className="text-base font-bold text-slate-700 leading-relaxed">
-                                            {currentLive.detail}
+                                            {selectedZone ? selectedZone.description : currentLive.detail}
                                         </p>
                                     </div>
 
-                                    {/* Operational Directives (EMERGENCY ACTIONS) */}
-                                    {currentLive.risk !== 'low' && user?.role === 'admin' && (
-                                        <div className="mt-2 pt-6 border-t border-slate-100 text-left">
-                                            <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-4 flex items-center gap-2">
-                                                <ShieldAlert className="w-4 h-4 text-brand-600" />
-                                                Emergency Actions
-                                            </h3>
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                                <button onClick={handleSendAlert} className="w-full py-4 bg-red-600 text-white rounded-2xl font-black text-[13px] uppercase tracking-wider hover:bg-red-700 shadow-lg shadow-red-100 transition-all flex items-center justify-center gap-2">
-                                                    <BellRing className="w-4 h-4 shrink-0" />
-                                                    <span className="truncate">Send Alert</span>
-                                                </button>
-                                                <button onClick={handleCallRescue} className="w-full py-4 bg-brand-600 text-white rounded-2xl font-black text-[13px] uppercase tracking-wider hover:bg-brand-700 shadow-lg shadow-brand-100 transition-all flex items-center justify-center gap-2">
-                                                    <Target className="w-4 h-4 shrink-0" />
-                                                    <span className="truncate">Manage</span>
-                                                </button>
+                                    {/* Emergency Actions */}
+                                    {(() => {
+                                        const showActions = user?.role === 'admin' &&
+                                            (selectedZone ? true : currentLive.risk !== 'low');
+                                        if (!showActions) return null;
+
+                                        const zoneKey = selectedZone
+                                            ? `${activeTab}-${(currentLive.threatZones || []).indexOf(selectedZone)}`
+                                            : null;
+                                        const zoneSent = zoneKey ? (sentZones[zoneKey] || {}) : {};
+
+                                        return (
+                                            <div className="mt-2 pt-6 border-t border-slate-100 text-left">
+                                                <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                                    <ShieldAlert className="w-4 h-4 text-brand-600" />
+                                                    {selectedZone ? `Actions — ${selectedZone.title.split('(')[1]?.replace(')', '') || 'Zone'}` : 'Emergency Actions'}
+                                                </h3>
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                                    {/* Alert button */}
+                                                    {zoneSent.alert ? (
+                                                        <div className="w-full py-4 bg-green-50 border border-green-200 rounded-2xl font-black text-[13px] text-green-700 flex items-center justify-center gap-2">
+                                                            ✓ Alert Sent
+                                                        </div>
+                                                    ) : (
+                                                        <button
+                                                            onClick={() => selectedZone
+                                                                ? handleZoneAlert(selectedZone, zoneKey)
+                                                                : handleSendAlert()
+                                                            }
+                                                            className="w-full py-4 bg-red-600 text-white rounded-2xl font-black text-[13px] uppercase tracking-wider hover:bg-red-700 shadow-lg shadow-red-100 transition-all flex items-center justify-center gap-2"
+                                                        >
+                                                            <BellRing className="w-4 h-4 shrink-0" />
+                                                            <span className="truncate">Send Alert</span>
+                                                        </button>
+                                                    )}
+
+                                                    {/* Rescue button */}
+                                                    {zoneSent.rescue ? (
+                                                        <div className="w-full py-4 bg-green-50 border border-green-200 rounded-2xl font-black text-[13px] text-green-700 flex items-center justify-center gap-2">
+                                                            ✓ Dispatched
+                                                        </div>
+                                                    ) : (
+                                                        <button
+                                                            onClick={() => selectedZone
+                                                                ? handleZoneRescue(selectedZone, zoneKey)
+                                                                : handleCallRescue()
+                                                            }
+                                                            className="w-full py-4 bg-brand-600 text-white rounded-2xl font-black text-[13px] uppercase tracking-wider hover:bg-brand-700 shadow-lg shadow-brand-100 transition-all flex items-center justify-center gap-2"
+                                                        >
+                                                            <Target className="w-4 h-4 shrink-0" />
+                                                            <span className="truncate">Manage</span>
+                                                        </button>
+                                                    )}
+                                                </div>
                                             </div>
-                                        </div>
-                                    )}
+                                        );
+                                    })()}
                                 </div>
 
                                 {/* --- RIGHT COLUMN: THREAT MAP --- */}
@@ -369,73 +436,38 @@ const AIDashboard = () => {
                                             {(currentLive.threatZones && currentLive.threatZones.length > 0) && (
                                                 <div className="flex gap-4 overflow-x-auto pb-2 custom-scrollbar">
                                                     {currentLive.threatZones.map((zone, idx) => {
-                                                        const zoneKey = `${activeTab}-${idx}`;
-                                                        const zoneSent = sentZones[zoneKey] || {};
+                                                        const isSelected = selectedZone === zone;
                                                         return (
-                                                            <div key={idx} className={`bg-white border-2 rounded-2xl p-4 flex flex-col gap-2 relative overflow-hidden shrink-0 w-72 transition-all duration-200 hover:shadow-lg ${
-                                                                zone.severity === 'high' ? 'border-red-100 hover:border-red-200' : 'border-orange-100 hover:border-orange-200'
-                                                            }`}>
-                                                                {/* Severity accent bar */}
-                                                                <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${zone.severity === 'high' ? 'bg-red-500' : 'bg-orange-500'}`} />
-
-                                                                {/* Header */}
-                                                                <div className="flex justify-between items-start">
-                                                                    <h4 className="font-black text-slate-800 text-sm leading-tight pr-2">{zone.title}</h4>
-                                                                    <span className={`text-[8px] uppercase font-black px-1.5 py-0.5 rounded-lg tracking-widest shrink-0 ${
-                                                                        zone.severity === 'high' ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'
-                                                                    }`}>
+                                                            <button
+                                                                key={idx}
+                                                                onClick={() => setSelectedZone(isSelected ? null : zone)}
+                                                                className={`text-left bg-slate-50 border rounded-2xl p-4 flex flex-col gap-1 relative overflow-hidden shrink-0 w-64 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 ${
+                                                                    isSelected
+                                                                        ? zone.severity === 'high'
+                                                                            ? 'ring-2 ring-red-400 border-red-200 bg-red-50'
+                                                                            : 'ring-2 ring-orange-400 border-orange-200 bg-orange-50'
+                                                                        : 'hover:border-slate-300'
+                                                                }`}
+                                                            >
+                                                                <div className={`absolute left-0 top-0 bottom-0 w-1 ${zone.severity === 'high' ? 'bg-red-500' : 'bg-orange-500'}`} />
+                                                                <div className="flex justify-between items-start mb-1">
+                                                                    <h4 className="font-black text-slate-800 text-sm truncate pr-2">{zone.title}</h4>
+                                                                    <span className={`text-[8px] uppercase font-black px-1.5 py-0.5 rounded-lg tracking-widest ${zone.severity === 'high' ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'}`}>
                                                                         {zone.severity}
                                                                     </span>
                                                                 </div>
-
-                                                                {/* Description */}
                                                                 <p className="text-[10px] text-slate-500 font-medium line-clamp-2">{zone.description}</p>
-
-                                                                {/* Radius */}
-                                                                <div className="text-[9px] text-slate-400 font-bold tracking-tight flex items-center gap-1">
-                                                                    <Target className="w-3 h-3" />
-                                                                    Danger Radius: {zone.dangerRadius}km
+                                                                <div className="mt-auto pt-2 text-[9px] text-slate-400 font-bold tracking-tight">
+                                                                    Radius: {zone.dangerRadius}km
                                                                 </div>
-
-                                                                {/* Per-zone action buttons (admin only) */}
-                                                                {user?.role === 'admin' && (
-                                                                    <div className="mt-auto pt-2 border-t border-slate-100 grid grid-cols-2 gap-2">
-                                                                        {/* Alert button */}
-                                                                        {zoneSent.alert ? (
-                                                                            <div className="flex items-center justify-center gap-1 py-1.5 bg-green-50 border border-green-200 rounded-xl text-[9px] font-black text-green-600 uppercase tracking-wide">
-                                                                                <span>✓ Alerted</span>
-                                                                            </div>
-                                                                        ) : (
-                                                                            <button
-                                                                                onClick={() => handleZoneAlert(zone, zoneKey)}
-                                                                                className={`flex items-center justify-center gap-1 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wide transition-all active:scale-95 ${
-                                                                                    zone.severity === 'high'
-                                                                                        ? 'bg-red-500 hover:bg-red-600 text-white shadow-sm shadow-red-200'
-                                                                                        : 'bg-orange-400 hover:bg-orange-500 text-white shadow-sm shadow-orange-200'
-                                                                                }`}
-                                                                            >
-                                                                                <BellRing className="w-2.5 h-2.5" />
-                                                                                Alert
-                                                                            </button>
-                                                                        )}
-
-                                                                        {/* Rescue button */}
-                                                                        {zoneSent.rescue ? (
-                                                                            <div className="flex items-center justify-center gap-1 py-1.5 bg-green-50 border border-green-200 rounded-xl text-[9px] font-black text-green-600 uppercase tracking-wide">
-                                                                                <span>✓ Dispatched</span>
-                                                                            </div>
-                                                                        ) : (
-                                                                            <button
-                                                                                onClick={() => handleZoneRescue(zone, zoneKey)}
-                                                                                className="flex items-center justify-center gap-1 py-1.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-[9px] font-black uppercase tracking-wide transition-all active:scale-95 shadow-sm shadow-brand-200"
-                                                                            >
-                                                                                <Target className="w-2.5 h-2.5" />
-                                                                                Rescue
-                                                                            </button>
-                                                                        )}
+                                                                {isSelected && (
+                                                                    <div className={`mt-1 text-[8px] font-black uppercase tracking-widest text-center py-0.5 rounded-lg ${
+                                                                        zone.severity === 'high' ? 'text-red-600 bg-red-100' : 'text-orange-600 bg-orange-100'
+                                                                    }`}>
+                                                                        ← Shown on left
                                                                     </div>
                                                                 )}
-                                                            </div>
+                                                            </button>
                                                         );
                                                     })}
                                                 </div>

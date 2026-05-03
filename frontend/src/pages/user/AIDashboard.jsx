@@ -87,16 +87,22 @@ const AIDashboard = () => {
         if (!currentLive || currentLive.risk === 'low') return;
 
         try {
-            const primaryThreat = currentLive.threatZones?.[0];
-            const payload = {
-                title: `AI ALERT: ${tabs.find(t => t.id === activeTab).name}`,
-                message: currentLive.detail || `High risk detected. Regional telemetry indicated anomalous patterns.`,
-                severity: currentLive.risk || 'high',
-                location: primaryThreat ? primaryThreat.title : (activeTab === 'earthquake' ? 'MBT Fault' : activeTab === 'flood' ? 'Indus River Basin' : activeTab === 'fire' ? 'Margalla Hills' : 'Coastal Tectonic'),
-            };
+            const zones = currentLive.threatZones?.length > 0 ? currentLive.threatZones : [{
+                title: activeTab === 'earthquake' ? 'MBT Fault' : activeTab === 'flood' ? 'Indus River Basin' : activeTab === 'fire' ? 'Margalla Hills' : 'Coastal Tectonic',
+                severity: currentLive.risk || 'high'
+            }];
 
-            await createAlert(payload, token);
-            toast.success('AI Alert generated and broadcasted successfully!', {
+            await Promise.all(zones.map(zone => {
+                const payload = {
+                    title: `AI ALERT: ${tabs.find(t => t.id === activeTab).name}`,
+                    message: currentLive.detail || `High risk detected. Regional telemetry indicated anomalous patterns.`,
+                    severity: zone.severity || currentLive.risk || 'high',
+                    location: zone.title,
+                };
+                return createAlert(payload, token);
+            }));
+
+            toast.success(`AI Alerts broadcasted successfully for ${zones.length} location(s)!`, {
                 duration: 4000,
                 position: 'top-center',
             });
@@ -110,23 +116,33 @@ const AIDashboard = () => {
         if (!currentLive || currentLive.risk === 'low') return;
 
         try {
-            const primaryThreat = currentLive.threatZones?.[0];
-            const payload = {
-                title: `AI DISASTER: ${tabs.find(t => t.id === activeTab).name}`,
-                description: currentLive.detail || `High risk detected. Regional telemetry indicated anomalous patterns.`,
+            const zones = currentLive.threatZones?.length > 0 ? currentLive.threatZones : [{
+                title: activeTab === 'earthquake' ? 'MBT Fault' : activeTab === 'flood' ? 'Indus River Basin' : activeTab === 'fire' ? 'Margalla Hills' : 'Coastal Tectonic',
+                latitude: 30.3753,
+                longitude: 69.3451,
+                dangerRadius: 50,
                 severity: currentLive.risk || 'high',
-                location: primaryThreat ? primaryThreat.title : (activeTab === 'earthquake' ? 'MBT Fault' : activeTab === 'flood' ? 'Indus River Basin' : activeTab === 'fire' ? 'Margalla Hills' : 'Coastal Tectonic'),
-                latitude: primaryThreat ? primaryThreat.latitude : 30.3753,
-                longitude: primaryThreat ? primaryThreat.longitude : 69.3451,
-                dangerRadius: primaryThreat ? primaryThreat.dangerRadius : 50,
-                isAI: true,
-                confidence_score: currentLive.confidence || null,
-                ml_probability: currentLive.ml_probability || null,
-                threatZones: currentLive.threatZones || [],
-            };
+                description: currentLive.detail
+            }];
 
-            await createAIDisaster(payload, token);
-            toast.success('AI Disaster generated and Rescue Teams notified successfully!', {
+            await Promise.all(zones.map(zone => {
+                const payload = {
+                    title: `AI DISASTER: ${tabs.find(t => t.id === activeTab).name} (${zone.title})`,
+                    description: zone.description || currentLive.detail || `High risk detected.`,
+                    severity: zone.severity || currentLive.risk || 'high',
+                    location: zone.title,
+                    latitude: zone.latitude || 30.3753,
+                    longitude: zone.longitude || 69.3451,
+                    dangerRadius: zone.dangerRadius || 50,
+                    isAI: true,
+                    confidence_score: currentLive.confidence || null,
+                    ml_probability: currentLive.ml_probability || null,
+                    threatZones: [zone],
+                };
+                return createAIDisaster(payload, token);
+            }));
+
+            toast.success(`Generated ${zones.length} AI Disaster(s) and notified Rescue Teams!`, {
                 duration: 4000,
                 position: 'top-center',
             });

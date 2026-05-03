@@ -66,14 +66,14 @@ def predict_from_telemetry(usgs_mag_string):
         max_mag = max(mags) if count > 0 else 0
         mean_mag = sum(mags)/count if count > 0 else 0
 
-        # Risk Weighting for Pakistan
         risk_data = {}
         risk_file = os.path.join(BASE_DIR, 'backend', 'data', 'pakistan_seismic_risk.json')
         if os.path.exists(risk_file):
             with open(risk_file, 'r') as f:
                 risk_data = json.load(f)
-        
-        weight = risk_data.get("Quetta", {}).get("weight", 1.5)
+
+        # Use the highest-weight city as the global risk driver
+        weight = max((v.get("weight", 1.0) for k, v in risk_data.items() if k != "default"), default=1.5)
         loc_desc = "Pakistan Regional Fault Zones (Live USGS Monitoring)"
 
         # Load historical baseline for feature computation
@@ -139,29 +139,95 @@ def predict_from_telemetry(usgs_mag_string):
                 est_ttf = 999.0
                 confidence_score = min(95.0, 70.0 + anomaly_score * 50)
             
-        # Threat Zones
+        # ── Dynamic Multi-City Threat Zone Evaluator ─────────────────────────
+        # Each city is evaluated independently based on its seismic risk weight.
+        # Higher-weight cities (e.g., Muzaffarabad 1.6) trigger at lower thresholds.
+        CITY_GEODATA = {
+            "Muzaffarabad": {
+                "latitude": 34.3700, "longitude": 73.4710,
+                "fault": "Muzaffarabad Fault (2005 Epicentre)",
+                "dangerRadius": {"high": 60, "medium": 35}
+            },
+            "Quetta": {
+                "latitude": 30.1798, "longitude": 66.9750,
+                "fault": "Chaman Fault Zone",
+                "dangerRadius": {"high": 50, "medium": 25}
+            },
+            "Gilgit": {
+                "latitude": 35.9200, "longitude": 74.3100,
+                "fault": "Karakoram Fault (Gilgit-Baltistan)",
+                "dangerRadius": {"high": 55, "medium": 30}
+            },
+            "Peshawar": {
+                "latitude": 34.0100, "longitude": 71.5800,
+                "fault": "Attock-Cherat Range Thrust",
+                "dangerRadius": {"high": 45, "medium": 25}
+            },
+            "Islamabad": {
+                "latitude": 33.7294, "longitude": 73.0931,
+                "fault": "Main Boundary Thrust",
+                "dangerRadius": {"high": 40, "medium": 20}
+            },
+            "Gwadar": {
+                "latitude": 25.1216, "longitude": 62.3254,
+                "fault": "Makran Subduction Zone",
+                "dangerRadius": {"high": 60, "medium": 35}
+            },
+            "Karachi": {
+                "latitude": 24.8600, "longitude": 67.0100,
+                "fault": "Karachi Transform Fault",
+                "dangerRadius": {"high": 40, "medium": 20}
+            },
+            "Lahore": {
+                "latitude": 31.5500, "longitude": 74.3500,
+                "fault": "Salt Range Thrust (Lahore Region)",
+                "dangerRadius": {"high": 35, "medium": 15}
+            },
+        }
+
         threat_zones = []
+        active_city_names = []
+
         if prediction_label in ["High Risk", "Medium Risk"]:
-            threat_zones.append({
-                "latitude": 30.1798,
-                "longitude": 66.9750,
-                "title": "Chaman Fault Zone (Quetta)",
-                "severity": "high" if prediction_label == "High Risk" else "medium",
-                "type": "earthquake",
-                "dangerRadius": 50 if prediction_label == "High Risk" else 25,
-                "description": f"Seismic anomaly detected (Score: {round(anomaly_score,3)}). ML probability: {round(high_risk_prob*100,1)}%"
-            })
-            if count > 20:
-                 threat_zones.append({
-                    "latitude": 33.7294,
-                    "longitude": 73.0931,
-                    "title": "Main Boundary Thrust (Islamabad)",
-                    "severity": "medium",
-                    "type": "earthquake",
-                    "dangerRadius": 30,
-                    "description": "Secondary increased stress from regional tectonic pressure."
+            for city_name, geo in CITY_GEODATA.items():
+                city_risk = risk_data.get(city_name, risk_data.get("default", {}))
+                city_weight = city_risk.get("weight", 1.0)
+
+                high_mag_threshold     = 5.8 / city_weight
+                medium_mag_threshold   = 4.2 / city_weight
+                high_count_threshold   = int(38 / city_weight)
+                medium_count_threshold = int(22 / city_weight)
+
+                if (prediction_label == "High Risk" and
+                        (max_mag >= high_mag_threshold or count >= high_count_threshold or high_risk_prob >= 0.55)):
+                    zone_severity = "high"
+                elif (max_mag >= medium_mag_threshold or count >= medium_count_threshold or high_risk_prob >= 0.22):
+                    zone_severity = "medium"
+                else:
+                    continue
+
+                threat_zones.append({
+                    "latitude":     geo["latitude"],
+                    "longitude":    geo["longitude"],
+                    "title":        f"{geo['fault']} ({city_name})",
+                    "severity":     zone_severity,
+                    "type":         "earthquake",
+                    "dangerRadius": geo["dangerRadius"][zone_severity],
+                    "description": (
+                        f"{city_risk.get('description', '')} "
+                        f"Seismic score: {round(anomaly_score, 3)}, "
+                        f"ML probability: {round(high_risk_prob * 100, 1)}%, "
+                        f"Risk weight: {city_weight}"
+                    )
                 })
-        
+                active_city_names.append(city_name)
+
+        loc_desc = (
+            f"Active threat zones: {', '.join(active_city_names)}"
+            if active_city_names
+            else "Pakistan Regional Fault Zones (Live USGS Monitoring)"
+        )
+
         result = {
             "prediction": prediction_label,
             "confidence_score": round(float(confidence_score), 2),

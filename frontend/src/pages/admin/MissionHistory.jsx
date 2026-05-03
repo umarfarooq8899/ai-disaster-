@@ -1,23 +1,31 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import axios from "../../api/axios";
+import { AuthContext } from "../../context/AuthContext";
 import { MapPin, CheckCircle, Calendar, AlertCircle, Users, Building2, Package, Siren } from "lucide-react";
 import toast from "react-hot-toast";
 
 export default function MissionHistory() {
+    const { token } = useContext(AuthContext);
+    const [rescueMissions, setRescueMissions] = useState([]);
+    const [aidAssignments, setAidAssignments] = useState([]);
     const [resolvedDisasters, setResolvedDisasters] = useState([]);
     const [activeTab, setActiveTab] = useState("rescue"); // "rescue", "aid", or "disaster"
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        fetchHistory();
-    }, []);
+        if (token) fetchHistory();
+    }, [token]);
 
     const fetchHistory = async () => {
         try {
+            const config = {
+                headers: { Authorization: `Bearer ${token}` }
+            };
+
             const [rescueRes, aidRes, disasterRes] = await Promise.all([
-                axios.get("/admin/mission-history"),
-                axios.get("/admin/aid-history"),
-                axios.get("/admin/disaster-history")
+                axios.get("/admin/mission-history", config),
+                axios.get("/admin/aid-history", config),
+                axios.get("/admin/disaster-history", config)
             ]);
             setRescueMissions(rescueRes.data);
             setAidAssignments(aidRes.data);

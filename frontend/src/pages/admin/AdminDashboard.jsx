@@ -270,7 +270,7 @@ export default function AdminDashboard() {
                         </div>
                         
                         <div className="p-6 border-t bg-slate-50/30">
-                            <Link to="/dashboard/admin/disasters" className="text-xs font-black text-brand-600 hover:text-brand-700 flex items-center gap-2 justify-center group">
+                            <Link to="/dashboard/admin/mission-history" className="text-xs font-black text-brand-600 hover:text-brand-700 flex items-center gap-2 justify-center group">
                                 View Full Audit Trail
                                 <TrendingUp className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
                             </Link>

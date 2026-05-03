@@ -4,9 +4,8 @@ import { MapPin, CheckCircle, Calendar, AlertCircle, Users, Building2, Package, 
 import toast from "react-hot-toast";
 
 export default function MissionHistory() {
-    const [rescueMissions, setRescueMissions] = useState([]);
-    const [aidAssignments, setAidAssignments] = useState([]);
-    const [activeTab, setActiveTab] = useState("rescue"); // "rescue" or "aid"
+    const [resolvedDisasters, setResolvedDisasters] = useState([]);
+    const [activeTab, setActiveTab] = useState("rescue"); // "rescue", "aid", or "disaster"
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -15,12 +14,14 @@ export default function MissionHistory() {
 
     const fetchHistory = async () => {
         try {
-            const [rescueRes, aidRes] = await Promise.all([
+            const [rescueRes, aidRes, disasterRes] = await Promise.all([
                 axios.get("/admin/mission-history"),
-                axios.get("/admin/aid-history")
+                axios.get("/admin/aid-history"),
+                axios.get("/admin/disaster-history")
             ]);
             setRescueMissions(rescueRes.data);
             setAidAssignments(aidRes.data);
+            setResolvedDisasters(disasterRes.data);
         } catch (err) {
             console.error(err);
             toast.error("Failed to fetch mission history");
@@ -29,7 +30,7 @@ export default function MissionHistory() {
         }
     };
 
-    const totalMissions = rescueMissions.length + aidAssignments.length;
+    const totalMissions = rescueMissions.length + aidAssignments.length + resolvedDisasters.length;
     const totalVolunteers = new Set([
         ...rescueMissions.flatMap(m => m.assignedVolunteers?.map(v => v._id) || []),
         ...aidAssignments.flatMap(a => a.volunteers?.map(v => v._id) || [])
@@ -47,10 +48,10 @@ export default function MissionHistory() {
 
     return (
         <div className="p-8 bg-gray-50 min-h-screen">
-            <h1 className="text-2xl font-bold mb-6 text-gray-800">Complete Mission History</h1>
+            <h1 className="text-2xl font-bold mb-6 text-gray-800">Platform History</h1>
 
             {/* Summary Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
                 <div className="bg-white rounded-lg p-4 border shadow-sm">
                     <div className="text-sm text-gray-500">Total Completed</div>
                     <div className="text-2xl font-bold text-gray-800">{totalMissions}</div>
@@ -62,6 +63,10 @@ export default function MissionHistory() {
                 <div className="bg-white rounded-lg p-4 border shadow-sm">
                     <div className="text-sm text-gray-500">Aid Distributions</div>
                     <div className="text-2xl font-bold text-green-600">{aidAssignments.length}</div>
+                </div>
+                <div className="bg-white rounded-lg p-4 border shadow-sm">
+                    <div className="text-sm text-gray-500">Resolved Disasters</div>
+                    <div className="text-2xl font-bold text-purple-600">{resolvedDisasters.length}</div>
                 </div>
                 <div className="bg-white rounded-lg p-4 border shadow-sm">
                     <div className="text-sm text-gray-500">Total Volunteers</div>
@@ -95,13 +100,27 @@ export default function MissionHistory() {
                         Aid Distributions ({aidAssignments.length})
                     </div>
                 </button>
+                <button
+                    onClick={() => setActiveTab("disaster")}
+                    className={`px-6 py-3 font-medium transition-colors ${activeTab === "disaster"
+                        ? "border-b-2 border-purple-600 text-purple-600"
+                        : "text-gray-500 hover:text-gray-700"
+                        }`}
+                >
+                    <div className="flex items-center gap-2">
+                        <AlertCircle className="w-4 h-4" />
+                        Resolved Disasters ({resolvedDisasters.length})
+                    </div>
+                </button>
             </div>
 
             {/* Content */}
             {activeTab === "rescue" ? (
                 <RescueMissionsList missions={rescueMissions} />
-            ) : (
+            ) : activeTab === "aid" ? (
                 <AidAssignmentsList assignments={aidAssignments} />
+            ) : (
+                <ResolvedDisastersList disasters={resolvedDisasters} />
             )}
         </div>
     );
@@ -236,6 +255,65 @@ function AidAssignmentsList({ assignments }) {
                         <div className="flex items-center gap-2 text-xs text-gray-400">
                             <Users className="w-4 h-4" />
                             <span>Volunteers: {assignment.volunteers.length}</span>
+                        </div>
+                    )}
+                </div>
+            ))}
+        </div>
+    );
+}
+
+function ResolvedDisastersList({ disasters }) {
+    if (disasters.length === 0) {
+        return (
+            <div className="bg-white rounded-xl p-12 text-center border">
+                <p className="text-gray-500">No resolved disasters found.</p>
+            </div>
+        );
+    }
+
+    return (
+        <div className="grid grid-cols-1 gap-6">
+            {disasters.map((disaster) => (
+                <div
+                    key={disaster._id}
+                    className="bg-white rounded-xl p-6 shadow-sm border flex flex-col gap-4"
+                >
+                    <div className="flex items-center gap-3 mb-2">
+                        <h3 className="font-semibold text-lg text-gray-800">{disaster.title}</h3>
+                        <span className="px-2 py-1 rounded text-xs font-semibold bg-purple-100 text-purple-700 flex items-center gap-1">
+                            <CheckCircle className="w-3 h-3" /> Resolved
+                        </span>
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider
+                            ${disaster.severity === 'high' ? 'bg-red-100 text-red-700' :
+                                disaster.severity === 'medium' ? 'bg-orange-100 text-orange-700' :
+                                    'bg-green-100 text-green-700'}`}>
+                            {disaster.severity}
+                        </span>
+                    </div>
+
+                    {disaster.description && (
+                        <p className="text-gray-600">{disaster.description}</p>
+                    )}
+
+                    <div className="flex flex-wrap gap-4 text-sm text-gray-500">
+                        <div className="flex items-center gap-1">
+                            <MapPin className="w-4 h-4" />
+                            <span>{disaster.location}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                            <Calendar className="w-4 h-4" />
+                            <span>Reported: {new Date(disaster.createdAt).toLocaleDateString()}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                            <CheckCircle className="w-4 h-4" />
+                            <span>Resolved: {new Date(disaster.updatedAt).toLocaleDateString()}</span>
+                        </div>
+                    </div>
+                    
+                    {disaster.reportedBy && (
+                        <div className="text-xs text-gray-400">
+                            Reported by: {disaster.reportedBy.name} ({disaster.reportedBy.email})
                         </div>
                     )}
                 </div>

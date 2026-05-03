@@ -161,7 +161,7 @@ export default function Sidebar({ role = "general", collapsed, mobileOpen, setMo
                 Manage Alerts
               </NavItem>
               <NavItem to="/dashboard/admin/mission-history" onClick={() => setMobileOpen(false)}>
-                Mission History
+                History
               </NavItem>
             </>
           )}

@@ -83,7 +83,7 @@ export default function ManageDisasters() {
       const res = await api.get("/disasters/admin/all", {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setDisasters(res.data);
+      setDisasters(res.data.filter(d => d.status !== 'resolved'));
     } catch {
       toast.error("Failed to load disasters");
     } finally {
@@ -703,7 +703,7 @@ export default function ManageDisasters() {
                             });
                             toast.success("Disaster resolved");
                             fetchDisasters();
-                            setSelectedDisaster(prev => ({ ...prev, status: 'resolved' }));
+                            setSelectedDisaster(null);
                           } catch {
                             toast.error("Failed to resolve");
                           }

@@ -230,4 +230,18 @@ router.get("/aid-history", auth, adminOnly, async (req, res) => {
   }
 });
 
+// Get all resolved disasters (admin only)
+router.get("/disaster-history", auth, adminOnly, async (req, res) => {
+  try {
+    const Disaster = require("../models/Disaster");
+    const disasters = await Disaster.find({ status: "resolved" })
+      .populate("reportedBy", "name email")
+      .sort({ updatedAt: -1 });
+    res.json(disasters);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server Error" });
+  }
+});
+
 module.exports = router;

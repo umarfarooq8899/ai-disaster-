@@ -31,6 +31,7 @@ const AIDashboard = () => {
     const [result, setResult] = useState(null);
     const [liveStatus, setLiveStatus] = useState(null);
     const [isScanning, setIsScanning] = useState(false);
+    const [sentZones, setSentZones] = useState({}); // tracks { `${tab}-${idx}`: 'alert'|'rescue'|'both' }
 
     const tabs = [
         { id: 'earthquake', name: 'Earthquake Checker', icon: <Activity className="w-5 h-5" />, color: 'brand' },
@@ -149,6 +150,46 @@ const AIDashboard = () => {
         } catch (err) {
             console.error('Failed to create AI Disaster', err);
             toast.error('Failed to call Rescue Teams.', { position: 'top-center' });
+        }
+    };
+
+    // ── Per-zone individual actions ────────────────────────────────────────
+    const handleZoneAlert = async (zone, zoneKey) => {
+        try {
+            const payload = {
+                title: `AI ALERT: ${tabs.find(t => t.id === activeTab).name} — ${zone.title}`,
+                message: zone.description || currentLive.detail || 'Elevated seismic risk detected.',
+                severity: zone.severity || 'high',
+                location: zone.title,
+            };
+            await createAlert(payload, token);
+            setSentZones(prev => ({ ...prev, [zoneKey]: { ...(prev[zoneKey] || {}), alert: true } }));
+            toast.success(`Alert sent for ${zone.title}!`, { duration: 3000, position: 'top-center' });
+        } catch (err) {
+            toast.error('Failed to send alert.', { position: 'top-center' });
+        }
+    };
+
+    const handleZoneRescue = async (zone, zoneKey) => {
+        try {
+            const payload = {
+                title: `AI DISASTER: ${tabs.find(t => t.id === activeTab).name} — ${zone.title}`,
+                description: zone.description || currentLive.detail || 'High risk detected.',
+                severity: zone.severity || 'high',
+                location: zone.title,
+                latitude: zone.latitude || 30.3753,
+                longitude: zone.longitude || 69.3451,
+                dangerRadius: zone.dangerRadius || 50,
+                isAI: true,
+                confidence_score: currentLive.confidence || null,
+                ml_probability: currentLive.ml_probability || null,
+                threatZones: [zone],
+            };
+            await createAIDisaster(payload, token);
+            setSentZones(prev => ({ ...prev, [zoneKey]: { ...(prev[zoneKey] || {}), rescue: true } }));
+            toast.success(`Rescue dispatched to ${zone.title}!`, { duration: 3000, position: 'top-center' });
+        } catch (err) {
+            toast.error('Failed to dispatch rescue.', { position: 'top-center' });
         }
     };
 
@@ -327,21 +368,76 @@ const AIDashboard = () => {
 
                                             {(currentLive.threatZones && currentLive.threatZones.length > 0) && (
                                                 <div className="flex gap-4 overflow-x-auto pb-2 custom-scrollbar">
-                                                    {currentLive.threatZones.map((zone, idx) => (
-                                                        <div key={idx} className="bg-slate-50 border rounded-2xl p-4 flex flex-col gap-1 relative overflow-hidden shrink-0 w-64">
-                                                            <div className={`absolute left-0 top-0 bottom-0 w-1 ${zone.severity === 'high' ? 'bg-red-500' : 'bg-orange-500'}`} />
-                                                            <div className="flex justify-between items-start mb-1">
-                                                                <h4 className="font-black text-slate-800 text-sm truncate pr-2">{zone.title}</h4>
-                                                                <span className={`text-[8px] uppercase font-black px-1.5 py-0.5 rounded-lg tracking-widest ${zone.severity === 'high' ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'}`}>
-                                                                    {zone.severity}
-                                                                </span>
+                                                    {currentLive.threatZones.map((zone, idx) => {
+                                                        const zoneKey = `${activeTab}-${idx}`;
+                                                        const zoneSent = sentZones[zoneKey] || {};
+                                                        return (
+                                                            <div key={idx} className={`bg-white border-2 rounded-2xl p-4 flex flex-col gap-2 relative overflow-hidden shrink-0 w-72 transition-all duration-200 hover:shadow-lg ${
+                                                                zone.severity === 'high' ? 'border-red-100 hover:border-red-200' : 'border-orange-100 hover:border-orange-200'
+                                                            }`}>
+                                                                {/* Severity accent bar */}
+                                                                <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${zone.severity === 'high' ? 'bg-red-500' : 'bg-orange-500'}`} />
+
+                                                                {/* Header */}
+                                                                <div className="flex justify-between items-start">
+                                                                    <h4 className="font-black text-slate-800 text-sm leading-tight pr-2">{zone.title}</h4>
+                                                                    <span className={`text-[8px] uppercase font-black px-1.5 py-0.5 rounded-lg tracking-widest shrink-0 ${
+                                                                        zone.severity === 'high' ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'
+                                                                    }`}>
+                                                                        {zone.severity}
+                                                                    </span>
+                                                                </div>
+
+                                                                {/* Description */}
+                                                                <p className="text-[10px] text-slate-500 font-medium line-clamp-2">{zone.description}</p>
+
+                                                                {/* Radius */}
+                                                                <div className="text-[9px] text-slate-400 font-bold tracking-tight flex items-center gap-1">
+                                                                    <Target className="w-3 h-3" />
+                                                                    Danger Radius: {zone.dangerRadius}km
+                                                                </div>
+
+                                                                {/* Per-zone action buttons (admin only) */}
+                                                                {user?.role === 'admin' && (
+                                                                    <div className="mt-auto pt-2 border-t border-slate-100 grid grid-cols-2 gap-2">
+                                                                        {/* Alert button */}
+                                                                        {zoneSent.alert ? (
+                                                                            <div className="flex items-center justify-center gap-1 py-1.5 bg-green-50 border border-green-200 rounded-xl text-[9px] font-black text-green-600 uppercase tracking-wide">
+                                                                                <span>✓ Alerted</span>
+                                                                            </div>
+                                                                        ) : (
+                                                                            <button
+                                                                                onClick={() => handleZoneAlert(zone, zoneKey)}
+                                                                                className={`flex items-center justify-center gap-1 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wide transition-all active:scale-95 ${
+                                                                                    zone.severity === 'high'
+                                                                                        ? 'bg-red-500 hover:bg-red-600 text-white shadow-sm shadow-red-200'
+                                                                                        : 'bg-orange-400 hover:bg-orange-500 text-white shadow-sm shadow-orange-200'
+                                                                                }`}
+                                                                            >
+                                                                                <BellRing className="w-2.5 h-2.5" />
+                                                                                Alert
+                                                                            </button>
+                                                                        )}
+
+                                                                        {/* Rescue button */}
+                                                                        {zoneSent.rescue ? (
+                                                                            <div className="flex items-center justify-center gap-1 py-1.5 bg-green-50 border border-green-200 rounded-xl text-[9px] font-black text-green-600 uppercase tracking-wide">
+                                                                                <span>✓ Dispatched</span>
+                                                                            </div>
+                                                                        ) : (
+                                                                            <button
+                                                                                onClick={() => handleZoneRescue(zone, zoneKey)}
+                                                                                className="flex items-center justify-center gap-1 py-1.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-[9px] font-black uppercase tracking-wide transition-all active:scale-95 shadow-sm shadow-brand-200"
+                                                                            >
+                                                                                <Target className="w-2.5 h-2.5" />
+                                                                                Rescue
+                                                                            </button>
+                                                                        )}
+                                                                    </div>
+                                                                )}
                                                             </div>
-                                                            <p className="text-[10px] text-slate-500 font-medium line-clamp-2">{zone.description}</p>
-                                                            <div className="mt-auto pt-2 text-[9px] text-slate-400 font-bold tracking-tight">
-                                                                Radius: {zone.dangerRadius}km
-                                                            </div>
-                                                        </div>
-                                                    ))}
+                                                        );
+                                                    })}
                                                 </div>
                                             )}
                                             {(!currentLive.threatZones || currentLive.threatZones.length === 0) && (

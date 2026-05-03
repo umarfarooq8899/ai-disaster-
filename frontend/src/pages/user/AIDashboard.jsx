@@ -200,6 +200,7 @@ const AIDashboard = () => {
         switch (risk) {
             case 'high': return { border: 'border-red-200', bg: 'bg-red-50', text: 'text-red-600', glow: 'shadow-red-200' };
             case 'medium': return { border: 'border-orange-200', bg: 'bg-orange-50', text: 'text-orange-600', glow: 'shadow-orange-200' };
+            case 'stable': 
             default: return { border: 'border-safe-200', bg: 'bg-safe-50', text: 'text-safe-600', glow: 'shadow-safe-200' };
         }
     };

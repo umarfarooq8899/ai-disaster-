@@ -222,10 +222,19 @@ def predict_from_telemetry(usgs_mag_string):
                 })
                 active_city_names.append(city_name)
 
+        # ── Consistency Check ────────────────────────────────────────────────
+        # If we have threat zones, we elevate the global prediction to match the highest severity.
+        # If we have NO threat zones, we downgrade the global prediction to "Low Risk".
+        if threat_zones:
+            max_severity = "high" if any(z["severity"] == "high" for z in threat_zones) else "medium"
+            prediction_label = "High Risk" if max_severity == "high" else "Medium Risk"
+        else:
+            prediction_label = "Low Risk"
+
         loc_desc = (
             f"Active threat zones: {', '.join(active_city_names)}"
             if active_city_names
-            else "Pakistan Regional Fault Zones (Live USGS Monitoring)"
+            else "Seismic activity within safety thresholds (Live USGS Monitoring)"
         )
 
         result = {

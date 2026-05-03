@@ -45,9 +45,9 @@ const predictionCache = new NodeCache({ stdTTL: 600 }); // 10 minutes default TT
 
 // Cache for live status
 let liveStatus = {
-    earthquake: { risk: 'low', lastChecked: null, detail: 'Systems scanning Pakistan seismic zones (Quetta, Islamabad, etc).', threatZones: [] },
-    flood: { risk: 'low', lastChecked: null, detail: 'Indus river basin & dam catchment monitoring active. Levels normal.', threatZones: [] },
-    fire: { risk: 'low', lastChecked: null, detail: 'Forest monitoring (Margalla, Murree, Juniper forests) active.', threatZones: [] },
+    earthquake: { risk: 'stable', lastChecked: null, detail: 'Systems scanning Pakistan seismic zones (Quetta, Islamabad, etc).', threatZones: [] },
+    flood: { risk: 'stable', lastChecked: null, detail: 'Indus river basin & dam catchment monitoring active. Levels normal.', threatZones: [] },
+    fire: { risk: 'stable', lastChecked: null, detail: 'Forest monitoring (Margalla, Murree, Juniper forests) active.', threatZones: [] },
     slr: { risk: 'stable', lastChecked: null, detail: 'Coastal monitoring (Karachi, Gwadar) stable.', threatZones: [] },
     dams: { lastChecked: null, mangla: null, tarbela: null, detail: 'Fetching dam gauge estimates for Mangla & Tarbela...' }
 };
@@ -149,8 +149,8 @@ const checkEarthquakeRisk = async () => {
             liveStatus.earthquake.detail = `WARNING: Elevated seismic activity. Region: ${result.location_context}.`;
             liveStatus.earthquake.threatZones = result.threat_zones || [];
         } else {
-            liveStatus.earthquake.risk = 'low';
-            liveStatus.earthquake.detail = `Seismic activity normal. ${count} quakes past 7 days (Max mag: ${maxMag}). Region: ${result.location_context}.`;
+            liveStatus.earthquake.risk = 'stable';
+            liveStatus.earthquake.detail = `Seismic monitoring stable. ${count} quakes past 7 days (Max mag: ${maxMag}). Region: ${result.location_context}.`;
             liveStatus.earthquake.threatZones = [];
         }
     } catch (error) {

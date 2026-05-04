@@ -24,8 +24,8 @@ router.post("/", auth, upload.fields([{ name: "image", maxCount: 1 }, { name: "v
   try {
     const { title, description, severity, latitude, longitude, address, location } = req.body;
 
-    const imagePath = req.files && req.files.image ? req.files.image[0].path.replace(/\\/g, "/") : null;
-    const videoPath = req.files && req.files.video ? req.files.video[0].path.replace(/\\/g, "/") : null;
+    const imagePath = req.files && req.files.image ? req.files.image[0].path : null;
+    const videoPath = req.files && req.files.video ? req.files.video[0].path : null;
 
     const newDisaster = new Disaster({
       title: title,

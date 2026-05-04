@@ -8,13 +8,13 @@ exports.createDisaster = async (req, res) => {
     // Construct image URL if file uploaded
     const imageUrl =
       req.files && req.files.image
-        ? `/uploads/${req.files.image[0].filename}`
+        ? req.files.image[0].path
         : null;
 
     // Construct video URL if file uploaded
     const videoUrl =
       req.files && req.files.video
-        ? `/uploads/${req.files.video[0].filename}`
+        ? req.files.video[0].path
         : null;
 
     if (!title || !description || !severity || !latitude || !longitude) {

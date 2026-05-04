@@ -9,7 +9,7 @@ __pycache__/
 .DS_Store
 *.csv
 !venv/earthquake.csv
-!backend/data/pakistan_rainfall.csv
+!backend/data/*.csv
 !model_training/Climate-Disasters-Warning-Systems-main/Fire Detection/forestfires.csv
 frontend/dist/
 model_training/**/Data/

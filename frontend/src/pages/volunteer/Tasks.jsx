@@ -5,13 +5,11 @@ import {
   Loader2, FileImage, ChevronDown, ChevronUp, ZoomIn
 } from "lucide-react";
 import toast from "react-hot-toast";
+import { getFileUrl } from "../../utils/fileUtils";
 import MapView from "../../components/map/MapView";
 
 export default function VolunteerTasks() {
-  // Normalize evidence URL — handles both old "/uploads/..." and new "uploads/..." storage
-  const rawUrl = import.meta.env.VITE_API_URL || "";
-  const backendUrl = rawUrl.replace(/\/+$/, '');
-  const mediaUrl = (url) => url?.startsWith("/") ? `${backendUrl}${url}` : `${backendUrl}/${url}`;
+  // Tasks states
   const [tasks, setTasks] = useState([]);
   const [completedTasks, setCompleted] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -230,17 +228,17 @@ export default function VolunteerTasks() {
                         const isVideo = /\.(mp4|mov|avi|webm)$/i.test(url);
                         return isVideo ? (
                           <div key={i}
-                            onClick={(e) => { e.stopPropagation(); setLightbox({ url: mediaUrl(url), isVideo: true }); }}
+                            onClick={(e) => { e.stopPropagation(); setLightbox({ url: getFileUrl(url), isVideo: true }); }}
                             className="aspect-square rounded-lg bg-brand-100 border border-brand-200 flex items-center justify-center cursor-pointer hover:bg-brand-200 transition"
                           >
                             <span className="text-[10px] text-brand-700 font-bold text-center">🎥 Video</span>
                           </div>
                         ) : (
                           <div key={i}
-                            onClick={(e) => { e.stopPropagation(); setLightbox({ url: mediaUrl(url), isVideo: false }); }}
+                            onClick={(e) => { e.stopPropagation(); setLightbox({ url: getFileUrl(url), isVideo: false }); }}
                             className="aspect-square rounded-lg overflow-hidden border border-brand-200 cursor-pointer hover:opacity-80 transition relative group/thumb"
                           >
-                            <img src={mediaUrl(url)} alt={`Proof ${i + 1}`} className="w-full h-full object-cover" />
+                            <img src={getFileUrl(url)} alt={`Proof ${i + 1}`} className="w-full h-full object-cover" />
                             <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/thumb:opacity-100 transition flex items-center justify-center">
                               <ZoomIn className="w-4 h-4 text-white" />
                             </div>
@@ -461,7 +459,7 @@ export default function VolunteerTasks() {
                               return isVideo ? (
                                 <div key={i} className="rounded-lg overflow-hidden border border-brand-200 bg-black">
                                   <video
-                                    src={mediaUrl(url)}
+                                    src={getFileUrl(url)}
                                     controls
                                     className="w-full aspect-square object-cover"
                                   />
@@ -469,10 +467,10 @@ export default function VolunteerTasks() {
                               ) : (
                                 <button
                                   key={i}
-                                  onClick={() => setLightbox({ url: mediaUrl(url), isVideo: false })}
+                                  onClick={() => setLightbox({ url: getFileUrl(url), isVideo: false })}
                                   className="block rounded-lg overflow-hidden border border-brand-200 hover:opacity-80 transition relative group/thumb aspect-square"
                                 >
-                                  <img src={mediaUrl(url)} alt={`Proof ${i + 1}`} className="w-full h-full object-cover" />
+                                  <img src={getFileUrl(url)} alt={`Proof ${i + 1}`} className="w-full h-full object-cover" />
                                   <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/thumb:opacity-100 transition flex items-center justify-center">
                                     <ZoomIn className="w-5 h-5 text-white" />
                                   </div>

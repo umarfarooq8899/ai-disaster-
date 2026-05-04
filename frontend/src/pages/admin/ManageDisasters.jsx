@@ -13,6 +13,7 @@ import {
   History,
   X
 } from "lucide-react";
+import { getFileUrl } from "../../utils/fileUtils";
 import MapView from "../../components/map/MapView";
 
 class ErrorBoundary extends Component {
@@ -401,7 +402,7 @@ export default function ManageDisasters() {
                       {selectedDisaster.image && (
                         <div className="rounded-lg overflow-hidden border h-48 w-full bg-gray-100 mb-4">
                           <img
-                            src={`/${selectedDisaster.image}`}
+                            src={getFileUrl(selectedDisaster.image)}
                             alt="Disaster"
                             className="w-full h-full object-cover"
                           />
@@ -412,7 +413,7 @@ export default function ManageDisasters() {
                         <div className="rounded-lg overflow-hidden border w-full bg-black mb-4">
                           <video
                             controls
-                            src={`/${selectedDisaster.video}`}
+                            src={getFileUrl(selectedDisaster.video)}
                             className="w-full h-auto max-h-60"
                           />
                         </div>
@@ -498,7 +499,7 @@ export default function ManageDisasters() {
                                         <p className="text-[10px] font-bold text-amber-600 mb-1">📎 Evidence submitted by volunteer</p>
                                         <div className="flex gap-1 flex-wrap">
                                           {mission.evidenceUrls.map((url, i) => (
-                                            <a key={i} href={`/${url}`} target="_blank" rel="noopener noreferrer"
+                                            <a key={i} href={getFileUrl(url)} target="_blank" rel="noopener noreferrer"
                                               className="text-[10px] text-brand-600 underline">
                                               File {i + 1}
                                             </a>
@@ -549,7 +550,7 @@ export default function ManageDisasters() {
                                         <p className="text-[10px] font-bold text-amber-600 mb-1">📎 Evidence submitted by volunteer</p>
                                         <div className="flex gap-1 flex-wrap">
                                           {assignment.evidenceUrls.map((url, i) => (
-                                            <a key={i} href={`/${url}`} target="_blank" rel="noopener noreferrer"
+                                            <a key={i} href={getFileUrl(url)} target="_blank" rel="noopener noreferrer"
                                               className="text-[10px] text-brand-600 underline">
                                               File {i + 1}
                                             </a>
@@ -627,7 +628,7 @@ export default function ManageDisasters() {
                                 <div className="mt-3 grid grid-cols-3 gap-2">
                                   {log.images.map((img, idx) => (
                                     <div key={idx} className="aspect-video rounded bg-gray-200 overflow-hidden border">
-                                      <img src={`/${img}`} alt="Update evidence" className="w-full h-full object-cover" />
+                                      <img src={getFileUrl(img)} alt="Update evidence" className="w-full h-full object-cover" />
                                     </div>
                                   ))}
                                 </div>

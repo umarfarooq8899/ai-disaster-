@@ -12,6 +12,7 @@ import {
   ShieldCheck,
   AlertTriangle
 } from "lucide-react";
+import { getFileUrl } from "../../utils/fileUtils";
 
 export default function MyReports() {
   const [reports, setReports] = useState([]);
@@ -74,14 +75,14 @@ export default function MyReports() {
               >
                 {r.video ? (
                   <video
-                    src={`/${r.video}`}
+                    src={getFileUrl(r.video)}
                     className="w-full h-full object-cover"
                     controls={false}
                     muted
                   />
                 ) : r.image ? (
                   <img
-                    src={`/${r.image}`}
+                    src={getFileUrl(r.image)}
                     alt={r.title}
                     className="w-full h-full object-cover transition-transform group-hover:scale-105"
                   />
@@ -145,14 +146,14 @@ export default function MyReports() {
               <div className="h-1/2 bg-black flex items-center justify-center">
                 {selectedReport.video ? (
                   <video
-                    src={`/${selectedReport.video}`}
+                    src={getFileUrl(selectedReport.video)}
                     className="w-full h-full object-contain"
                     controls
                     autoPlay
                   />
                 ) : selectedReport.image ? (
                   <img
-                    src={`/${selectedReport.image}`}
+                    src={getFileUrl(selectedReport.image)}
                     alt={selectedReport.title}
                     className="w-full h-full object-contain"
                   />

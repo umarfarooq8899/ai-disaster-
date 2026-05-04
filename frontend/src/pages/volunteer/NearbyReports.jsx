@@ -13,6 +13,7 @@ import {
   ShieldCheck,
   AlertCircle
 } from "lucide-react";
+import { getFileUrl } from "../../utils/fileUtils";
 
 export default function VolunteerNearby() {
   const [disasters, setDisasters] = useState([]);
@@ -241,14 +242,14 @@ export default function VolunteerNearby() {
               <div className="h-1/2 bg-black flex items-center justify-center">
                 {selectedDisaster.video ? (
                   <video
-                    src={`/${selectedDisaster.video}`}
+                    src={getFileUrl(selectedDisaster.video)}
                     className="w-full h-full object-contain"
                     controls
                     autoPlay
                   />
                 ) : selectedDisaster.image ? (
                   <img
-                    src={`/${selectedDisaster.image}`}
+                    src={getFileUrl(selectedDisaster.image)}
                     alt={selectedDisaster.title}
                     className="w-full h-full object-contain"
                   />

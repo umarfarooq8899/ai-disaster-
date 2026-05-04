@@ -484,3 +484,70 @@ exports.getAidHistory = async (req, res) => {
     }
 };
 
+// Cancel Aid Assignment & Refund Resources
+exports.cancelAidAssignment = async (req, res) => {
+    // Start a Mongoose session for transaction
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+        const assignment = await AidAssignment.findById(req.params.id).session(session);
+        if (!assignment) {
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(404).json({ message: "Assignment not found" });
+        }
+
+        // Verify assignment belongs to coordinator's NGO
+        if (!req.user.organization || assignment.ngo.toString() !== req.user.organization.toString()) {
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(403).json({ message: "Not authorized" });
+        }
+
+        // Only allow cancellation if pending or assigned
+        if (!["pending", "assigned"].includes(assignment.status)) {
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(400).json({ message: "Cannot cancel an assignment that is already in progress or completed." });
+        }
+
+        // Refund quantities to Resource inventory
+        for (const item of assignment.items) {
+            if (item.resource) {
+                const resource = await Resource.findById(item.resource).session(session);
+                if (resource) {
+                    resource.quantity += item.quantity;
+                    await resource.save({ session });
+                }
+            }
+        }
+
+        // Release volunteers
+        if (assignment.volunteers && assignment.volunteers.length > 0) {
+            await Volunteer.updateMany(
+                { user: { $in: assignment.volunteers } },
+                {
+                    available: true,
+                    currentTask: null,
+                    currentTaskType: null
+                },
+                { session }
+            );
+        }
+
+        // Delete the assignment
+        await AidAssignment.findByIdAndDelete(req.params.id, { session });
+
+        // Commit transaction
+        await session.commitTransaction();
+        session.endSession();
+
+        res.json({ message: "Aid assignment cancelled successfully, and resources have been refunded." });
+    } catch (err) {
+        await session.abortTransaction();
+        session.endSession();
+        console.error("DEBUG: Transaction failed in cancelAidAssignment", err);
+        res.status(500).json({ message: "Failed to cancel aid assignment" });
+    }
+};

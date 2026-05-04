@@ -10,7 +10,8 @@ const {
     createAidAssignment,
     updateAidStatus,
     assignVolunteers,
-    verifyAidAssignment
+    verifyAidAssignment,
+    cancelAidAssignment
 } = require("../controllers/ngoController");
 
 router.use(protect);
@@ -23,6 +24,7 @@ router.post("/resources", upsertResource);
 router.get("/assignments", getAidAssignments);
 router.get("/volunteers", require("../controllers/volunteerController").getOrgVolunteers);
 router.post("/assignments", createAidAssignment);
+router.delete("/assignments/:id", cancelAidAssignment);
 router.patch("/assignments/:id/status", updateAidStatus);
 router.patch("/assignments/:id/volunteers", assignVolunteers);
 router.post("/assignments/:id/verify", verifyAidAssignment);

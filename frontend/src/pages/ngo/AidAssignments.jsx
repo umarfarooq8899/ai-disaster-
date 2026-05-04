@@ -45,6 +45,7 @@ export default function AidAssignments() {
     // Verify proof modal
     const [verifyModal, setVerifyModal] = useState(null);
     const [verifyingId, setVerifyingId] = useState(null); // volunteerId currently being verified
+    const [cancellingId, setCancellingId] = useState(null); // id of assignment being cancelled
     const [lightbox, setLightbox] = useState(null); // { url, isVideo }
 
     // Team view modal
@@ -142,6 +143,20 @@ export default function AidAssignments() {
             toast.error(err.response?.data?.message || "Failed to verify.");
         } finally {
             setVerifyingId(null);
+        }
+    };
+
+    const handleCancelAssignment = async (id) => {
+        if (!window.confirm("Are you sure you want to cancel this assignment? This will refund the resources and release the assigned volunteers.")) return;
+        setCancellingId(id);
+        try {
+            await axios.delete(`/ngo/assignments/${id}`);
+            toast.success("Assignment cancelled successfully!");
+            fetchAssignments();
+        } catch (err) {
+            toast.error(err.response?.data?.message || "Failed to cancel assignment.");
+        } finally {
+            setCancellingId(null);
         }
     };
 
@@ -367,13 +382,21 @@ export default function AidAssignments() {
                                     <CheckCircle className="w-4 h-4" /> Aid Mission Completed
                                 </div>
                             ) : (
-                                <div className="px-4 py-3 border-t bg-gray-50">
+                                <div className="px-4 py-3 border-t bg-gray-50 flex gap-2">
                                     <button
                                         onClick={() => openAssignModal(assignment)}
-                                        className="w-full bg-brand-600 text-white py-2 rounded-lg hover:bg-brand-700 transition flex items-center justify-center gap-2 text-xs font-semibold shadow-sm"
+                                        className="flex-1 bg-brand-600 text-white py-2 rounded-lg hover:bg-brand-700 transition flex items-center justify-center gap-1.5 text-xs font-semibold shadow-sm"
                                     >
                                         <Users className="w-3.5 h-3.5" />
                                         {assignment.volunteers?.length > 0 ? "Manage Volunteers" : "Assign Volunteers"}
+                                    </button>
+                                    <button
+                                        onClick={() => handleCancelAssignment(assignment._id)}
+                                        disabled={cancellingId === assignment._id}
+                                        className="px-3 bg-red-50 border border-red-100 text-red-600 py-2 rounded-lg hover:bg-red-100 transition flex items-center justify-center gap-1.5 text-xs font-semibold shadow-sm"
+                                    >
+                                        {cancellingId === assignment._id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <X className="w-3.5 h-3.5" />}
+                                        Cancel
                                     </button>
                                 </div>
                             )}

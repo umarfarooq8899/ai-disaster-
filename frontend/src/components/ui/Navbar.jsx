@@ -5,6 +5,7 @@ import { Menu, X, Bell, LayoutDashboard, User, LogOut, FileText, CheckCircle2, T
 import { getNotifications, markNotificationRead, markAllNotificationsRead, deleteNotification, clearAllNotifications } from "../../api/users";
 import { useSocket } from "../../context/SocketContext";
 import toast from "react-hot-toast";
+import { getFileUrl } from "../../utils/fileUtils";
 
 
 export default function Navbar() {
@@ -299,7 +300,7 @@ export default function Navbar() {
                   <div className="h-7 w-7 rounded-full bg-brand-600 text-white flex items-center justify-center text-xs font-bold shadow-soft overflow-hidden">
                     {user.profilePicture ? (
                       <img
-                        src={user.profilePicture.startsWith('http') ? user.profilePicture : `/${user.profilePicture}`}
+                        src={getFileUrl(user.profilePicture)}
                         alt="Profile"
                         className="h-full w-full object-cover"
                       />

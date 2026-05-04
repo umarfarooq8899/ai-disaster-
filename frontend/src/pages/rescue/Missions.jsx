@@ -635,14 +635,14 @@ export default function Missions() {
                               {completion.evidenceUrls.map((url, i) => {
                                 const isVideo = url.match(/\.(mp4|mov|avi|webm)$/i);
                                 return isVideo ? (
-                                  <div key={i} className="rounded-lg overflow-hidden border border-gray-200 bg-black relative aspect-video" onClick={(e) => { e.stopPropagation(); setLightbox({ url: `/${url}`, isVideo: true }); }}>
+                                  <div key={i} className="rounded-lg overflow-hidden border border-gray-200 bg-black relative aspect-video" onClick={(e) => { e.stopPropagation(); setLightbox({ url: getFileUrl(url), isVideo: true }); }}>
                                     <video src={getFileUrl(url)} className="w-full h-full object-cover cursor-pointer" />
                                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                                       <span className="bg-black/60 text-white px-2 py-1 rounded-md text-[10px] font-medium backdrop-blur-sm">Play</span>
                                     </div>
                                   </div>
                                 ) : (
-                                  <button key={i} onClick={() => setLightbox({ url: `/${url}`, isVideo: false })}
+                                  <button key={i} onClick={() => setLightbox({ url: getFileUrl(url), isVideo: false })}
                                     className="block rounded-lg overflow-hidden border border-gray-200 hover:opacity-90 transition relative group/thumb w-full h-full text-left aspect-video">
                                     <img src={getFileUrl(url)} alt={`Evidence ${i + 1}`} className="w-full object-cover h-full" />
                                     <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/thumb:opacity-100 transition flex items-center justify-center">

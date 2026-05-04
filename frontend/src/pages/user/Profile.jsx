@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import Select from "react-select";
 import { pakistanData } from "../../data/pakistan_cities";
+import { getFileUrl } from "../../utils/fileUtils";
 
 export default function Profile() {
   const { user, token, updateUser } = useContext(AuthContext);
@@ -31,12 +32,7 @@ export default function Profile() {
     profilePicture: null // To hold the new file being uploaded
   });
 
-  const getProfilePicUrl = (pic) => {
-    if (!pic) return null;
-    return pic.startsWith("http") ? pic : `/${pic}`;
-  };
-
-  const [previewUrl, setPreviewUrl] = useState(getProfilePicUrl(user?.profilePicture));
+  const [previewUrl, setPreviewUrl] = useState(getFileUrl(user?.profilePicture));
   const [orgs, setOrgs] = useState([]);
   const [pwdData, setPwdData] = useState({
     oldPassword: "",
@@ -268,7 +264,7 @@ export default function Profile() {
                 <button
                   onClick={() => {
                     setIsEditing(false);
-                    setPreviewUrl(getProfilePicUrl(user?.profilePicture));
+                    setPreviewUrl(getFileUrl(user?.profilePicture));
                   }}
                   className="w-full py-5 bg-white text-rose-500 rounded-2xl font-bold uppercase tracking-widest text-xs border border-rose-100 hover:bg-rose-50 transition-all flex items-center justify-center gap-3"
                 >

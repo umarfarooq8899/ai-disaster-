@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import MapView from "../../components/map/MapView";
 import { getAllDisasters } from "../../api/disasters";
+import api from "../../api/client";
 import {
   Navigation,
   MapPin,
@@ -31,7 +32,41 @@ export default function VolunteerNearby() {
   const fetchDisasters = useCallback(async () => {
     try {
       const data = await getAllDisasters();
-      setDisasters(data);
+      
+      // Fetch AI Predictions
+      let aiZones = [];
+      try {
+        const aiRes = await api.get('/ai/live-status');
+        const liveStatus = aiRes.data;
+        if (liveStatus) {
+            ['earthquake', 'flood', 'fire', 'slr'].forEach(key => {
+                if (liveStatus[key] && liveStatus[key].threatZones) {
+                    liveStatus[key].threatZones.forEach(zone => {
+                        aiZones.push({
+                            _id: 'ai-' + Math.random().toString(36).substring(2, 11),
+                            title: `AI PREDICTION: ${zone.title}`,
+                            description: zone.description || 'AI detected high risk pattern.',
+                            location: zone.title,
+                            latitude: zone.latitude,
+                            longitude: zone.longitude,
+                            severity: zone.severity || 'high',
+                            status: 'Active Surveillance',
+                            createdAt: new Date().toISOString(),
+                            isAI: true,
+                            ml_probability: liveStatus[key].ml_probability,
+                            confidence_score: liveStatus[key].confidence,
+                            threatZones: [zone],
+                            dangerRadius: zone.dangerRadius || 20
+                        });
+                    });
+                }
+            });
+        }
+      } catch (aiErr) {
+        console.error("Failed to fetch AI predictions", aiErr);
+      }
+
+      setDisasters([...data, ...aiZones]);
     } catch (err) {
       console.error("Error fetching disasters:", err);
     } finally {
@@ -54,12 +89,18 @@ export default function VolunteerNearby() {
     return R * c;
   };
 
-  const sortedDisasters = [...disasters].sort((a, b) => {
-    if (!userLocation) return new Date(b.createdAt) - new Date(a.createdAt);
-    const distA = calculateDistance(userLocation.latitude, userLocation.longitude, a.latitude, a.longitude);
-    const distB = calculateDistance(userLocation.latitude, userLocation.longitude, b.latitude, b.longitude);
-    return distA - distB;
-  });
+  const sortedDisasters = [...disasters]
+    .filter(a => {
+      if (!userLocation) return true;
+      const dist = calculateDistance(userLocation.latitude, userLocation.longitude, a.latitude, a.longitude);
+      return dist <= 40;
+    })
+    .sort((a, b) => {
+      if (!userLocation) return new Date(b.createdAt) - new Date(a.createdAt);
+      const distA = calculateDistance(userLocation.latitude, userLocation.longitude, a.latitude, a.longitude);
+      const distB = calculateDistance(userLocation.latitude, userLocation.longitude, b.latitude, b.longitude);
+      return distA - distB;
+    });
 
   const handleLocateMe = () => {
     if (!navigator.geolocation) {

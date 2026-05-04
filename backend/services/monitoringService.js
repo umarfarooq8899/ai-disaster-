@@ -16,8 +16,8 @@ const triggerAutomatedAlert = async (type, detail) => {
             title: { $regex: 'AI AUTO-ALERT' }
         }).sort({ createdAt: -1 });
 
-        // Don't spam alerts if one was created in the last hour
-        if (existingAlert && (new Date() - existingAlert.createdAt < 3600000)) {
+        // If an active AI alert of this type already exists, don't create a new one to avoid spam
+        if (existingAlert) {
             return;
         }
 
@@ -26,7 +26,7 @@ const triggerAutomatedAlert = async (type, detail) => {
             type: type,
             target: 'Regional Authorities / Responders',
             status: 'Active',
-            detail: detail // Note: Added detail to help users, though model might need it
+            message: detail 
         });
         console.log(`[Monitoring] Automated alert triggered for ${type}`);
     } catch (err) {

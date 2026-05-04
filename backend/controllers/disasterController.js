@@ -47,7 +47,12 @@ exports.createDisaster = async (req, res) => {
 // Get approved disasters (public)
 exports.getApprovedDisasters = async (req, res) => {
   try {
-    const disasters = await Disaster.find({ status: "approved" }).populate(
+    const query = { status: "active" };
+    if (req.query.isAI !== undefined) {
+      query.isAI = req.query.isAI === 'true';
+    }
+    
+    const disasters = await Disaster.find(query).populate(
       "reportedBy",
       "name email"
     );

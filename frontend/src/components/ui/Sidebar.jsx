@@ -84,6 +84,9 @@ export default function Sidebar({ role = "general", collapsed, mobileOpen, setMo
           {role !== "admin" && (
             <NavItem to="/dashboard/user/ai-analysis" onClick={() => setMobileOpen(false)}>AI Analysis</NavItem>
           )}
+          {role === "general" && (
+            <NavItem to="/dashboard/user/nearby" onClick={() => setMobileOpen(false)}>Nearby Reports</NavItem>
+          )}
 
           {/* Volunteer */}
           {role === "volunteer" && (

@@ -152,10 +152,10 @@ export default function AdminDashboard() {
             {/* MAIN CONTENT AREA */}
             <section className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* STATS SECTION (LEFT 2 COLS) */}
-                <div className="lg:col-span-2 space-y-8">
-                    <section className="bg-white rounded-3xl border shadow-soft overflow-hidden relative">
+                <div className="lg:col-span-2 h-full">
+                    <section className="bg-white rounded-3xl border shadow-soft overflow-hidden relative h-full">
                         <div className="absolute top-0 left-0 w-2 h-full bg-brand-500" />
-                        <div className="p-10">
+                        <div className="p-10 h-full">
                             <header className="flex justify-between items-start mb-8 text-left">
                                 <div>
                                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Live Metrics</span>

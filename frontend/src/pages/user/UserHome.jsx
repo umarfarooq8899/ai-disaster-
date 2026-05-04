@@ -145,7 +145,7 @@ export default function UserHome() {
                 <Clock className="w-5 h-5 text-brand-600" />
                 <h3 className="font-black text-xl text-slate-900 tracking-tight">Relief Activity</h3>
             </div>
-            <div className="bg-white rounded-3xl border shadow-sm flex-1 overflow-hidden flex flex-col min-h-[480px]">
+            <div className="bg-white rounded-3xl border shadow-sm overflow-hidden flex flex-col" style={{ height: "480px" }}>
                 <div className="p-6 border-b bg-slate-50/50">
                     <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Global Operations Feed</p>
                 </div>

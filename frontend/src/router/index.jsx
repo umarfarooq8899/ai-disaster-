@@ -119,6 +119,7 @@ export default function Router() {
           <Route path="user/reports" element={<PageTransition><MyReports /></PageTransition>} />
           <Route path="user/safe-zones" element={<PageTransition><SafeZones /></PageTransition>} />
           <Route path="user/ai-analysis" element={<PageTransition><AIDashboard /></PageTransition>} />
+          <Route path="user/nearby" element={<PageTransition><NearbyReports /></PageTransition>} />
 
           <Route path="volunteer" element={<PageTransition><VolunteerHome /></PageTransition>} />
           <Route path="volunteer/create" element={<PageTransition><CreateVolunteer /></PageTransition>} />

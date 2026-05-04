@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { getAllDisasters } from "../../api/disasters";
+import { getAllAlerts } from "../../api/alerts";
 import { MapPin, Clock, AlertCircle, Radio, X } from "lucide-react";
 
 const badge = (severity) => {
@@ -17,9 +18,21 @@ export default function Alerts() {
   const [selectedDisaster, setSelectedDisaster] = useState(null);
 
   useEffect(() => {
-    getAllDisasters(true)
-      .then(setItems)
-      .finally(() => setLoading(false));
+    Promise.all([
+      getAllDisasters(true).catch(() => []),
+      getAllAlerts().catch(() => [])
+    ]).then(([disasters, alerts]) => {
+      // Map alerts to match disaster format for rendering
+      const mappedAlerts = alerts.map(a => ({
+        ...a,
+        description: a.message,
+        reportedBy: a.createdBy,
+        isAlertObject: true
+      }));
+      
+      const combined = [...disasters, ...mappedAlerts].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      setItems(combined);
+    }).finally(() => setLoading(false));
   }, []);
 
   return (

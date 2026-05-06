@@ -106,7 +106,7 @@ def predict_from_telemetry(usgs_mag_string):
                 confidence_score = round(min(99.0, 70 + high_risk_prob * 30), 1)
                 est_ttf = max(0.5, 24.0 / (weight * (max_mag + 0.1)))
             elif high_risk_prob >= 0.25 or is_anomaly or max_mag >= 4.5 or count > 25:
-                prediction_label = "Medium Risk"
+                prediction_label = "high risk"
                 confidence_score = round(min(88.0, 55 + high_risk_prob * 40), 1)
                 est_ttf = max(12.0, 72.0 / weight)
             else:
